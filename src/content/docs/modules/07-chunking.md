@@ -64,7 +64,8 @@ with it.</strong>
 </div>
 
 **Overlap does not fix it.** Sixty characters of overlap adds 75 chunks (288 → 363) and moves
-the boundary: header in chunk 5, K row in chunk 7. Still two apart. Overlap hedges against
+the boundary: the header now appears in chunks 4 and 5, because the overlap copies it, and the
+K row is in chunk 7. Still two apart. Overlap hedges against
 cutting a sentence; it does nothing about a reference 900 characters away.
 
 **Recursive splitting does not fix it either.** This is the uncomfortable one: it is the
@@ -98,14 +99,25 @@ where you decide whether you are measuring or advertising.
 
 The corpus carries the mess a real export carries, on purpose. Of 28 documents, **23** have a
 `Page 3 of 7` artefact stranded mid-table, **16** carry leftover HTML (`<br>`, `&nbsp;`,
-`<div class="legal">`), and **6** repeat a paragraph verbatim — including `macro_en_refund.md`,
-where "read the cancellation column, not the change column" appears twice in a row.
+`<div class="legal">`), and the six fare rule sheets close with the same legal footer word for word. Exactly one
+document repeats a paragraph inside itself: `macro_en_refund.md`, where "read the cancellation
+column, not the change column" appears twice in a row.
 
-Strip page artefacts, HTML, boilerplate footers and duplicate paragraphs and the corpus loses
-**10.8%** of its characters. Fixed-280 drops from **288 to 260** chunks: about one chunk in ten
-was mostly boilerplate, competing for a top-5 slot against real content. Structure-aware drops
-only from **152 to 149**, because that boilerplate was already isolated in its own sections and
-never diluted a rule chunk. Blind chunking is punished twice by the same mess.
+`strip_boilerplate()` in `eval/chunking.py` removes the legal blocks, the page artefacts and the
+leftover markup, and the corpus loses **4.2%** of its characters — 77,114 down to 73,841. A small
+cut, and it moves the metric on both strategies:
+
+| | chunks | hit@1 | MRR |
+|---|---|---|---|
+| fixed-280, as-is | 288 | 0.650 | 0.789 |
+| fixed-280, cleaned | 275 | **0.700** | **0.802** |
+| structure-aware, as-is | 152 | 0.800 | 0.846 |
+| structure-aware, cleaned | 151 | **0.850** | **0.871** |
+
+Thirteen chunks disappear from the blind strategy and one from the structure-aware one, because
+structure-aware chunking had already isolated the boilerplate in its own sections rather than
+smearing it through every chunk. Both gain the same five points of hit@1 — cleaning helps whatever
+you do, and 0.850 with MRR 0.871 is the best this corpus reaches anywhere in the course.
 
 We have not measured a retrieval delta from cleaning alone: on 20 questions it would sit inside
 the noise floor. What would settle it is the same benchmark on a gold set big enough that 0.05
@@ -157,7 +169,7 @@ demo; the benchmark is the evidence.
 |---|---|---|
 | whole documents | n/a — nothing was cut | 1.000 |
 | fixed 280 | no (header chunk 4, K row chunk 6) | 0.500 |
-| fixed 280 + overlap 60 | no (chunk 5 vs chunk 7) — overlap moves the boundary | — |
+| fixed 280 + overlap 60 | no (chunks 4-5 vs chunk 7) — overlap moves the boundary | — |
 | recursive 600 | no (chunk 4 vs chunk 5) — the table is wider than the split | — |
 | structure-aware 900 | yes (both in chunk 4) | 1.000 |
 

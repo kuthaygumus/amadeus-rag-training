@@ -231,4 +231,5 @@ measured against 0.550, and two of the popular improvements will fail to beat it
 
 ## Exit line
 
-> RAG works. Retrieval is bringing back garbage.
+> RAG works, and retrieval is bringing back garbage. Before we fix that — I chose this
+> embedding model for you, and I never said why.

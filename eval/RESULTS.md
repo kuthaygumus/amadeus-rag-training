@@ -121,3 +121,33 @@ Asking a small model to hold six passages in its head and order them is asking i
 something it is bad at. Asking it about one passage at a time costs six calls instead of one
 and is the only version that worked. (This one is `n=5`; treat the direction as real and the
 magnitude as unproven.)
+
+## 6. Stuffing the whole corpus into the prompt is *more* accurate here, not less
+
+The usual argument for retrieval is that a long context degrades the answer — the model has more
+plausible-looking wrong material competing for attention. We measured it on eight questions whose
+answers are single verifiable values in the corpus, at four context sizes:
+
+| context given to the model | characters | correct |
+|---|---|---|
+| top-1 chunk | 239 | 1/8 |
+| top-3 chunks | 1,256 | 3/8 |
+| top-5 chunks | 2,144 | 4/8 |
+| **the whole corpus** | **78,113** | **5/8** |
+
+Monotonic, in the direction opposite to the folklore. At this corpus size and this model size there
+is no distractor penalty to find. Some of the low end is a recall problem rather than a reading
+problem — a single 239-character chunk often does not contain the answer at all — but the
+comparison that matters, top-5 against everything, still favours everything.
+
+**So the case for retrieval on this corpus is not accuracy.** It is roughly eleven times fewer
+tokens per question, a cold first query that takes 75.8 s against 2.8 s, and the fact that one
+order of magnitude more documents does not fit in the window at all. Those are good reasons. "It
+answers better" is not one of them here, and claiming it would be the easiest thing on this page
+for someone in the room to check and disprove.
+
+Worth noting separately: on several of these questions **both** conditions were wrong, and wrong in
+an unusual way. Asked for the class K change penalty, the model answered `EUR 155` — a number that
+appears in no cell of the table. Given a nine-column filed-tariff table it does not simply read the
+wrong column; it sometimes produces a value between two of them. That is a reading failure of the
+generation step, entirely separate from whether retrieval found the right document.

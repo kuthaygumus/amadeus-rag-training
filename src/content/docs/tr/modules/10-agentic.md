@@ -232,8 +232,8 @@ hiçbir kaynak gösteremiyorlardı. Bütün kural kitabını prompt'a koyduk, s�
 KB'ın tamamını ödedik. Seçmeye başladık — retrieval çöp getirdi. Embedder'ı değiştirdik, çünkü
 default sadece İngilizceydi ve kimse uyarmamıştı. Chunker'ı değiştirdik ve hatanın satır değil
 header olduğunu bulduk. Gerçek olsun diye ChromaDB'ye koyduk. Hybrid ve rerank ekledik ve bir
-reranker'ın upgrade değil takas olduğunu ölçtük. Sonra tek bir soru aynı anda üç doküman
-istedi ve kurstaki her tek atışlık yöntem o soruda 0.500 aldı.
+reranker'ın upgrade değil takas olduğunu ölçtük. Sonra tek iki soru aynı anda üç doküman
+istedi ve kurstaki hiçbir tek atışlık yöntem o iki soruda 0.500'ün üstüne çıkamadı; birinde sıfır aldılar.
 
 On gate, hiçbiri tanımla açılmadı. Her biri bir önceki modülün çarptığı duvardı. Bütün gün tek
 bir sayı: **EUR 90** — bir dokümandan alıntılanmış ve dokümanın adı verilmiş hâliyle.

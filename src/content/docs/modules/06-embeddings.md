@@ -219,4 +219,5 @@ number. 2 minutes, then move.
 
 ## Exit line
 
-> The default was wrong for your language, and nobody told you.
+> The default was wrong for your language, and nobody told you. We have the right embedder now
+> — and retrieval is still only 0.550.

@@ -211,4 +211,5 @@ Sayı uydurma. 2 dakika, sonra devam.
 
 ## Çıkış cümlesi
 
-> Varsayılan sizin diliniz için yanlıştı ve kimse söylemedi.
+> Varsayılan sizin diliniz için yanlıştı ve kimse söylemedi. Artık doğru embedder elimizde
+> — ve retrieval hâlâ sadece 0.550.

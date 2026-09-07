@@ -234,8 +234,8 @@ and we paid for all 75 KB on every query. So we selected — and retrieval broug
 So we changed the embedder, because the default was English-only and nobody warned us. So we
 changed the chunker, and found the header, not the row, was the failure. So we put it in
 ChromaDB to make it real. So we added hybrid and reranking, and measured that a reranker is a
-trade, not an upgrade. And then one question needed three documents at once, and every
-single-shot method in the course scored 0.500 on it.
+trade, not an upgrade. And then two questions needed three documents at once, and no
+single-shot method in the course got that pair above 0.500 — on one of them they scored zero.
 
 Ten gates, not one of them a definition. Each was a wall the previous module walked into. The
 whole day is one number: **EUR 90**, quoted from a document, with the document named.

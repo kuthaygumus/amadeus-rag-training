@@ -229,4 +229,5 @@ laptopta gold set'in yarısından fazlasını doğru cevaplıyor. Bundan sonraki
 
 ## Çıkış cümlesi
 
-> RAG çalışıyor. Retrieval çöp getiriyor.
+> RAG çalışıyor ve retrieval çöp getiriyor. Onu düzeltmeden önce — bu embedding modelini
+> ben senin yerine seçtim, ve neden seçtiğimi hiç söylemedim.

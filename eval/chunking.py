@@ -118,3 +118,30 @@ def to_documents(chunk_ranking: list[str]) -> list[str]:
             seen.add(doc)
             out.append(doc)
     return out
+
+
+BOILERPLATE = [
+    # The same legal block closes every fare rule sheet. Six near-identical tails competing for
+    # space in a top-k, none of them the answer to anything.
+    re.compile(r"<div class=\"legal\">.*?</div>", re.S),
+    re.compile(r"^LEGAL NOTICE.*?(?=\n\n|\Z)", re.S | re.M),
+    re.compile(r"^DISCLAIMER:.*?(?=\n\n|\Z)", re.S | re.M),
+    # Export artefacts.
+    re.compile(r"^\s*Page \d+ of \d+\s*$", re.M),
+    re.compile(r"</?(?:div|br|span|p)[^>]*>"),
+    re.compile(r"&nbsp;"),
+    # The distribution footer repeated verbatim across every bulletin.
+    re.compile(r"^Distribution:.*?(?=\n\n|\Z)", re.S | re.M),
+]
+
+
+def strip_boilerplate(text: str) -> str:
+    """Remove the parts that repeat across documents and answer nothing.
+
+    Worth doing before chunking rather than after: boilerplate that survives into the index does
+    not merely waste space, it produces chunks whose only distinguishing content is shared with
+    five other documents, and those compete for a place in the top-k.
+    """
+    for pattern in BOILERPLATE:
+        text = pattern.sub("", text)
+    return re.sub(r"\n{3,}", "\n\n", text).strip()

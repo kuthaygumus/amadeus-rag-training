@@ -9,13 +9,13 @@ description: "How do I bake my own data into the weights? We do it, it works, an
 
 > **How do I bake my own data into the weights?**
 
-The last module ended on a photograph. A network is a pile of numbers — 101,770 of them in the digit classifier you just trained — and gradient descent moved them until the loss stopped falling. 17.4 seconds, 93.8% to 97.0%. Then it stopped, and the numbers froze.
+The last module ended on a photograph. A network is a pile of numbers — 101,770 of them in the digit classifier you just trained — and gradient descent moved them until the loss stopped falling. 0.84 seconds, 9.9% to 97.5%. Then it stopped, and the numbers froze.
 
 So the obvious move is the one the room is already thinking. The bare model in module 1 invented a "20-30% ceza" for a Helios CLASSIC K ticket because nobody had shown it a Helios rule book. Show it the rule book. Fit the numbers to *our* data. That is this module, and it works — which is why it is the most dangerous hour of the day.
 
 <div class="presenter-note">
 
-Before the first cell: "Module 2 fitted 101,770 numbers to handwriting in 17 seconds. We have 28 documents. Who thinks we can fit a model to those?" Almost every hand goes up. Say "Good. So do I." Do not foreshadow the failure — the demo has to land as a surprise, not a setup.
+Before the first cell: "Module 2 fitted 101,770 numbers to handwriting in under a second. We have 28 documents. Who thinks we can fit a model to those?" Almost every hand goes up. Say "Good. So do I." Do not foreshadow the failure — the demo has to land as a surprise, not a setup.
 
 </div>
 
@@ -57,7 +57,7 @@ It is not lying. It was right when it learned. In module 1 the bare model *inven
 
 ## What retraining actually costs
 
-Fine — retrain every quarter. Look at what that means. The whole Q2 → Q3 delta is in `corpus/DELTA.md`: seven documents that did not exist last quarter, four routine version bumps, and **one changed table row**. Twenty-one documents became twenty-eight.
+Fine — retrain every quarter. Look at what that means. The whole Q2 → Q3 delta is in `corpus/DELTA.md`: seven documents that did not exist last quarter, three routine policy reissues, one SOP marked superseded, and **one changed table row**. Twenty-one documents became twenty-eight.
 
 To move that row into the weights you regenerate the instruction set, retrain the adapter, merge, re-quantise, convert to GGUF, re-score the 20 gold questions to prove nothing else regressed, and redistribute a multi-gigabyte artefact to every machine. The cost is not the GPU hour. It is that the smallest change to your knowledge takes the largest unit of work plus a full revalidation — and while that pipeline runs, every answer about that row is wrong and nothing in the output says so.
 

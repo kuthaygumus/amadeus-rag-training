@@ -9,13 +9,13 @@ description: "Kendi verimi ağırlığa nasıl gömerim? Gömüyoruz, çalışı
 
 > **Kendi verimi ağırlığa nasıl gömerim?**
 
-Bir önceki modül donmuş bir fotoğrafla bitti. Bir ağ, bir yığın sayıdan ibaret — az önce eğittiğin rakam sınıflandırıcıda 101.770 tane — ve gradient descent loss düşmeyi bırakana kadar o sayıları dürttü. 17.4 saniye, %93.8'den %97.0'a. Sonra durdu ve sayılar dondu.
+Bir önceki modül donmuş bir fotoğrafla bitti. Bir ağ, bir yığın sayıdan ibaret — az önce eğittiğin rakam sınıflandırıcıda 101.770 tane — ve gradient descent loss düşmeyi bırakana kadar o sayıları dürttü. 0.84 saniye, %9.9'dan %97.5'e. Sonra durdu ve sayılar dondu.
 
 Yani odanın aklına gelen hamle zaten belli. Modül 1'de çıplak model Helios CLASSIC K bileti için "20-30% ceza" uydurdu, çünkü kimse ona bir Helios kural kitabı göstermemişti. Göster o zaman. Sayıları *bizim* verimize fit et. Bu modül tam olarak bunu yapıyor ve çalışıyor — günün en tehlikeli saati olmasının sebebi de bu.
 
 <div class="presenter-note">
 
-İlk hücreden önce: "Modül 2, 101.770 sayıyı 17 saniyede el yazısına fit etti. Elimizde 28 doküman var. Kim bir modeli bunlara fit edebileceğimizi düşünüyor?" Neredeyse bütün eller kalkar. "Güzel. Ben de öyle düşünüyorum" de. Hatayı önceden ima etme — demonun sürpriz olarak inmesi lazım, kurulmuş bir tuzak olarak değil.
+İlk hücreden önce: "Modül 2, 101.770 sayıyı bir saniyenin altında el yazısına fit etti. Elimizde 28 doküman var. Kim bir modeli bunlara fit edebileceğimizi düşünüyor?" Neredeyse bütün eller kalkar. "Güzel. Ben de öyle düşünüyorum" de. Hatayı önceden ima etme — demonun sürpriz olarak inmesi lazım, kurulmuş bir tuzak olarak değil.
 
 </div>
 
@@ -57,7 +57,7 @@ Yalan söylemiyor. Öğrendiğinde haklıydı. Modül 1'de çıplak model var ol
 
 ## Retrain gerçekte neye mal oluyor
 
-Peki, üç ayda bir retrain edelim. Bunun ne demek olduğuna bak. Q2 → Q3 farkının tamamı `corpus/DELTA.md` içinde: geçen çeyrek var olmayan yedi doküman, dört rutin versiyon artışı ve **bir değişmiş tablo satırı**. Yirmi bir doküman yirmi sekiz oldu.
+Peki, üç ayda bir retrain edelim. Bunun ne demek olduğuna bak. Q2 → Q3 farkının tamamı `corpus/DELTA.md` içinde: geçen çeyrek var olmayan yedi doküman, üç rutin politika yenilemesi, geçersiz kılınmış bir SOP ve **bir değişmiş tablo satırı**. Yirmi bir doküman yirmi sekiz oldu.
 
 O bir satırı ağırlıkların içine taşımak için instruction set'i yeniden üretiyor, adapter'ı yeniden eğitiyor, merge ediyor, yeniden quantize ediyor, GGUF'a çeviriyor, başka hiçbir şeyin bozulmadığını kanıtlamak için 20 gold soruyu yeniden puanlıyor ve gigabyte'larca artefaktı onu çalıştıran her makineye yeniden dağıtıyorsun. Maliyet GPU saati değil. Maliyet şu: bilgindeki en küçük değişiklik, en büyük iş birimini artı tam bir yeniden doğrulamayı gerektiriyor — ve o pipeline sürdüğü sürece o satırla ilgili her cevap yanlış, üstelik çıktının hiçbir yerinde bunu söyleyen bir işaret yok.
 
