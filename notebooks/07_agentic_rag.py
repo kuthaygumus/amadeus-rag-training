@@ -154,6 +154,26 @@ answer = R.generate(
 print(answer)
 
 # %% [markdown]
+# ## Read that answer critically
+#
+# Retrieval did its job — all three documents are in front of the model. The answer is still not
+# good. Ours quoted a hotel threshold as if it were a hotel *amount*, and then contradicted itself
+# about the change fee in the last two sentences.
+#
+# That is the same failure module 4 measured: given a nine-column filed tariff, a 3B model
+# sometimes reads across the wrong column, or invents a value between two of them. Solving
+# retrieval does not solve reading.
+#
+# It is worth saying this out loud rather than letting the finale look cleaner than it is. Every
+# metric in this course scores **retrieval** — whether the right document came back. Not one of
+# them scores whether the answer was right. Those are different systems with different failure
+# modes, and we have only been measuring the first one.
+#
+# If you carried one thing from today into your own project, it might be this: build the retrieval
+# eval first, because it is cheap and deterministic, and then build a second one for the answers,
+# because the first will not tell you when the second is broken.
+
+# %% [markdown]
 # ## Both multi-hop questions, single-shot versus agentic
 
 # %%
