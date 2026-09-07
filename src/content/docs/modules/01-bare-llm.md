@@ -1,6 +1,6 @@
 ---
 title: "1. The Bare LLM Wall"
-description: "Does the model know *my* data?"
+description: "The model invents a cancellation penalty for an airline that does not exist, then refuses to guess a departure time — and both answers sound exactly the same."
 ---
 
 > **Helios Air is a fictional airline.** Every document, fare, flight number and rule in this course is synthetic and written for teaching. No Amadeus system, customer or production data is used anywhere in this repository.
@@ -9,8 +9,105 @@ description: "Does the model know *my* data?"
 
 > **Does the model know *my* data?**
 
-_Content in progress — this page is written during the 30-day build._
+<div class="presenter-note">
+Before running anything, put the question on screen and ask the room to write down their guess on paper: will a 3B model answer the Helios penalty question, or refuse? Most people say refuse. Get a show of hands and count it out loud — you want them committed before the cell runs, because the surprise is the whole module. Two minutes, no more.
+</div>
+
+We have a model on the laptop. No retrieval, no documents, nothing but the weights. We ask it the question a Helios agent gets ten times a day.
+
+**Prompt:** `Helios CLASSIC K iptal cezası?`
+**qwen2.5:3b:** an explanation that the penalty is typically **"20-30% ceza"** of the fare.
+
+There is no Helios Air. There is no CLASSIC K fare outside this repository. The model did not hesitate, did not qualify, did not ask which route band. It produced a percentage range with the cadence of an answer.
+
+The real figure is in `corpus/2026-Q3/fare_classic_shorthaul.md`, row K: **EUR 90**, a flat amount per passenger per direction, not a percentage. Last quarter the same row said EUR 120. So the model is wrong about the number, wrong about the *shape* of the number, and has no way to be right about which quarter you meant.
+
+Now the sharper probe. Drop the fictional carrier and ask about the industry in general.
+
+**Prompt:** `K booking class typical penalty?`
+**qwen2.5:3b:** **"K (Business) sınıfı %10-20"**.
+
+Wrong twice over. The percentage is invented as before, but the parenthesis is worse: K is not a business class. In normal airline filing practice K is a discounted economy booking class — exactly what it is in our corpus. So this is not "the model is missing our private data". It is confidently wrong about the public part too, stated as fact, with no hedge.
+
+<div class="presenter-note">
+Say this out loud and let it sit: "It did not just miss our data. It got the industry wrong." Someone in the room will already be typing the same question into a bigger model to prove it does better. Let them — a larger model gets K right more often, and it still cannot know that this quarter's number is 90 and not 120. Move the argument there rather than defending the 3B model.
+</div>
+
+Then the contrast that makes the failure precise. Same model, same session, no context.
+
+**Prompt:** `What time does H9 1487 depart?` → it correctly said it does not know.
+**Prompt:** `How much is the misconnect meal voucher?` → it correctly said it does not know.
+
+So it is not a random text generator. It abstained twice, cleanly, on exactly the questions where abstaining is right. Why those two?
+
+Because of what is in the training text. A language model predicts the next token from learned weights — billions of parameters compressing the statistical shape of everything it read. No lookup table, no source document, no timestamp on any fact. Ask about a cancellation penalty and the pattern *"airline cancellation fees are a percentage of the fare, typically in this range"* is attested tens of thousands of times, so the most likely continuation is a plausible instance of it. It fills the slot because the slot has a well-attested filler. Ask for the departure time of H9 1487 and there is no filler to reach for — but there is a well-attested pattern of *text that declines to state a specific schedule*. So that is what comes out.
+
+The abstention is not the model checking its knowledge. Nothing consulted an inventory. Both behaviours came out of the same next-token machine; one prior happened to point at a number, the other happened to point at a refusal. Treating the refusal as evidence that the model knows its own limits is the mistake that puts a wrong penalty in front of a passenger.
+
+Which is the point of the module.
+
+**The danger is not that it fails. The danger is that it fails in exactly the same voice it uses when it succeeds.** Same fluency, same confidence, same absence of a citation. Nothing in the output tells you which of the four answers above you are looking at. And take any short-haul fare around EUR 400: "20-30%" of it is EUR 80 to EUR 120 — a range that brackets the true EUR 90 closely enough to survive a distracted spot check, and is wrong every single time.
+
+That is the wall. Everything after this is an attempt to get over it: ask more carefully, train the model on our rules, or put the rules in front of it at answer time. We try all three today, in that order, and only one of them survives the corpus being reissued next quarter.
+
+## What you run
+
+Notebook: `00_bare_llm_fails.ipynb`.
+
+```bash
+ollama serve              # in a second terminal, if it is not already up
+ollama pull qwen2.5:3b
+python scripts/verify_setup.py
+```
+
+Then, in the notebook, the four probes go through the shared helper — no framework, no API key:
+
+```python
+from eval.retrieval import generate
+
+generate("Helios CLASSIC K iptal cezası?")
+generate("K booking class typical penalty?")
+generate("What time does H9 1487 depart?")
+generate("How much is the misconnect meal voucher?")
+```
+
+`generate()` calls local Ollama at `localhost:11434` with `temperature=0.0`. Your wording will still drift a little from the transcript above; the two hallucinations and the two abstentions hold.
+
+<div class="presenter-note">
+If Ollama is down or a pull is still running, do not debug on stage. The four transcripts are on this page — read them, say "this ran on my machine this morning, you will reproduce it in the lab block", and keep going. Total module time is 20 minutes, of which the live cells are about 4. If someone reports a different phrasing, that is expected and worth one sentence: sampling varies, the pattern does not.
+</div>
+
+## What the numbers said
+
+<div class="measured">
+
+| prompt (no context, `qwen2.5:3b`) | what it answered | correct? |
+|---|---|---|
+| `Helios CLASSIC K iptal cezası?` | invented "20-30% ceza" | no — the answer is EUR 90, a flat amount |
+| `K booking class typical penalty?` | "K (Business) sınıfı %10-20" | no — invented, and K is not a business class |
+| `What time does H9 1487 depart?` | abstained | yes |
+| `How much is the misconnect meal voucher?` | abstained | yes |
+
+Two hallucinations, two correct abstentions, one voice.
+
+</div>
+
+## Going deeper
+
+Think of the weights as compression, not storage. Training squeezes a corpus into a fixed parameter budget, so the frequent and generic survive at high fidelity while the specific and rare get reconstructed rather than recalled. What we call a hallucination is a confident sample from a region the training data never constrained. "Cancellation penalties are a percentage" is generic. "EUR 90 for booking class K on the short-haul CLASSIC sheet in 2026-Q3" is as specific as a fact gets. No amount of scale moves our corpus across that line.
+
+The abstentions deserve more attention than they usually get. Refusal is largely trained in: instruction tuning rewards "I don't know" for questions shaped like a lookup of a private or volatile fact. So the signal correlates with the *form* of the question, not with whether the model holds the fact. Ask for a flight time and the trained refusal fires. Ask for a policy percentage and it does not, because that shape looks answerable. Prompting moves the line — a firm instruction to answer only from provided context raises abstention noticeably — but you are tuning a prior, not installing a knowledge check.
+
+The honest version of the confidence question: token-level log probabilities are cheap and a weak but non-zero signal — a fabricated number often carries lower per-token probability than a memorised one. It is not reliable enough to gate a passenger-facing answer, and it fails hardest on exactly the fluent confabulations you most wanted to catch. Self-consistency — sample five times at temperature 0.7 and see whether the number moves — detects better and costs five times as much. We use neither today, because grounding the answer in a retrieved document is cheaper *and* auditable, and auditable is what an airline needs.
+
+Model choice does not rescue you here, but it matters later and we measured it. With context supplied, `qwen2.5:3b` answered 3/3 in 0.9 s, `gemma3:4b` 2/3 in 1.9 s, `qwen2.5:1.5b` 2/3 (wrong row on the multi-hop question), `qwen3:4b` correct but 11.6 s burning reasoning tokens. The result that decided the course: `llama3.2:3b` answered EUR 70 instead of EUR 90 with the table header **in** its context. A model that misreads a column it can see cannot be used to teach retrieval, so it is banned from the day — and it means the failure you spend today fixing is not purely a retrieval failure.
+
+At ten million documents none of this changes; the arithmetic around it does. You will not fine-tune a quarterly rule change into weights at that size, and you will not fit the relevant rules into a prompt by luck. What scales is the boring part: a retrieval layer that can name the document and the effective date it answered from, and an evaluation set that tells you when it stopped working. That is why the day is built around a 20-question gold set and not around a framework.
 
 ## Exit line
 
 > It does not know — and it does not know that it does not know.
+
+<div class="presenter-note">
+This is the one sentence you must not garble. Say it slowly, do not add to it, and do not explain it — the next module is the explanation. Then straight into module 2 with: "So what is actually inside the thing that just invented a percentage?"
+</div>

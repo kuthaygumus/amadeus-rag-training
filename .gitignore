@@ -29,3 +29,6 @@ _internal/
 PLAN*.md
 design/
 verification/
+
+# MNIST cache — downloaded on first run
+notebooks/mnist_data/
