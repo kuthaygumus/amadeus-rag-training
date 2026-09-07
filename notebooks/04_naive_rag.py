@@ -1,0 +1,236 @@
+# %% [markdown]
+# # 04 · From keyword search to naive RAG
+#
+# > **Helios Air is a fictional airline.** Everything here is synthetic training material.
+#
+# We know the model does not have our data, and we know we cannot afford to hand it the entire
+# rule book on every question. So we need to find the right piece and hand over only that.
+#
+# Start with the least clever thing that could possibly work.
+
+# %%
+import sys, time
+from pathlib import Path
+sys.path.insert(0, "../eval")
+import retrieval as R, metrics
+
+CORPUS = Path("../corpus/2026-Q3")
+docs = {p.stem: p.read_text(encoding="utf-8") for p in sorted(CORPUS.glob("*.md"))}
+doc_ids, texts = list(docs), list(docs.values())
+print(f"{len(docs)} documents, {sum(map(len, texts)) / 1024:.0f} KB")
+
+# %% [markdown]
+# ## Part 1 — keyword search
+#
+# BM25 scores a document by how often the query's words appear in it, discounted by how common
+# those words are everywhere else, and adjusted for document length. Three ideas, no training,
+# no model. `eval/retrieval.py` writes it out rather than importing a library so you can read it.
+#
+# It should do well on something no embedding will ever nail: an exact flight code.
+
+# %%
+bm25 = R.BM25(doc_ids, texts)
+for query in ["H9 1487", "SCB-2026-0914"]:
+    print(f"{query!r:>18} -> {bm25.rank(query)[:3]}")
+
+# %% [markdown]
+# Exactly right, both times. Now the query an actual call-centre agent would type.
+#
+# **Guess first:** the agent asks, in Turkish, what a passenger pays if they cancel. The answer
+# is in an English document that uses the phrase "cancellation penalty". Does BM25 find it?
+
+# %%
+paraphrase = "Musteri bileti iptal ederse ne oder?"
+ranking = bm25.rank(paraphrase)
+print(f"{paraphrase!r}\n  top 3: {ranking[:3]}")
+print(f"  where the right document ended up: rank {ranking.index('fare_classic_shorthaul') + 1}")
+
+# %% [markdown]
+# It cannot work, and the reason is not subtle. The query contains the words *iptal*, *ne* and
+# *oder*. The document contains *cancellation*, *penalty* and *EUR*. There is no shared token to
+# count. BM25 is not bad at meaning — it has no notion of meaning at all.
+
+# %% [markdown]
+# ## Part 2 — embeddings
+#
+# So match on meaning instead. An embedding model turns a piece of text into a list of numbers
+# positioned so that things which mean similar things land near each other. Then "find the
+# relevant document" becomes "find the nearest vector", which is just arithmetic.
+
+# %%
+start = time.time()
+dense = R.DenseRetriever(doc_ids, texts)          # bge-m3, 1024 numbers per document
+print(f"embedded {len(doc_ids)} documents in {time.time() - start:.1f}s")
+
+ranking = dense.rank(paraphrase)
+print(f"\n{paraphrase!r}\n  top 3: {ranking[:3]}")
+print(f"  right document: rank {ranking.index('fare_classic_shorthaul') + 1}")
+
+# %% [markdown]
+# ## Part 3 — the whole naive pipeline
+#
+# Retrieve the top few documents, paste them into the prompt, ask the question. That is RAG.
+# There is no more to the basic idea than this.
+
+# %%
+def naive_rag(question: str, k: int = 3) -> str:
+    hits = dense.rank(question)[:k]
+    context = "\n\n".join(f"[SOURCE: {h}.md]\n{docs[h][:1500]}" for h in hits)
+    answer = R.generate(
+        f"SOURCES:\n{context}\n\nQUESTION: {question}",
+        system=("Answer ONLY from the sources. Cite the source filename in square brackets. "
+                "If the sources do not contain the answer, say you do not know. Be brief."),
+    )
+    return f"retrieved: {hits}\n{answer}"
+
+print(naive_rag("CLASSIC K sinifi iptal cezasi ne kadar?"))
+
+# %% [markdown]
+# It works. The model that invented four different numbers in notebook 00 now reads a document
+# and answers from it, with a filename attached.
+#
+# So we are done — except we have not measured anything, and "it worked on the question I tried"
+# is not a result.
+
+# %% [markdown]
+# ## Part 4 — measuring it
+#
+# `eval/gold_questions.jsonl` holds twenty questions with the documents that should come back for
+# each. Three numbers, computed the same way every time, no model judging anything:
+#
+# - **hit@1** — was the top-ranked document a right one?
+# - **recall@5** — how much of the right set showed up in the top five?
+# - **MRR** — one over the rank of the first right document, averaged. This is the one that
+#   shows partial credit: moving a document from rank 6 to rank 2 leaves hit@1 untouched but
+#   moves MRR from 0.17 to 0.50.
+#
+# We will report these same three numbers twice more today, on this same set.
+
+# %%
+questions = metrics.load_gold("../eval/gold_questions.jsonl")
+results = {
+    "BM25":   metrics.evaluate({q["id"]: bm25.rank(q["query"]) for q in questions}, questions),
+    "bge-m3": metrics.evaluate({q["id"]: dense.rank(q["query"]) for q in questions}, questions),
+}
+print(metrics.compare(results, questions))
+
+# %% [markdown]
+# Read the by-type rows, not just the top line.
+#
+# BM25 wins on exact tokens and scores **zero** on every Turkish question whose answer is in an
+# English document. Dense retrieval is the reverse. Neither is simply better; they fail at
+# different things, which is worth remembering when someone tells you keyword search is obsolete.
+#
+# And the headline number is not good. Roughly half the questions do not put the right document
+# first.
+
+# %% [markdown]
+# ## Part 5 — four failures you can see
+#
+# An average tells you something is wrong. It does not tell you what. Look at the actual output.
+
+# %% [markdown]
+# **Failure 1 — the confidently wrong answer.**
+#
+# Ask for the K class cancellation penalty. The right document comes back first. Watch the answer
+# anyway.
+
+# %%
+print(naive_rag("CLASSIC K sinifi iptal cezasi kac euro?"))
+
+# %% [markdown]
+# The retrieval was right and the answer is still wrong. It talked about the wrong booking
+# classes, or the wrong route band, or both.
+#
+# The document is 3,400 characters and we handed over the first 1,500. Somewhere in that cut, the
+# row and the heading that labels its columns came apart. The model got a grid of euro amounts
+# with no idea which column meant cancellation, and it picked one. It did not hedge. Nothing in
+# the answer marks it as a guess.
+#
+# Remember this one. Module 7 is about exactly this failure.
+
+# %% [markdown]
+# **Failure 2 — two versions of the truth.**
+
+# %%
+hits = dense.rank("misconnect meal voucher amount")[:4]
+print("retrieved:", hits, "\n")
+for h in hits:
+    if "misconnect_v" not in h:
+        continue
+    lines = docs[h].splitlines()
+    version = next(l for l in lines if l.startswith("Version:"))
+    i = next(n for n, l in enumerate(lines) if "meal voucher" in l)
+    amount = " ".join(" ".join(lines[i:i + 2]).split())
+    print(f"  {h}\n    {version}\n    {amount}")
+
+# %% [markdown]
+# Both revisions of the same procedure came back, and they disagree about the money. One says
+# EUR 10, the other EUR 15. Only one of them is in force.
+#
+# A human reading the two documents would spot `Superseded` in the header. The retriever has no
+# concept of a document being superseded — it ranked both by similarity, and similarity is
+# exactly what these two have in common.
+
+# %% [markdown]
+# **Failure 3 — identifiers blur together.**
+#
+# Semantic similarity is the whole point of embeddings. It is also the problem, because two
+# bulletin numbers that differ by one digit mean completely different things while looking
+# almost identical.
+
+# %%
+for query, should_be in [("H9 1487", "bulletin_scb_2026_0914"),
+                         ("SCB-2026-0914", "bulletin_scb_2026_0914"),
+                         ("AU 88", "interline_h9_au"),
+                         ("booking class K", "fare_classic_shorthaul")]:
+    d_rank = dense.rank(query); b_rank = bm25.rank(query)
+    print(f"{query:<16} dense: rank {d_rank.index(should_be) + 1:<3} (top: {d_rank[0]})")
+    print(f"{'':<16} bm25 : rank {b_rank.index(should_be) + 1:<3} (top: {b_rank[0]})")
+
+# %% [markdown]
+# The flight number it handles. The bulletin id it does not — it puts a different bulletin first
+# and buries the right one. And `booking class K` returns a staff travel policy, because that
+# document also talks about booking classes at length.
+#
+# This is where the keyword search we discarded twenty minutes ago earns its place back.
+
+# %% [markdown]
+# **Failure 4 — the Turkish question that lands somewhere else entirely.**
+
+# %%
+question = next(q for q in questions if q["id"] == "q05")   # one of the six tr_en questions
+ranking = dense.rank(question["query"])
+print(question["query"], "\n")
+print(f"  top 3     : {ranking[:3]}")
+print(f"  should be : {question['gold_doc_ids'][0]}"
+      f"  (came back at rank {ranking.index(question['gold_doc_ids'][0]) + 1})")
+
+# %% [markdown]
+# A Turkish agent asks what a passenger waiting four hours is owed. The answer is in an English
+# procedure, and the documents that come back ahead of it are about baggage, or about denied
+# boarding, or about staff expenses — all of them plausibly "money after a travel disruption",
+# none of them the answer.
+#
+# The Turkish query and the English document share almost no vocabulary, so keyword search is
+# hopeless here by construction. But the embedding was supposed to bridge that gap, and it only
+# partly does. Six of our twenty questions are shaped like this one, and by the by-type table
+# above, two thirds of them fail.
+#
+# Whether that is the embedder's fault or ours is the question module 6 answers.
+
+# %% [markdown]
+# ## What we learned
+#
+# The pipeline is fine. Retrieval is what is broken, in four distinct ways:
+#
+# 1. we handed the model a slice of a document that lost the heading it needed
+# 2. we returned two contradicting versions with nothing to distinguish them
+# 3. exact identifiers get smoothed into their neighbours
+# 4. a Turkish question does not reach an English document
+#
+# None of these is fixed by a bigger model, and only the second is really about the corpus. The
+# rest are decisions we made about what to put in the index and how to cut it up — which is
+# where the next three modules go.
+#
+# > **RAG works. Retrieval is bringing back garbage.**
