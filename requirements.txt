@@ -1,0 +1,11 @@
+# Everything the notebooks need. Two packages.
+#
+#   pip install -r requirements.txt
+#
+# Do this at home the evening before, not on the office network with twenty other people:
+# chromadb pulls about 400 MB of wheels, most of it onnxruntime.
+
+numpy>=1.26        # module 2 trains a network with it; nothing else needs it
+chromadb>=1.0      # modules 5 and 8. The full package, not chromadb-client, on purpose:
+                   # the thin client cannot embed locally and raises instead of quietly using
+                   # the wrong model, which is the failure module 6 is built on.

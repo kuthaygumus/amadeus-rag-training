@@ -62,7 +62,14 @@ check(
     "Install Python 3.10+ from python.org, then run this script again.",
 )
 
-# 2. Ollama is running ------------------------------------------------------
+# 2. Python packages --------------------------------------------------------
+import importlib.util
+for package, purpose in [("numpy", "trains the network in module 2"),
+                         ("chromadb", "the vector database, modules 5 and 8")]:
+    check(f"package {package}", importlib.util.find_spec(package) is not None, purpose,
+          "Run: pip install -r requirements.txt")
+
+# 3. Ollama is running ------------------------------------------------------
 running = False
 try:
     version = api("version", timeout=10).get("version", "?")
@@ -80,7 +87,7 @@ if not running:
         print(f"  → {p}")
     sys.exit(1)
 
-# 3. Models are present -----------------------------------------------------
+# 4. Models are present -----------------------------------------------------
 # Match on the full tag. `qwen2.5:1.5b` and `qwen2.5:3b` share a stem, and treating them as
 # the same model would tell someone they are ready when they have the weaker one.
 installed = {m["name"]: m for m in api("tags", timeout=30).get("models", [])}
@@ -109,14 +116,14 @@ if problems:
           f"Do it on a network you are not sharing with twenty other people.{RESET}\n")
     sys.exit(1)
 
-# 4. Embeddings actually work ----------------------------------------------
+# 5. Embeddings actually work ----------------------------------------------
 start = time.time()
 vectors = api("embed", {"model": "bge-m3", "input": ["merhaba dünya", "hello world"]})["embeddings"]
 embed_seconds = time.time() - start
 check("embeddings work", len(vectors) == 2 and len(vectors[0]) > 100,
       f"{len(vectors[0])} dimensions · {embed_seconds:.1f}s for 2 texts")
 
-# 5. Generation works, and gets the answer right ---------------------------
+# 6. Generation works, and gets the answer right ---------------------------
 # The model has to read the right column of a table. A model that answers 70 here will make
 # the chunking exercise look broken when it is not, so this is a correctness check, not a smoke test.
 table = (
@@ -139,7 +146,7 @@ check("the model reads a table correctly", correct,
       f"{generate_seconds:.1f}s · answered: {' '.join(answer.split())[:60]}",
       "The model answered wrong. Re-pull it: ollama pull qwen2.5:3b")
 
-# 6. How fast is this machine? ---------------------------------------------
+# 7. How fast is this machine? ---------------------------------------------
 if generate_seconds < 3:
     speed, colour = "comfortable", GREEN
 elif generate_seconds < 8:

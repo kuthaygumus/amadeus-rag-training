@@ -52,13 +52,33 @@ ollama pull bge-m3         # embedding, ve Türkçeyi kaldırıyor
 
 ## Python ve repo
 
-Python 3.10 veya üstü — kontrol script'i `dict | None` tip söz dizimini kullanıyor, dolayısıyla eski bir Python günün ortasında değil ilk satırda patlıyor.
+Python 3.10 veya üzeri — kontrol scripti `dict | None` tip sözdizimi kullanıyor, yani eski bir Python günün ortasında değil ilk satırda patlar.
 
 ```bash
 git clone https://github.com/kuthaygumus/amadeus-rag-training
 cd amadeus-rag-training
+pip install -r requirements.txt
 python scripts/verify_setup.py
 ```
+
+İki paket. Modül 2'nin ağı eğittiği `numpy`, ve modül 5 ile 8'in kullandığı vektör veritabanı `chromadb`. Chromadb yaklaşık 400 MB wheel indiriyor, çoğu onnxruntime — bunu evde yap, ofis ağında aynı anda on dokuz kişiyle birlikte değil.
+
+`chromadb-client` değil **tam `chromadb`** olmak zorunda, ve sebebi modül 6'nın tamamı. İnce istemci metni lokalde embed edemiyor, dolayısıyla sessizce yanlış modele uzanmak yerine hata fırlatıyor. Gürültülü bir hata aslında iyilik olurdu. Tam pakette gerçekten olan şey ise görülmeye değer.
+
+## Podman gerekli mi?
+
+Notebook'ları çalıştırmak için hayır. Notebook 00'dan 07'ye kadar hepsi Ollama ve Python kullanıyor, başka hiçbir şey değil; hiçbir container runtime kurulu olmayan bir makinede sorunsuz koşarlar.
+
+İstisna modül 8, ve yapabiliyorsan kendin koşturmaya değer. ChromaDB'yi kütüphane olarak değil servis olarak çalıştırıyor:
+
+```bash
+podman compose up -d          # ya da: docker compose up -d
+curl http://localhost:8000/api/v2/heartbeat
+```
+
+Podman macOS ve Windows'ta native değil — altta küçük bir Linux VM çalıştırıyor, ki Windows'ta bu WSL2 demek. Admin yetkisi ve bir reboot gerektiriyor. Eğitim gününe kadar makinende olmayacaksa hiçbir şey bozulmaz: o modülü izle, sonra kendin koşturursun. Bu eğitimde ölçülen her şey Podman olmadan ölçüldü.
+
+Compose dosyası repo kökünde, container image'ı yaklaşık 650 MB. Aynı tavsiye: evde indir.
 
 ## Ne çalıştırıyorsun
 

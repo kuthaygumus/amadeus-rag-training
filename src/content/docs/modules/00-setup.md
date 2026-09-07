@@ -57,8 +57,28 @@ Python 3.10 or newer — the check script uses `dict | None` type syntax, so an 
 ```bash
 git clone https://github.com/kuthaygumus/amadeus-rag-training
 cd amadeus-rag-training
+pip install -r requirements.txt
 python scripts/verify_setup.py
 ```
+
+Two packages. `numpy`, which module 2 trains a network with, and `chromadb`, the vector database modules 5 and 8 use. Chromadb pulls about 400 MB of wheels, most of it onnxruntime — do it at home, not on the office network alongside nineteen other people doing the same thing.
+
+It has to be the full `chromadb` and not `chromadb-client`, and the reason is the whole of module 6. The thin client cannot embed text locally, so it raises an exception instead of quietly reaching for the wrong model. A loud error would be a kindness. What actually happens with the full package is the thing worth seeing.
+
+## Do you need Podman?
+
+Not to run the notebooks. Notebooks 00 through 07 use Ollama, Python and nothing else, and they will run on a machine with no container runtime installed at all.
+
+Module 8 is the exception, and it is worth doing yourself if you can. It runs ChromaDB as a service rather than as a library:
+
+```bash
+podman compose up -d          # or: docker compose up -d
+curl http://localhost:8000/api/v2/heartbeat
+```
+
+Podman is not native on macOS or Windows — it runs a small Linux VM underneath, which on Windows means WSL2. That needs administrator rights and a reboot. If your machine will not have it by the day, nothing else breaks: watch that module instead and run it later. Everything measured in this course was measured without it.
+
+The compose file lives in the repository root and the container image is about 650 MB. Same advice: pull it at home.
 
 ## What you run
 
