@@ -1,0 +1,28 @@
+/* Measurement callout — used wherever the page reports a real, reproducible number. */
+.measured {
+  border-left: 3px solid var(--sl-color-accent);
+  padding: 0.6rem 0.9rem;
+  background: var(--sl-color-gray-6);
+  font-size: 0.95em;
+}
+.measured::before {
+  content: 'MEASURED';
+  display: block;
+  font-size: 0.72em;
+  letter-spacing: 0.09em;
+  color: var(--sl-color-accent-high);
+  margin-bottom: 0.3rem;
+}
+
+/* Presenter notes: hidden by default, revealed with the presenter-mode toggle. */
+.presenter-note { display: none; }
+[data-presenter='true'] .presenter-note {
+  display: block;
+  border-left: 3px solid var(--sl-color-orange);
+  padding: 0.6rem 0.9rem;
+  background: var(--sl-color-gray-6);
+}
+
+/* Projector legibility: the room reads this from the back row. */
+.sl-markdown-content table { font-size: 0.95em; }
+.sl-markdown-content pre { font-size: 0.95em; }

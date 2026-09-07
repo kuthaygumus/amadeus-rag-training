@@ -1,0 +1,51 @@
+---
+title: RAG Training Day
+description: A one-day, measurement-driven RAG course that runs fully offline on a locked-down corporate laptop.
+template: splash
+hero:
+  tagline: Every concept earns its place by breaking the one before it.
+  actions:
+    - text: Setup — start here
+      link: /modules/00-setup/
+      icon: right-arrow
+    - text: GitHub
+      link: https://github.com/kuthaygumus/amadeus-rag-training
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+> **Helios Air is a fictional airline.** Every document, fare, flight number and rule in this
+> course is synthetic and written for teaching. No Amadeus system, customer or production data
+> is used anywhere in this repository.
+
+## The rule this course is built on
+
+No concept is introduced before you have **seen the failure that requires it**. Every module
+opens where the previous one hit a wall:
+
+**bare LLM** → *it invents an answer* → **fine-tuning** → *the weights are frozen and cite nothing*
+→ **stuff the prompt** → *you pay for the whole corpus on every query* → **keyword search** →
+*it misses a paraphrase* → **naive RAG** → *retrieval returns garbage* → **chunking and the right
+embedder** → *the exact term still slips* → **hybrid + rerank** → *multi-hop still fails* →
+**agentic RAG**.
+
+<CardGrid>
+  <Card title="It runs offline" icon="laptop">
+    No API key, no cloud account, no sign-in. Generation and embeddings both run locally
+    through Ollama, on your own machine.
+  </Card>
+  <Card title="It is measured, not asserted" icon="approve-check">
+    The same 20 gold questions are scored with the same three metrics — `hit@1`, `recall@5`,
+    `MRR` — three separate times during the day. You watch the numbers move.
+  </Card>
+  <Card title="It shows what does not work" icon="warning">
+    Including the results that contradict the blog posts. Combining two retrievers does not
+    always beat either one alone, and this course shows you the run where it does not.
+  </Card>
+  <Card title="You leave with it working" icon="rocket">
+    Every notebook stays on your machine and still runs on Monday morning, on the same
+    laptop, with no network.
+  </Card>
+</CardGrid>

@@ -1,0 +1,49 @@
+---
+title: RAG Eğitim Günü
+description: Kilitli bir kurumsal laptopta tamamen çevrimdışı çalışan, ölçüme dayalı bir günlük RAG eğitimi.
+template: splash
+hero:
+  tagline: Her kavram, yerini bir öncekini kırarak hak eder.
+  actions:
+    - text: Kurulum — buradan başla
+      link: /tr/modules/00-setup/
+      icon: right-arrow
+    - text: GitHub
+      link: https://github.com/kuthaygumus/amadeus-rag-training
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+> **Helios Air kurgusal bir havayoludur.** Bu eğitimdeki her doküman, ücret, uçuş numarası ve
+> kural sentetiktir ve öğretmek için yazılmıştır. Bu repoda hiçbir Amadeus sistemi, müşterisi
+> veya production verisi kullanılmamıştır.
+
+## Bu eğitimin kurulu olduğu kural
+
+Hiçbir kavram, **onu gerektiren başarısızlık görülmeden** tanıtılmaz. Her modül, bir öncekinin
+duvara tosladığı yerde açılır:
+
+**çıplak LLM** → *cevabı uyduruyor* → **fine-tuning** → *ağırlıklar donmuş ve kaynak gösteremiyor*
+→ **prompt'a doldur** → *her sorguda tüm korpusun bedelini ödüyorsun* → **keyword arama** →
+*parafrazı kaçırıyor* → **naive RAG** → *retrieval çöp getiriyor* → **chunking ve doğru embedder**
+→ *tam terim hâlâ kaçıyor* → **hybrid + rerank** → *multi-hop hâlâ düşüyor* → **agentic RAG**.
+
+<CardGrid>
+  <Card title="Çevrimdışı çalışır" icon="laptop">
+    API key yok, cloud hesabı yok, giriş yok. Generation da embedding de kendi makinende,
+    Ollama üzerinden lokal koşar.
+  </Card>
+  <Card title="İddia değil, ölçüm" icon="approve-check">
+    Aynı 20 gold soru, aynı üç metrikle — `hit@1`, `recall@5`, `MRR` — gün içinde üç ayrı kez
+    ölçülür. Sayının kıpırdadığını kendi gözünle görürsün.
+  </Card>
+  <Card title="Çalışmayanı da gösterir" icon="warning">
+    Blog yazılarını yalanlayan sonuçlar dahil. İki retriever'ı birleştirmek her zaman tek
+    başına olandan iyi değildir — bu eğitim, iyi olmadığı koşuyu gösterir.
+  </Card>
+  <Card title="Çalışır hâlde ayrılırsın" icon="rocket">
+    Her notebook makinende kalır ve pazartesi sabahı, aynı laptopta, internetsiz hâlâ çalışır.
+  </Card>
+</CardGrid>

@@ -1,0 +1,31 @@
+# build
+dist/
+.astro/
+node_modules/
+
+# env / secrets — never commit
+.env
+.env.*
+*.pem
+*.p8
+*.p12
+AuthKey_*
+
+# local model + data caches
+.ollama/
+*.gguf
+__pycache__/
+.venv/
+venv/
+.ipynb_checkpoints/
+chroma_db/
+.chroma/
+
+# os
+.DS_Store
+
+# internal planning artifacts must never land here
+_internal/
+PLAN*.md
+design/
+verification/
