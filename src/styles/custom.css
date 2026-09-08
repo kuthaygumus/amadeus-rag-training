@@ -14,13 +14,33 @@
   margin-bottom: 0.3rem;
 }
 
-/* Presenter notes: hidden by default, revealed with the presenter-mode toggle. */
+/* Presenter notes: hidden by default, revealed by presenter mode.
+   Presenter mode is off unless Kral turns it on with `?presenter=1` or Alt+Shift+P;
+   the script that sets `data-presenter` lives in astro.config.mjs. The notes also carry
+   `data-pagefind-ignore`, so hiding them here is not the only thing keeping them out of
+   the room's search results. */
 .presenter-note { display: none; }
 [data-presenter='true'] .presenter-note {
   display: block;
   border-left: 3px solid var(--sl-color-orange);
   padding: 0.6rem 0.9rem;
   background: var(--sl-color-gray-6);
+}
+
+/* The one on-screen sign that presenter mode is on. The element exists only while it is. */
+.presenter-badge {
+  position: fixed;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  z-index: 100;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--sl-color-orange);
+  border-radius: 0.25rem;
+  background: var(--sl-color-bg);
+  color: var(--sl-color-orange-high);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  pointer-events: none;
 }
 
 /* Projector legibility: the room reads this from the back row. */
