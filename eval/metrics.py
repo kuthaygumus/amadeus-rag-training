@@ -59,7 +59,7 @@ def evaluate(rankings: dict[str, list[str]], questions: list[dict]) -> dict:
 
     `rankings` maps a question id to that retriever's ranked document ids, best first.
     A question with no ranking scores zero rather than being skipped — otherwise a
-    retriever could look better by simply failing to answer.
+    retriever could look better by failing to answer.
     """
     per_question, by_type = [], {}
     for q in questions:

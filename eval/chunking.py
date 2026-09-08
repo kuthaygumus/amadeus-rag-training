@@ -1,13 +1,13 @@
-"""Three ways to cut a document up, and the reason the choice matters.
+"""Four ways to cut a document up, and the reason the choice matters.
 
 A retriever never sees a document. It sees whatever you handed it, and if you handed it the
-wrong slice then no amount of embedding quality will save the answer. This module holds the
-three strategies the day compares, cheapest first.
+wrong slice then no amount of embedding quality will save the answer. This module holds every
+splitting strategy the day compares, cheapest first, plus `strip_boilerplate()`.
 
 The failure worth watching is not the one people expect. Fixed-size chunking does not usually
 tear a table row in half — the row survives. What it does is leave the column header behind in
 the previous chunk, so a model reads `EUR 70 | EUR 90` with no idea which column is which and
-answers confidently from the wrong one. Adding overlap does not fix it; the header just lands
+answers confidently from the wrong one. Adding overlap does not fix it; the header lands
 one chunk earlier instead.
 """
 
@@ -62,9 +62,13 @@ def structure_aware(text: str, size: int = 900, title: str = "") -> list[str]:
 
     This is the one that fixes the header problem, and it does it twice over. Sections are cut
     at headings rather than at character counts, so a table stays with the rule that introduces
-    it. And because each chunk carries the document title and its section heading, a chunk that
-    would otherwise read as a bare grid of numbers arrives already labelled — which is the same
-    trick 'contextual retrieval' sells under a longer name.
+    it. And because each chunk is prefixed with the heading of the section it came from, a
+    chunk that would otherwise read as a bare grid of numbers arrives already labelled — which
+    is the same trick 'contextual retrieval' sells under a longer name.
+
+    Print a chunk and read the prefix: it is the section heading, and for the text above the
+    first heading it is the `title` argument. The document title is not repeated on every
+    chunk; adding it would change every number in RESULTS.md, so it stays as measured.
     """
     lines = text.splitlines()
     sections, current, heading = [], [], title
