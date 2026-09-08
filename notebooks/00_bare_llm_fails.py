@@ -9,8 +9,9 @@
 # wrong looks exactly like getting things right.
 
 # %%
-import sys, time
-sys.path.insert(0, "../eval")
+import sys
+sys.path[:0] = [".", "notebooks"]              # the helpers sit next to this file
+import _preflight; _preflight.ready(chat=True)  # stops with instructions if a model is missing
 import retrieval as R
 
 print("model:", R.CHAT_MODEL)

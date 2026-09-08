@@ -11,7 +11,9 @@
 # %%
 import sys, time
 from pathlib import Path
-sys.path.insert(0, "../eval")
+sys.path[:0] = [".", "notebooks"]
+import _preflight; _preflight.ready(chat=True, embed=True)
+import _cached
 import retrieval as R, metrics
 
 CORPUS = Path("../corpus/2026-Q3")
@@ -108,18 +110,30 @@ print(naive_rag("CLASSIC K sinifi iptal cezasi ne kadar?"))
 
 # %%
 questions = metrics.load_gold("../eval/gold_questions.jsonl")
-results = {
-    "BM25":   metrics.evaluate({q["id"]: bm25.rank(q["query"]) for q in questions}, questions),
-    "bge-m3": metrics.evaluate({q["id"]: dense.rank(q["query"]) for q in questions}, questions),
-}
+
+def score_both() -> dict:
+    return {
+        "BM25":   metrics.evaluate({q["id"]: bm25.rank(q["query"]) for q in questions}, questions),
+        "bge-m3": metrics.evaluate({q["id"]: dense.rank(q["query"]) for q in questions}, questions),
+    }
+
+results = _cached.run("04-bm25-vs-dense-whole-documents", score_both)
 print(metrics.compare(results, questions))
 
 # %% [markdown]
 # Read the by-type rows, not just the top line.
 #
-# BM25 wins on exact tokens and scores **zero** on every Turkish question whose answer is in an
-# English document. Dense retrieval is the reverse. Neither is simply better; they fail at
-# different things, which is worth remembering when someone tells you keyword search is obsolete.
+# BM25 scores **zero** on every Turkish question whose answer is in an English document — there
+# is no shared token to count — where dense retrieval gets a third of them.
+#
+# Be careful with the exact-token row, because the folklore has it backwards. BM25 scores 0.750
+# there and dense scores **1.000**. A whole document is long enough that the flight code still
+# sits in text the embedding can use, so BM25 does not win this category outright. Where it does
+# win is one query at a time, and Part 5 below has the example: the bulletin id `SCB-2026-0914`,
+# rank 1 for BM25 and rank 6 for dense.
+#
+# Neither retriever is better outright; they fail at different things, which is worth remembering
+# when someone tells you keyword search is obsolete.
 #
 # And the headline number is not good. Roughly half the questions do not put the right document
 # first.
@@ -142,10 +156,11 @@ print(naive_rag("CLASSIC K sinifi iptal cezasi kac euro?"))
 # The retrieval was right and the answer is still wrong. It talked about the wrong booking
 # classes, or the wrong route band, or both.
 #
-# The document is 3,400 characters and we handed over the first 1,500. Somewhere in that cut, the
-# row and the heading that labels its columns came apart. The model got a grid of euro amounts
-# with no idea which column meant cancellation, and it picked one. It did not hedge. Nothing in
-# the answer marks it as a guess.
+# The document is 3,923 characters and we handed over the first 1,500. Run the numbers on where
+# that cut falls: the column heading is at character 1,131 and survives, the O and T rows follow
+# it, and the K row starts at character 1,743 — outside the slice. So the model was handed a
+# labelled table that does not contain the row it was asked about, and it answered from a row
+# that was there. It did not hedge. Nothing in the answer marks it as a guess.
 #
 # Remember this one. Module 7 is about exactly this failure.
 
@@ -190,8 +205,8 @@ for query, should_be in [("H9 1487", "bulletin_scb_2026_0914"),
 
 # %% [markdown]
 # The flight number it handles. The bulletin id it does not — it puts a different bulletin first
-# and buries the right one. And `booking class K` returns a staff travel policy, because that
-# document also talks about booking classes at length.
+# and buries the right one. And `booking class K` returns the corporate travel policy, because
+# that document also talks about booking classes at length.
 #
 # This is where the keyword search we discarded twenty minutes ago earns its place back.
 

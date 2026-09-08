@@ -11,7 +11,9 @@
 # %%
 import sys, json, time
 from pathlib import Path
-sys.path.insert(0, "../eval")
+sys.path[:0] = [".", "notebooks"]
+import _preflight; _preflight.ready(chat=True, embed=True)
+import _cached
 import retrieval as R, chunking as C, metrics
 
 docs = {p.stem: p.read_text(encoding="utf-8") for p in sorted(Path("../corpus/2026-Q3").glob("*.md"))}
@@ -156,13 +158,19 @@ print(answer)
 # %% [markdown]
 # ## Read that answer critically
 #
-# Retrieval did its job — all three documents are in front of the model. The answer is still not
-# good. Ours quoted a hotel threshold as if it were a hotel *amount*, and then contradicted itself
-# about the change fee in the last two sentences.
+# Your answer will not be word for word the one printed here: this is the one part of the day that
+# is not deterministic, and the decomposition changes between runs. Look for the shapes rather than
+# the wording.
 #
-# That is the same failure module 4 measured: given a nine-column filed tariff, a 3B model
-# sometimes reads across the wrong column, or invents a value between two of them. Solving
-# retrieval does not solve reading.
+# Retrieval did its job — all three documents are in front of the model. The answer is still not
+# good. The recorded run quoted the six-hour hotel threshold with the fifteen-euro meal amount
+# attached to it, as if that were what a hotel costs, and then contradicted itself about the change
+# fee in its last two sentences.
+#
+# That is the same failure module 4 measured: given a nine-column filed tariff and six
+# near-identical fare sheets, a 3B model reads a real value out of the wrong row, the wrong column
+# or the wrong document, and reports it in the voice of a right one. Solving retrieval does not
+# solve reading.
 #
 # It is worth saying this out loud rather than letting the finale look cleaner than it is. Every
 # metric in this course scores **retrieval** — whether the right document came back. Not one of
@@ -191,12 +199,24 @@ def agentic(question: str) -> set[str]:
             gathered.setdefault(c, follow_up)
     return {c.split("#")[0] for c in gathered}
 
-print(f"{'question':<8}{'needs':>7}{'single-shot':>13}{'agentic':>10}   ")
-for q in multihop:
-    need = set(q["gold_doc_ids"])
-    single = set(C.to_documents(dense.rank(q["query"]))[:5]) & need
-    multi = agentic(q["query"]) & need
-    print(f"{q['id']:<8}{len(need):>7}{len(single):>13}{len(multi):>10}")
+def compare_single_shot_and_agentic() -> list[dict]:
+    rows = []
+    for q in multihop:
+        print(f"  running {q['id']} ...", flush=True)
+        start = time.time()
+        need = set(q["gold_doc_ids"])
+        single = set(C.to_documents(dense.rank(q["query"]))[:5]) & need
+        multi = agentic(q["query"]) & need
+        rows.append({"id": q["id"], "needs": len(need), "single_shot": len(single),
+                     "agentic": len(multi), "seconds": round(time.time() - start, 1)})
+    return rows
+
+rows = _cached.run("07-single-shot-vs-agentic", compare_single_shot_and_agentic)
+
+print(f"\n{'question':<8}{'needs':>7}{'single-shot':>13}{'agentic':>10}{'seconds':>10}")
+for row in rows:
+    print(f"{row['id']:<8}{row['needs']:>7}{row['single_shot']:>13}{row['agentic']:>10}"
+          f"{row['seconds']:>10.1f}")
 
 # %% [markdown]
 # ## What actually changed

@@ -12,29 +12,29 @@
 # No PyTorch, no GPU, no framework. Just numpy, so nothing is hidden behind an API.
 
 # %%
-import gzip, struct, time, urllib.request
-from pathlib import Path
+import gzip, sys, time
+sys.path[:0] = [".", "notebooks"]                 # the helpers sit next to this file
+import _preflight; _preflight.ready(mnist=True)   # stops with instructions if the cache is empty
 import numpy as np
 
-MIRROR = "https://ossci-datasets.s3.amazonaws.com/mnist/"
-CACHE = Path("mnist_data"); CACHE.mkdir(exist_ok=True)
+# The four archives are read off disk. `scripts/seed_offline_assets.py` puts them there
+# beforehand; this cell makes no network call at all, so it does not matter what the room's
+# connection is doing while twenty people run it at once.
+CACHE = _preflight.mnist_cache()
 
-def fetch(name: str) -> bytes:
-    path = CACHE / name
-    if not path.exists():
-        urllib.request.urlretrieve(MIRROR + name, path)
-    with gzip.open(path, "rb") as f:
+def load(name: str) -> bytes:
+    with gzip.open(CACHE / name, "rb") as f:
         return f.read()
 
 def as_images(raw): return (np.frombuffer(raw, np.uint8, offset=16)
                             .astype(np.float32) / 255).reshape(-1, 784)
 def as_labels(raw): return np.frombuffer(raw, np.uint8, offset=8)
 
-X_train = as_images(fetch("train-images-idx3-ubyte.gz"))
-y_train = as_labels(fetch("train-labels-idx1-ubyte.gz"))
-X_test  = as_images(fetch("t10k-images-idx3-ubyte.gz"))
-y_test  = as_labels(fetch("t10k-labels-idx1-ubyte.gz"))
-print(f"train {X_train.shape}   test {X_test.shape}")
+X_train = as_images(load("train-images-idx3-ubyte.gz"))
+y_train = as_labels(load("train-labels-idx1-ubyte.gz"))
+X_test  = as_images(load("t10k-images-idx3-ubyte.gz"))
+y_test  = as_labels(load("t10k-labels-idx1-ubyte.gz"))
+print(f"train {X_train.shape}   test {X_test.shape}   (read from {CACHE.name}/, no network)")
 
 # %% [markdown]
 # Each image is a 28×28 grid flattened to 784 numbers between 0 and 1. Here is one.
@@ -151,8 +151,8 @@ print(f"       first batch: loss {history[0]:.2f}          last: loss {history[-
 # Watch the loss column fall. That is the whole of it — a number going down because 101,770
 # other numbers keep getting nudged.
 #
-# From one-in-ten guessing to reading handwriting correctly nineteen times out of twenty, in
-# about a second, with no GPU and no framework.
+# From one-in-ten guessing to reading handwriting correctly around ninety-seven times in a
+# hundred — the exact figure is printed above — in about a second, with no GPU and no framework.
 
 # %%
 hidden, probs = forward(X_test[:1])

@@ -8,11 +8,25 @@
 #
 # This is not a straw man. It is the right first answer, it works, and knowing exactly where it
 # stops working is the reason the rest of the day exists.
+#
+# **This notebook is deliberately slow, because the slowness is the lesson.** Two cells send the
+# whole corpus to the model. The corpus is 78,310 characters; the prompt built from it below is
+# 79,309, because joining the documents adds a `[SOURCE: name.md]` header to each one. Every one
+# of those characters has to be read before a single token comes back. The elapsed seconds are
+# printed next to every result — read them, they are the argument.
+#
+# End to end against a freshly started Ollama it took just under three minutes on the machine it
+# was recorded on, almost all of it in two cold calls. Run it a second time and it is a fraction
+# of that, because the server keeps what it has already read — which is itself part of the lesson.
+# `QUICK=1` halves the question set if the room's laptops are struggling; `USE_CACHED=1` replays
+# the recorded run without calling the model at all.
 
 # %%
 import sys, time
 from pathlib import Path
-sys.path.insert(0, "../eval")
+sys.path[:0] = [".", "notebooks"]
+import _preflight; _preflight.ready(chat=True, embed=True, replayable=True)
+import _cached
 import retrieval as R
 
 CORPUS = Path("../corpus/2026-Q3")
@@ -20,15 +34,25 @@ docs = {p.stem: p.read_text(encoding="utf-8") for p in sorted(CORPUS.glob("*.md"
 everything = "\n\n".join(f"[SOURCE: {name}.md]\n{text}" for name, text in docs.items())
 print(f"{len(docs)} documents · {len(everything):,} characters · {len(everything)/1024:.0f} KB")
 
+# Load the model into memory before anything is timed. What this module turns on is the cost
+# of a long prompt, not the cost of starting a 3B model, and the two are easy to confuse.
+if not _cached.USE_CACHED:
+    R.generate("ready", max_tokens=1)
+
 # %% [markdown]
 # ## Does it even fit?
 #
 # The usual claim is that you hit a context limit. Check it rather than repeating it.
 
 # %%
-info = R.__dict__["_post"]("show", {"model": R.CHAT_MODEL})
-context_length = next((v for k, v in info.get("model_info", {}).items() if k.endswith("context_length")), None)
-rough_tokens = len(everything) // 3        # ~3 characters per token for mixed EN/TR text
+def model_window() -> dict:
+    info = R.__dict__["_post"]("show", {"model": R.CHAT_MODEL})
+    return {"context_length": next((v for k, v in info.get("model_info", {}).items()
+                                    if k.endswith("context_length")), None)}
+
+context_length = _cached.run("03-model-context-window", model_window)["context_length"]
+rough_tokens = len(everything) // 3        # deliberately generous: the real ratio measured
+                                           # ~3.75 chars/token, so this over-counts by ~25%
 print(f"model context window : {context_length:,} tokens" if context_length else "context window: unknown")
 print(f"our corpus           : ~{rough_tokens:,} tokens")
 print(f"                       {'FITS' if context_length and rough_tokens < context_length else 'check'}")
@@ -36,27 +60,55 @@ print(f"                       {'FITS' if context_length and rough_tokens < cont
 # %% [markdown]
 # It fits, comfortably. So the honest version of this module is not "you will hit a wall".
 #
+# That estimate is deliberately pessimistic. Asked to read this exact prompt, the server reported
+# `prompt_eval_count` 21,170 — the tokeniser is more efficient on this text than one token per
+# three characters. Both numbers are far inside the window, which is the only thing the check
+# needs to establish.
+#
 # **Before running the next cell, guess:** with all 28 documents in front of it, does the model
 # get the answer right?
 
 # %%
-question = "CLASSIC K sinifi iptal cezasi kac euro?"
-start = time.time()
-answer = R.generate(
-    f"SOURCES:\n{everything}\n\nQUESTION: {question}",
-    system="Answer only from the sources. Cite the source filename. Be brief.")
-stuffed_seconds = time.time() - start
-print(f"{answer}\n\n({stuffed_seconds:.1f} seconds — the correct answer is EUR 90)")
+ASKED = [("Turkish", "CLASSIC K sinifi iptal cezasi kac euro?"),
+         ("English", "CLASSIC class K: what is the cancellation penalty in EUR?")]
+
+def ask_the_whole_corpus() -> list[dict]:
+    out = []
+    for language, question in ASKED:
+        start = time.time()
+        answer = R.generate(
+            f"SOURCES:\n{everything}\n\nQUESTION: {question}",
+            system="Answer only from the sources. Cite the source filename. Be brief.")
+        out.append({"language": language, "question": question, "answer": answer,
+                    "seconds": round(time.time() - start, 1)})
+    return out
+
+stuffed = _cached.run("03-cold-stuffed-query", ask_the_whole_corpus)
+for row in stuffed:
+    print(f"[{row['language']}, {row['seconds']:.1f}s] {row['answer']}\n")
+print("short-haul CLASSIC K cancels for EUR 90; long-haul CLASSIC K cancels for EUR 195")
 
 # %% [markdown]
-# ## Careful — it depends which language you ask in
+# ## Two things happened there, and only one of them is about accuracy
 #
-# Asked in Turkish, the model cited a *different* fare sheet: the corpus holds six of them, three
-# fare families each in a short-haul and a long-haul edition, and it quoted the long-haul one.
-# Ask the same thing in English and it gets it right.
+# **Read the two timings, and read them again on a second run.** They are unstable on purpose.
+# A stuffed question against a freshly loaded model has to process all 79,309 characters before
+# it can write a single token; that is the slow one, and on the machine this was recorded on it
+# was the slowest call in the course. The next question against the same corpus reuses the prefix
+# the server has already processed and comes back in a couple of seconds — and so does the *first*
+# question if you run this notebook twice in a row, because the cache is still there.
 #
-# That is a real difference and it is worth noticing, but it is one question. Before building an
-# argument on it, measure.
+# That instability is not noise to be hidden. It is the honest form of the prompt-caching
+# objection, and it is why the measurement cell below sends all of its whole-corpus questions
+# consecutively instead of interleaving them with short ones.
+#
+# **Neither answer is wrong, and neither is complete.** The question never said short-haul or
+# long-haul. The corpus holds six fare sheets — three fare families, each in a short-haul and a
+# long-haul edition — and the model picked one and quoted it, without saying that it had picked.
+# That is the failure mode worth naming: not a wrong number, an unmarked choice between two right
+# ones. Handing the model everything did not make it ask.
+#
+# One question is an anecdote either way. Measure.
 
 # %% [markdown]
 # ## The measurement that decides this module
@@ -80,31 +132,65 @@ CASES = [
     ("Flight H9 1487 IST-CDG: what is the NEW departure time?",           "11:20", ["08:35"]),
 ]
 
+if _cached.QUICK:                       # QUICK=1 halves the question set; the table says so
+    CASES = CASES[:4]
+
 import chunking as C
 chunk_ids, chunk_texts, _ = C.chunk_corpus(docs, "structure-aware")
 chunks = dict(zip(chunk_ids, chunk_texts))
-dense = R.DenseRetriever(chunk_ids, chunk_texts)
+# Embedding the chunks is the only model call outside the measurement itself, so a replay
+# skips it rather than needing Ollama to print numbers it already has.
+dense = None if _cached.USE_CACHED else R.DenseRetriever(chunk_ids, chunk_texts)
 top = lambda q, k: "\n\n".join(f"[SOURCE: {c.split('#')[0]}.md]\n{chunks[c]}" for c in dense.rank(q)[:k])
 
-conditions = [("top-1 chunk", lambda q: top(q, 1)), ("top-3 chunks", lambda q: top(q, 3)),
-              ("top-5 chunks", lambda q: top(q, 5)), ("whole corpus", lambda q: everything)]
-tally = {name: 0 for name, _ in conditions}
+# The whole-corpus condition runs first, and all of its questions run back to back. Ollama keeps
+# the processed prefix of the previous request, so eight questions against the same 79,309
+# characters cost one prefill and seven cache hits. Looping the other way round — question
+# outside, condition inside — puts three short prompts between every pair of long ones, throws
+# that cache away each time, and turns this cell into eight cold queries instead of one.
+#
+# This cell still pays one full prefill even though the cell above already sent the same corpus,
+# because the cached prefix starts at the system message and this one asks for a bare number
+# rather than a citation. Change any byte near the front of a prompt and the cache is gone.
+conditions = [("whole corpus", lambda q: everything), ("top-1 chunk", lambda q: top(q, 1)),
+              ("top-3 chunks", lambda q: top(q, 3)), ("top-5 chunks", lambda q: top(q, 5))]
+COLUMNS = ["top-1 chunk", "top-3 chunks", "top-5 chunks", "whole corpus"]
 
-print(f"{'question':<50}" + "".join(f"{n:>14}" for n, _ in conditions))
-print("-" * 106)
-for q, right, wrong in CASES:
-    row = ""
+def measure_context_sizes() -> dict:
+    grid, seconds, answers = {}, {}, {}
     for name, build in conditions:
-        a = R.generate(f"SOURCES:\n{build(q)}\n\nQUESTION: {q}",
-                       system="Answer ONLY from the sources. Give the number. Be brief.", max_tokens=80)
-        ok = right in a and not any(w in a for w in wrong)
-        tally[name] += ok
-        row += f"{'OK' if ok else 'X':>14}"
-    print(f"{q[:48]:<50}{row}")
+        start = time.time()
+        grid[name], answers[name] = [], []
+        for q, right, wrong in CASES:
+            a = R.generate(f"SOURCES:\n{build(q)}\n\nQUESTION: {q}",
+                           system="Answer ONLY from the sources. Give the number. Be brief.",
+                           max_tokens=80)
+            grid[name].append(bool(right in a and not any(w in a for w in wrong)))
+            # Keep the text, not only the verdict: a claim about what the model said should be
+            # something the room can read off the run rather than take on trust.
+            answers[name].append(" ".join(a.split()))
+        seconds[name] = time.time() - start
+        print(f"  {name:<14} {sum(grid[name])}/{len(CASES)} correct   {seconds[name]:>6.1f}s"
+              f"   {seconds[name] / len(CASES):>5.1f}s per question", flush=True)
+    return {"grid": grid, "seconds": seconds, "answers": answers,
+            "questions": [q for q, _, _ in CASES],
+            "chars": {name: len(build(CASES[0][0])) for name, build in conditions}}
+
+measured = _cached.run("03-context-size-vs-accuracy", measure_context_sizes,
+                  note=f"{len(CASES)} questions x {len(conditions)} context sizes")
+
+print(f"\n{'question':<50}" + "".join(f"{n:>14}" for n in COLUMNS))
 print("-" * 106)
-print(f"{'correct':<50}" + "".join(f"{str(tally[n]) + '/8':>14}" for n, _ in conditions))
-print(f"{'characters of context':<50}" +
-      "".join(f"{len(build(CASES[0][0])):>14,}" for _, build in conditions))
+for row, q in enumerate(measured["questions"]):
+    print(f"{q[:48]:<50}" + "".join(f"{'OK' if measured['grid'][n][row] else 'X':>14}" for n in COLUMNS))
+print("-" * 106)
+n_cases = len(measured["questions"])
+print(f"{'correct':<50}" + "".join(f"{str(sum(measured['grid'][n])) + '/' + str(n_cases):>14}" for n in COLUMNS))
+print(f"{'characters of context':<50}" + "".join(f"{measured['chars'][n]:>14,}" for n in COLUMNS))
+print(f"{'seconds for all ' + str(n_cases) + ' questions':<50}" +
+      "".join(f"{measured['seconds'][n]:>14.1f}" for n in COLUMNS))
+print(f"\n  {sum(measured['seconds'].values()):.0f} seconds of model time for this table, "
+      f"{measured['seconds']['whole corpus']:.0f} of it in the whole-corpus column alone.")
 
 # %% [markdown]
 # ## More context answered better, not worse
@@ -120,13 +206,41 @@ print(f"{'characters of context':<50}" +
 # by making answers better.** If we told the room it did, someone would run this cell and catch us.
 
 # %% [markdown]
-# Look at what it got wrong, too. Asked for the class K *change* penalty it answered `EUR 155` — a
-# number that appears in no cell of that table. Given a nine-column filed tariff it does not simply
-# read the wrong column; sometimes it produces a value between two of them.
+# Look at what it actually said, too, not only at the ticks. Take the class K *change* penalty —
+# the second row — and read the four answers side by side.
+
+# %%
+row = 1 if len(measured["questions"]) > 1 else 0
+print(measured["questions"][row], "  (correct: EUR 70)\n")
+for name in COLUMNS:
+    verdict = "OK " if measured["grid"][name][row] else "X  "
+    print(f"  {verdict} {name:<14} {measured['answers'][name][row][:110]}")
+
+# %% [markdown]
+# The wrong answers are not noise. Every one of them is a real cell from this corpus. `EUR 155`
+# is the class K change penalty on the CLASSIC *long-haul* sheet — grep the corpus for it and it
+# is there, `fare_classic_longhaul.md` — and `EUR 90` is the class K *cancellation* penalty on
+# the short-haul one. Given a nine-column filed tariff and six near-identical sheets, the model
+# does not invent numbers. It reads a real cell from the wrong row, the wrong column, or the
+# wrong document, and reports it in the same confident voice as a right one.
 #
-# That is a failure of reading, not of retrieval. No amount of better search fixes it, and it is
-# worth remembering when the day gets enthusiastic about retrieval metrics: a perfect retrieval
-# score still hands the answer to a model that has to read a table.
+# Those three are not the same failure, and on this one question you can see two of them.
+#
+# Reading a cell from the wrong *row* or the wrong *column* is a **generation** failure: the
+# right document was in front of the model and it took the wrong cell. Better search does not
+# fix that.
+#
+# Reading from the wrong *document* can be either, and which one it is depends on the condition.
+# For **top-3**, the structure-aware chunks retrieved are `fare_classic_shorthaul#1`,
+# `fare_lite_longhaul#2` and `fare_classic_longhaul#2` — the chunk holding the short-haul table
+# is not among them, so `EUR 155` there is a retrieval failure and better search fixes it. For
+# **top-5**, `fare_classic_shorthaul#4` *is* retrieved: that is the chunk carrying the column
+# header and the K row, the model had the right cell in front of it, and it still answered
+# `EUR 155` off the long-haul sheet. Same wrong number, different cause.
+#
+# So do not reach for one slogan here. Retrieval decides which documents are readable; it does
+# not decide which one gets read. And nothing measured in this course scores the second step —
+# every metric in the day is a retrieval metric.
 
 # %% [markdown]
 # ## So why not just stuff the prompt?
@@ -134,27 +248,34 @@ print(f"{'characters of context':<50}" +
 # Three reasons, and accuracy is not among them.
 
 # %%
-one_doc = f"[SOURCE: fare_classic_shorthaul.md]\n{docs['fare_classic_shorthaul']}"
+top5_chars = measured["chars"]["top-5 chunks"]
 print(f"  whole corpus : {len(everything):>7,} chars  ~{len(everything)//3:>6,} tokens")
-print(f"  top-5 chunks : {len(top(CASES[0][0], 5)):>7,} chars  ~{len(top(CASES[0][0], 5))//3:>6,} tokens")
-print(f"  ratio        : {len(everything)/len(top(CASES[0][0], 5)):>7.0f}x")
+print(f"  top-5 chunks : {top5_chars:>7,} chars  ~{top5_chars//3:>6,} tokens")
+print(f"  ratio        : {len(everything)/top5_chars:>7.0f}x")
 
 # %% [markdown]
-# **One — the tokens.** Roughly thirty times as many per question. On a hosted API that is the
-# invoice, directly. Locally it is memory, and it is per concurrent user, which is what a call
-# centre is.
+# **One — the tokens.** Thirty-seven times as many per question, on the question above. On a hosted
+# API that is the invoice, directly. Locally it is memory, and it is per concurrent user, which is
+# what a call centre is.
 #
-# **Two — the cold query.** The first stuffed question took **75.8 seconds** here, because every
-# token has to be processed before generation starts. Ask a second question against the same corpus
-# and it is fast: the server keeps the processed prefix cached. So the latency argument is weaker
-# than it looks on one laptop — but the cache turns over on every corpus reissue, every restart,
-# and every user with a different prefix.
+# **Two — the latency, and only on a cold cache.** Read the seconds the cells above printed on
+# this machine today. On a freshly loaded model the first stuffed question costs a minute or more,
+# because every token is processed before generation starts. Every question after it against the
+# same corpus costs seconds. That is why the measurement cell runs all its whole-corpus questions
+# consecutively instead of interleaving them with short ones — loop the other way round and every
+# long prompt pays the cold price again.
+#
+# So be careful how hard you lean on this one. On a single laptop asking a series of questions
+# about the same corpus, prompt caching makes the latency argument almost disappear. It comes back
+# whenever the prefix changes: a corpus reissue, a restart, a second user with different documents
+# in front of theirs. A call centre is the second case, not the first.
 #
 # **Three — it does not scale, and that one is arithmetic.**
 
 # %%
 per_query_tokens = rough_tokens
-print(f"{'corpus':>16}  {'tokens/query':>14}  fits in {context_length:,}?")
+header = f"fits in {context_length:,}?" if context_length else "fits?"
+print(f"{'corpus':>16}  {'tokens/query':>14}  {header}")
 for factor, label in [(1, "ours (28 docs)"), (10, "280 docs"), (100, "2,800 docs"), (1000, "28,000 docs")]:
     n = per_query_tokens * factor
     print(f"{label:>16}  {n:>14,}  {'yes' if context_length and n < context_length else 'NO':>6}")
