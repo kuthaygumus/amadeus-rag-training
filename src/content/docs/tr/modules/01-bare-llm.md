@@ -52,29 +52,33 @@ Duvar bu. Bundan sonrası bu duvarı aşma denemesi: daha iyi sormak, modeli ken
 
 ## Ne çalıştırıyorsun
 
-Notebook: `00_bare_llm_fails.ipynb`.
+`notebooks/00_bare_llm_fails.py` dosyasını VS Code'da aç ve blokları `Shift+Enter` ile çalıştır. `# %%` işaretleri blok sınırları. Bu eğitimde Jupyter yok; bağımlılıklar `numpy` ve `chromadb`, başka bir şey değil.
 
 ```bash
-ollama serve              # ayrı bir terminalde, çalışmıyorsa
+ollama serve                       # ayrı bir terminalde, çalışmıyorsa
 ollama pull qwen2.5:3b
-python scripts/verify_setup.py
+python scripts/verify_setup.py     # başlamadan önce yeşil olmalı
 ```
 
-Notebook içinde dört deneme ortak yardımcı fonksiyondan geçiyor — framework yok, API key yok:
+İlk blok yardımcıyı bağlıyor ve modelin çekilmiş olduğunu kontrol ediyor. Framework yok, API key yok:
 
 ```python
-from eval.retrieval import generate
+import sys
+sys.path[:0] = [".", "notebooks"]               # the helpers sit next to this file
+import _preflight; _preflight.ready(chat=True)  # stops with instructions if a model is missing
+import retrieval as R
 
-generate("Helios CLASSIC K iptal cezası?")
-generate("K booking class typical penalty?")
-generate("What time does H9 1487 depart?")
-generate("How much is the misconnect meal voucher?")
+print("model:", R.CHAT_MODEL)
 ```
 
-`generate()` yerel Ollama'ya `localhost:11434` üzerinden `temperature=0.0` ile gidiyor. Cümle kuruluşun yukarıdaki dökümden biraz kayabilir; iki uydurma ve iki çekilme yerinde duruyor.
+`R.generate()` yerel Ollama'ya `localhost:11434` üzerinden `temperature=0.0` ile gidiyor.
+
+**Ne görmelisin.** Önce `model: qwen2.5:3b`, ardından modelden tek kelimelik bir cevap. Sonra context'siz sorulan üç soru: Helios ceza kuralı ve kurgusal ad çıkarılmış hâli uydurma bir yüzdeyle dönüyor, kalkış saati ise bir reddiyle. Sonra notebook ceza sorusunu dört kez daha, yalnızca ifadeyi değiştirerek soruyor ve dört cevabı alt alta yazdırıyor. Aşağıdaki tablodaki meal voucher denemesi notebook'ta yok — ikinci çekilmeyi canlı görmek istersen kendin yaz.
+
+**Ne kadar sürüyor.** Yaklaşık iki dakika, neredeyse tamamı modelin üretim süresi. Cümle kuruluşun bu sayfadaki dökümlerden kayacak; iki uydurma ve çekilme kaymıyor.
 
 <div class="presenter-note">
-Ollama kapalıysa veya pull hâlâ sürüyorsa sahnede debug etme. Dört dökümün de bu sayfada duruyor — oku, "bu sabah benim makinemde böyle çıktı, lab bloğunda kendiniz üreteceksiniz" de ve devam et. Modülün toplam süresi 20 dakika, canlı hücreler bunun 4 dakikası. Biri farklı bir ifade aldığını söylerse bu beklenen bir şey ve tek cümlelik cevabı var: sampling değişir, kalıp değişmez.
+Ollama kapalıysa veya pull hâlâ sürüyorsa sahnede debug etme. Dört dökümün de bu sayfada duruyor — oku, "bu sabah benim makinemde böyle çıktı, lab bloğunda kendiniz üreteceksiniz" de ve devam et. Modülün toplam süresi 12 dakika, canlı hücreler bunun 2 dakikası — kalanı anlatı ve el kaldırma. Biri farklı bir ifade aldığını söylerse bu beklenen bir şey ve tek cümlelik cevabı var: sampling değişir, kalıp değişmez.
 </div>
 
 ## Sayılar ne dedi
@@ -90,6 +94,17 @@ Ollama kapalıysa veya pull hâlâ sürüyorsa sahnede debug etme. Dört döküm
 
 İki hallucination, iki doğru çekilme, tek bir ses tonu.
 
+Sonra notebook'un bittiği kontrol. Aynı ceza sorusu, yalnızca ifade değiştirilerek dört kez soruldu:
+
+| nasıl soruldu | ne döndü |
+|---|---|
+| `Helios Air CLASSIC K sinifi iptal cezasi ne kadar?` | `1.500 TL` — euro değil, Türk lirası |
+| `... CLASSIC ucret ailesi, K booking class. Iptal cezasi kac euro?` | `100-200 euro` |
+| `Musterim ... iptal etmek istiyor. Ne odeyecek?` | `%10-20` |
+| `Helios Air CLASSIC K cancellation penalty amount?` | bir ret |
+
+Dört soruş, üç farklı tutar — biri lira, biri euro, biri yüzde — ve bir ret. Bilgiye gerçekten sahip olan bir model dört kez aynı şeyi söylerdi. Bu tek bir kayıtlı çalıştırma, `temperature=0.0`; sende çıkan tutarlar farklı olabilir, zaten birbirlerinden farklı olmaları asıl mesele.
+
 </div>
 
 ## Daha derine
@@ -100,7 +115,7 @@ Ağırlıkları depolama değil sıkıştırma olarak düşün. Eğitim, bir cor
 
 Güven sorusunun dürüst hali şu: token seviyesindeki log probability'ler ucuz ve zayıf ama sıfır olmayan bir sinyal — uydurulmuş bir rakam çoğu zaman ezberlenmiş bir rakamdan daha düşük token olasılığıyla çıkar. Yolcuya gidecek bir cevabı bu eşiğe bağlayacak kadar güvenilir değil ve en çok yakalamak istediğin akıcı uydurmalarda en çok başarısız oluyor. Self-consistency — aynı soruyu temperature 0.7 ile beş kez sor, rakam oynuyor mu bak — daha iyi yakalıyor ve beş katı maliyetli. Bugün ikisini de kullanmıyoruz, çünkü cevabı bulunmuş bir dokümana dayamak hem daha ucuz hem de denetlenebilir; bir havayolunun ihtiyacı olan da denetlenebilirlik.
 
-Model seçimi burada seni kurtarmıyor ama ilerisi için önemli, ve ölçtük. Context verildiğinde `qwen2.5:3b` 3/3 doğru, 0.9 s; `gemma3:4b` 2/3, 1.9 s; `qwen2.5:1.5b` 2/3 (multi-hop soruda yanlış satır); `qwen3:4b` doğru ama 11.6 s, reasoning token yakarak. Kursun şeklini belirleyen sonuç şu: `llama3.2:3b`, tablo başlığı **context'in içindeyken** EUR 90 yerine EUR 70 cevabını verdi. Gözünün önündeki bir sütunu yanlış okuyan bir modelle retrieval öğretilmez, o yüzden gün boyu yasaklı. Ve bu şu demek: bugün düzelteceğin hata sadece bir retrieval hatası değil.
+Model seçimi burada seni kurtarmıyor. Hangi yerel modelle üretim yaptığın ileride, context'te okunacak bir doküman olduğunda önem kazanmaya başlıyor — o karşılaştırmanın ölçüldüğü yer modül 4. Listedeki hiçbir modelin yapamayacağı şey ise şu: bu çeyrekte CLASSIC K cezasının EUR 90, geçen çeyrekte EUR 120 olduğunu bilmek. Çünkü o bilgi bir dosyada duruyor, kimsenin ağırlıklarında değil. Daha büyük bir modele uzanmak sorunun herkese açık kısmındaki olasılıkları değiştirir, özel kısmına hiç dokunmaz.
 
 On milyon dokümanda bunların hiçbiri değişmiyor; etrafındaki aritmetik değişiyor. O ölçekte çeyreklik bir kural değişikliğini ağırlıklara fine-tune ile işlemezsin, ilgili kuralları şansa bakıp prompt'a da sığdıramazsın. Ölçeklenen şey sıkıcı olan: hangi dokümandan ve hangi yürürlük tarihinden cevapladığını söyleyebilen bir retrieval katmanı, bir de bunun ne zaman bozulduğunu sana haber veren bir değerlendirme seti. Günün bir framework'ün değil 20 soruluk bir gold set'in etrafına kurulmasının sebebi bu.
 

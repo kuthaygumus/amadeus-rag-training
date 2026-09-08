@@ -52,29 +52,33 @@ That is the wall. Everything after this is an attempt to get over it: ask more c
 
 ## What you run
 
-Notebook: `00_bare_llm_fails.ipynb`.
+Open `notebooks/00_bare_llm_fails.py` in VS Code and run the blocks with `Shift+Enter`. The `# %%` markers are the block boundaries. There is no Jupyter in this course; the dependencies are `numpy` and `chromadb` and nothing else.
 
 ```bash
-ollama serve              # in a second terminal, if it is not already up
+ollama serve                       # in a second terminal, if it is not already running
 ollama pull qwen2.5:3b
-python scripts/verify_setup.py
+python scripts/verify_setup.py     # green before you start
 ```
 
-Then, in the notebook, the four probes go through the shared helper — no framework, no API key:
+The first block wires up the helper and checks the model is pulled. No framework, no API key:
 
 ```python
-from eval.retrieval import generate
+import sys
+sys.path[:0] = [".", "notebooks"]               # the helpers sit next to this file
+import _preflight; _preflight.ready(chat=True)  # stops with instructions if a model is missing
+import retrieval as R
 
-generate("Helios CLASSIC K iptal cezası?")
-generate("K booking class typical penalty?")
-generate("What time does H9 1487 depart?")
-generate("How much is the misconnect meal voucher?")
+print("model:", R.CHAT_MODEL)
 ```
 
-`generate()` calls local Ollama at `localhost:11434` with `temperature=0.0`. Your wording will still drift a little from the transcript above; the two hallucinations and the two abstentions hold.
+`R.generate()` calls local Ollama at `localhost:11434` with `temperature=0.0`.
+
+**What you should see.** `model: qwen2.5:3b`, then a one-word reply from the model. Then three questions asked with no context: the Helios penalty rule and the same rule without the fictional name both come back with an invented percentage, and the departure time comes back as a refusal. Then the notebook asks for the penalty four more times, changing only the wording, and prints the four answers under each other. The meal-voucher probe in the table below is not in the notebook — type it yourself if you want the second abstention live.
+
+**Roughly how long.** About two minutes, nearly all of it the model generating. Your wording will drift from the transcripts on this page; the two inventions and the abstention do not.
 
 <div class="presenter-note">
-If Ollama is down or a pull is still running, do not debug on stage. The four transcripts are on this page — read them, say "this ran on my machine this morning, you will reproduce it in the lab block", and keep going. Total module time is 20 minutes, of which the live cells are about 4. If someone reports a different phrasing, that is expected and worth one sentence: sampling varies, the pattern does not.
+If Ollama is down or a pull is still running, do not debug on stage. The four transcripts are on this page — read them, say "this ran on my machine this morning, you will reproduce it in the lab block", and keep going. Total module time is 12 minutes, of which the live cells are about 2 — the rest is the narrative and the show of hands. If someone reports a different phrasing, that is expected and worth one sentence: sampling varies, the pattern does not.
 </div>
 
 ## What the numbers said
@@ -90,6 +94,17 @@ If Ollama is down or a pull is still running, do not debug on stage. The four tr
 
 Two hallucinations, two correct abstentions, one voice.
 
+Then the check the notebook ends on. The same penalty question, asked four times with only the wording changed:
+
+| how it was worded | what came back |
+|---|---|
+| `Helios Air CLASSIC K sinifi iptal cezasi ne kadar?` | `1.500 TL` — Turkish lira, not euro |
+| `... CLASSIC ucret ailesi, K booking class. Iptal cezasi kac euro?` | `100-200 euro` |
+| `Musterim ... iptal etmek istiyor. Ne odeyecek?` | `%10-20` |
+| `Helios Air CLASSIC K cancellation penalty amount?` | a refusal |
+
+Four askings, three different amounts — one in lira, one in euro, one a percentage — and one refusal. A model that held the fact would answer the same thing four times. One recorded run at `temperature=0.0`; the amounts you get may differ, and that they differ from each other is the point.
+
 </div>
 
 ## Going deeper
@@ -100,7 +115,7 @@ The abstentions deserve more attention than they usually get. Refusal is largely
 
 The honest version of the confidence question: token-level log probabilities are cheap and a weak but non-zero signal — a fabricated number often carries lower per-token probability than a memorised one. It is not reliable enough to gate a passenger-facing answer, and it fails hardest on exactly the fluent confabulations you most wanted to catch. Self-consistency — sample five times at temperature 0.7 and see whether the number moves — detects better and costs five times as much. We use neither today, because grounding the answer in a retrieved document is cheaper *and* auditable, and auditable is what an airline needs.
 
-Model choice does not rescue you here, but it matters later and we measured it. With context supplied, `qwen2.5:3b` answered 3/3 in 0.9 s, `gemma3:4b` 2/3 in 1.9 s, `qwen2.5:1.5b` 2/3 (wrong row on the multi-hop question), `qwen3:4b` correct but 11.6 s burning reasoning tokens. The result that decided the course: `llama3.2:3b` answered EUR 70 instead of EUR 90 with the table header **in** its context. A model that misreads a column it can see cannot be used to teach retrieval, so it is banned from the day — and it means the failure you spend today fixing is not purely a retrieval failure.
+Model choice does not rescue you here. Which local model you generate with starts to matter later, once there is a document in the context to read — module 4 is where that comparison is measured. What no model on the list can do is know that this quarter's CLASSIC K penalty is EUR 90 and last quarter's was EUR 120, because that lives in a file rather than in anyone's weights. Reaching for a bigger model moves the odds on the public part of the question and does nothing at all to the private part.
 
 At ten million documents none of this changes; the arithmetic around it does. You will not fine-tune a quarterly rule change into weights at that size, and you will not fit the relevant rules into a prompt by luck. What scales is the boring part: a retrieval layer that can name the document and the effective date it answered from, and an evaluation set that tells you when it stopped working. That is why the day is built around a 20-question gold set and not around a framework.
 

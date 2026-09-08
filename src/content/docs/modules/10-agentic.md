@@ -9,13 +9,28 @@ description: "What if one shot is not enough?"
 
 > **What if one shot is not enough?**
 
-One question in the gold set has failed every method we built today. It failed with keyword
-search, with dense retrieval, with the structure-aware chunking that took hit@1 to **0.800**,
-and after reranking. The two `multi_hop` questions score **0.500** at best under every
-single-shot method in this course — and 0.500 flatters them, because document-level scoring
-calls it a hit when *one* gold document lands at rank 1. This question needs three.
+Two questions in the gold set are typed `multi_hop`, and neither of them moved all day. Their
+hit@1 is **0.000** on whole documents and **0.500** on every chunking strategy on the ladder —
+fixed size, fixed size with overlap, recursive, structure-aware, all four the same. It is 0.500
+on all three embedders module 6 compared, including the one that took everything else to 0.800.
+Pointwise reranking did not shift it either: on the strongest setup, q19's first gold document
+moved from rank 6 to rank 5, and q20's was already at rank 1.
 
-Here it is, as an agent would type it:
+That 0.500 flatters them, because document-level scoring calls it a hit when *one* gold document
+lands at rank 1. Here is what the number is hiding. Put q19 through the best single pass we
+have — `bge-m3` over structure-aware chunks — and the top five documents come back as:
+
+```
+faq_en_general   macro_tr_rebook   codeshare_h9_au_conditions
+sop_denied_boarding   macro_tr_misconnect
+```
+
+Of the three documents the question needs, that is **zero of three**. And it does not look like
+a failure. `faq_en_general` and `macro_tr_rebook` are both about exactly this situation. They
+refuse to carry a figure and send the agent somewhere else instead. A single number at rank 1
+would have looked fine on a spot check.
+
+Here is the question, as an agent would type it:
 
 > H9 1487 gecikti, CLASSIC K sınıfındaki yolcum CDG'de AU 88 bağlantısını kaçırıyor ve yeni
 > uçuşa kadar 5 saat bekleyecek. Bu beklemede kendisine ne vermem gerekiyor, Aurora bacağı
@@ -29,11 +44,28 @@ on purpose: the SOP states it "establishes no monetary penalty, waiver or refund
 kind", and Clause 4.4 states the agreement does not determine the value of any voucher. The
 documents point at each other. Real rule books do.
 
+### Which fare sheet — RULE 7
+
+The passenger holds one traffic document with a European Helios sector and an intercontinental
+Aurora sector on it, so two fare sheets could govern. The corpus settles it in a rule that
+appears on both of them, `fare_classic_shorthaul` RULE 7 and `fare_classic_longhaul` RULE 7:
+
+> the sheet is chosen by the transaction and not by the document. A voluntary change to a single
+> coupon is assessed on the sheet for the band of the Helios sector held [...] A cancellation or
+> refund of the journey as a whole is assessed on the LONG-HAUL CLASSIC sheet.
+
+q19 asks for a voluntary change on the European sector, so the short-haul sheet governs and the
+CLASSIC K change penalty is **EUR 70**. q20 — the other multi-hop question, on the Atlantic
+band — asks what to collect when the passenger abandons the journey, so the long-haul sheet
+governs and the CLASSIC K cancellation penalty is **EUR 195**. Quoting the short-haul
+cancellation, EUR 90, would be a right row on the wrong sheet.
+
 <div class="presenter-note">
 Put the Turkish question on screen and read it out loud, slowly, the way a caller says it. Ask
 the room: "how many documents does this need?" Take answers — you will get one and two. Only
 then reveal three, and show the two sentences where the SOP and the agreement each refuse to
-answer the other's part. 4 minutes, laptops closed, nothing runs yet.
+answer the other's part. RULE 7 is worth thirty seconds on the projector because two questions
+in the gold set turn on it. 4 minutes, laptops closed, nothing runs yet.
 </div>
 
 ## Why one pass returns one document
@@ -41,7 +73,7 @@ answer the other's part. 4 minutes, laptops closed, nothing runs yet.
 Embed that question and you get one vector. One point, but the question has three centres of
 mass — duty of care, interline protection, fare penalty. The point lands between them, nearest
 whichever the phrasing weighted most, and the top five come back from that one neighbourhood.
-One retrieval pass gets you one of the three.
+One retrieval pass gets you one neighbourhood, and on q19 it was the wrong one.
 
 Nothing in the pipeline can fix this, because nothing in the pipeline is broken. A better
 embedder moves the point; it does not split it. A better chunker sharpens each candidate; it
@@ -53,37 +85,65 @@ single pass is the problem.
 
 Four steps, no new machinery.
 
-**Decompose.** One model call turns the question into sub-questions, one per line, capped at
-four: what care is owed for a five-hour wait; is the AU segment protected and is it repriced;
-what is the CLASSIC K short-haul voluntary change penalty.
+**Decompose.** One model call turns the question into standalone sub-questions, capped at four:
+what care is owed for a five-hour wait; is the AU segment protected and is it repriced; what is
+the CLASSIC K short-haul voluntary change penalty.
 
 **Retrieve per sub-question.** Each gets its own embedding and its own top-k against the same
 `bge-m3` index over the same structure-aware chunks from module 7. Three points instead of one.
 
-**Check sufficiency.** One model call answers `YES` or names what is missing. A single token,
-not prose — the same reason pointwise reranking beat listwise **5/5 against 2/5**: a small
-model answers a narrow question well and a wide one badly.
+**Check sufficiency.** One model call answers `YES`, or `NO` followed by one short query for
+what is missing. A narrow question, not an open one — the same reason pointwise reranking beat
+listwise on the retired probe corpus (5/5 against 2/5 across 5 questions and 10 documents; the
+direction is real, the magnitude is unproven at that size). A small model answers a narrow
+question well and a wide one badly.
 
 **Answer with citations,** naming the document behind each number.
 
-The loop returns: a **EUR 15** meal voucher, because the wait exceeds three hours
-(`sop_misconnect_v4` 3.4), and no hotel, because five hours does not exceed six (3.5); the
-Aurora segment is protected and reaccommodated **without repricing** (`interline_h9_au` 4.1,
-4.2); and the voluntary move to tomorrow costs **EUR 70** (`fare_classic_shorthaul`, CLASSIC K,
-change penalty).
+## What the run actually produces
 
-That last number closes the day on itself. **EUR 70 is the wrong answer we have been chasing
-since module 7** — the change column mistaken for the cancellation column. Here it is right,
-because the passenger really is asking for a voluntary change, and the loop can tell the two
-columns apart only because structure-aware chunking kept the header attached to the K row. The
-final answer is correct because of a decision made three modules ago about where to cut a
-string.
+The loop reaches the documents. On q19 it goes from **zero of three** to **three of three**.
+Then read the answer it writes, because this is where the finale stops being clean.
+
+In the recorded run the model quoted the six-hour hotel threshold with the fifteen-euro meal
+amount attached to it, as if that were what a hotel costs, and then contradicted itself about
+the change fee across its last two sentences. Your run will word it differently — the
+decomposition is generated, so this is the one part of the day that is not deterministic — but
+the shape recurs. Look for the shape, not the wording.
+
+What the documents actually say, each with the paragraph it comes from:
+
+- a **EUR 15** meal voucher, because the wait exceeds three hours — `sop_misconnect_v4` 3.4
+- **no hotel**, because five hours does not exceed six — `sop_misconnect_v4` 3.5
+- the Aurora segment is protected and reaccommodated **without repricing** — `interline_h9_au`
+  4.1 and 4.2
+- the voluntary change costs **EUR 70** — `fare_classic_shorthaul`, RULE 7 and the CLASSIC K row
+
+Notice which two the model slid between. **EUR 70** is the change penalty and **EUR 90** is the
+cancellation penalty, one column apart on the same K row — the exact confusion module 7 was
+about. Structure-aware chunking is why the header is still attached to that row at all, so the
+column is there to be read. It was read wrong anyway. Retrieval was fixed. Reading was not.
+
+That is the honest close of the day, and it is worth saying out loud rather than letting the
+finale look tidier than it is. Every metric in this course scores **retrieval** — whether the
+right document came back. Not one of them scores whether the answer was right. Those are two
+systems with two failure modes, and we have been measuring one of them. If you carry one thing
+into your own project: build the retrieval eval first, because it is cheap and deterministic,
+then build a second one for the answers, because the first will never tell you the second is
+broken.
+
+**And the loop does not always win.** On q20 it reached two of the three documents — the same
+two a single pass reached. `fare_classic_longhaul`, the sheet RULE 7 selects for a cancellation
+of the whole journey, never came back, in either run we tried. Two questions cannot measure a
+method. They can show that one exists, and that it is not free.
 
 <div class="presenter-note">
 Before running the loop, have the room write down the three sub-questions they expect. Then run
 the decompose cell alone and compare. It will match nobody exactly, and that is the lesson: the
-plan is generated, not written. The sentence not to garble: <strong>retrieval stopped being a
-step before the model and became a tool the model calls.</strong> Say it once and let it sit.
+plan is generated, not written. Then run the answer cell and read it out with the corpus open —
+do not skip past the bad answer to get to the applause. The sentence not to garble:
+<strong>retrieval stopped being a step before the model and became a tool the model calls.</strong>
+Say it once and let it sit.
 </div>
 
 ## What actually changed
@@ -96,12 +156,14 @@ was involved: a loop, a stopping condition, and a function the model can ask us 
 
 ## The bill
 
-**More calls.** One decompose, three retrievals, one sufficiency check, one answer: six model
-calls where naive RAG made one. At the measured `qwen2.5:3b` cost of **0.9 s** per generation
-that is arithmetic, not a measurement, and it lands in single-digit seconds — the order of the
-**~4 s** a rerank pass already costs at 8 calls per query. Swap in `qwen3:4b`, measured at
-**11.6 s** because it emits reasoning tokens, and the same loop takes a minute. In a loop,
-per-call latency multiplies.
+**More calls.** One decompose, one retrieval per sub-question, one sufficiency check per round,
+one answer: six to ten model calls where naive RAG made one. Three of those passes are
+embedding calls rather than generations, so they are the cheap part; the generations are not.
+For scale, the reranker we priced in module 9 costs **8 model calls per query** and took
+**65.2 seconds across the twenty questions** on the strongest setup — the loop is the same
+order, not a new category. What is different is that a loop multiplies per-call latency by the
+round count instead of adding to it, so a slower generation model does not cost you a little
+more. It costs you the round count more.
 
 **Non-determinism.** The plan is generated, so two runs can decompose, retrieve and cite
 differently. Temperature 0, and log every sub-question — that list is the artefact you debug.
@@ -113,55 +175,71 @@ v4's EUR 15 and 6 hours. Each extra pass is another opportunity to pull it. Filt
 version line before chunks reach the model.
 
 **The loop that never ends.** If the sufficiency check can always say "still missing
-something", it will. Bound it three ways: at most two extra rounds, at most four sub-questions,
-and a hard rule that on the last round the model answers with what it has and states what it
-could not find. An honest partial answer beats an infinite loop, and beats a confident invented
-one — which is what module 1 measured the bare model doing when it invented a "20-30% ceza".
+something", it will. The notebook bounds it three ways: a hard `MAX_ROUNDS`, a cap of four
+sub-questions, and a stop when a round brings back nothing new. Add the fourth bound in
+production — on the last round the model answers with what it has and states what it could not
+find. An honest partial answer beats an infinite loop, and beats a confident invented one,
+which is what module 1 watched the bare model do when it invented a "20-30% ceza".
 
 <div class="presenter-note">
 Break the loop live: edit the sufficiency prompt so it can never say YES, re-run, watch the
-round counter hit the cap and stop. Ten seconds, and it is the part they need in production. If
-the laptops are slow, run the loop once on the projector and have them read the logged
-sub-questions. 35 minutes: gate 4, one-pass failure 6, loop 12, break it 5, rewind 8.
+round counter hit the cap and stop. Ten seconds, and it is the part they need in production.
+28 minutes: gate 4, one-pass failure 5, the loop 10, reading the answer 5, breaking it 4. The
+rewind below is not in this budget — it belongs to the 15-minute closing block at 14:33.
 </div>
 
 ## What you run
 
-Notebook: `07_agentic_rag.ipynb`
+**You watch this one.** The trainer drives it; the notebook is in the repo and runs on your own
+laptop afterwards with the same two dependencies as every other module. If you want to follow
+along live, nothing stops you — but the room is better spent watching one screen here.
 
-```bash
-ollama serve                                  # already running from module 0
-jupyter lab notebooks/07_agentic_rag.ipynb
-```
+Open `notebooks/07_agentic_rag.py` in VS Code and run the blocks with `Shift+Enter`. `ollama
+serve` has been running since module 0.
+
+- **what you should see** — the single-pass cell prints `of the 3 documents needed, retrieval
+  found 0`; after the loop, `final coverage:` lists all three; the comparison table at the end
+  prints q19 as `0 → 3` and q20 as `2 → 2`
+- **roughly how long** — the loop cells are seconds each; the two-question comparison at the end
+  ran in under 15 seconds on an M-series Mac, longer on a CPU-only laptop
 
 The same functions the benchmark uses. Nothing here is a new dependency:
 
 ```python
-from retrieval import DenseRetriever, generate
-from chunking import chunk_corpus, to_documents
-from metrics import load_gold
+import _preflight; _preflight.ready(chat=True, embed=True)   # cwd -> notebooks/, eval/ on the path
+from pathlib import Path
+import retrieval as R, chunking as C, metrics
 
-gold = load_gold()
-q19 = next(q for q in gold if q["id"] == "q19")     # the three-document question
+docs = {p.stem: p.read_text(encoding="utf-8") for p in sorted(Path("../corpus/2026-Q3").glob("*.md"))}
+questions = metrics.load_gold("../eval/gold_questions.jsonl")
+chunk_ids, chunk_texts, _ = C.chunk_corpus(docs, "structure-aware")
+chunks = dict(zip(chunk_ids, chunk_texts))
+dense = R.DenseRetriever(chunk_ids, chunk_texts)
 
-ids, texts, parents = chunk_corpus(documents, "structure-aware")
-index = DenseRetriever(ids, texts)
+task = [q for q in questions if q["type"] == "multi_hop"][0]      # q19
 
-subqs = decompose(q19["query"], max_parts=4)        # one generate() call
-seen = {}
-for _ in range(3):                                  # hard round cap
-    for sq in subqs:
-        for cid in index.rank(sq)[:3]:
-            seen[cid] = texts[ids.index(cid)]       # dedupe by chunk id
-    missing = check_sufficient(q19["query"], seen)  # "YES", or what is absent
-    if missing == "YES":
+MAX_ROUNDS = 3
+gathered: dict[str, str] = {}
+for sub in decompose(task["query"]):                              # one R.generate() call
+    for chunk_id in dense.rank(sub)[:3]:
+        gathered.setdefault(chunk_id, sub)                        # dedupe by chunk id
+
+for round_number in range(MAX_ROUNDS):                            # hard round cap
+    enough, verdict = sufficient(task["query"], list(gathered))   # "YES", or NO + a query
+    if enough:
         break
-    subqs = [missing]
-print(answer_with_citations(q19["query"], seen))
+    follow_up = verdict.split("\n")[-1].lstrip("NO").strip(" .:,-") or task["query"]
+    before = len(gathered)
+    for chunk_id in dense.rank(follow_up)[:3]:
+        gathered.setdefault(chunk_id, follow_up)
+    if len(gathered) == before:
+        break                                                     # nothing new came back
 ```
 
-Run the same question through single-pass retrieval in the cell above, so both outputs sit on
-one screen. One document against three.
+`decompose` and `sufficient` are the two prompts written in the notebook, so this block runs after
+those two cells and not before them. Everything else — `generate`, `DenseRetriever`,
+`chunk_corpus`, `load_gold` — is the code module 5 onwards already ran. The single-pass cell sits
+directly above, so both outputs land on one screen: zero documents against three.
 
 ## What the numbers said
 
@@ -170,21 +248,25 @@ one screen. One document against three.
 | | measured |
 |---|---|
 | `multi_hop` questions in the gold set | 2 of 20 |
-| gold documents required by q19 | 3 (`sop_misconnect_v4`, `interline_h9_au`, `fare_classic_shorthaul`) |
-| best `multi_hop` score, any single-shot method | **0.500** |
-| best single-shot overall (bge-m3 + structure-aware) | hit@1 **0.800**, MRR **0.846** |
-| pointwise vs listwise reranking, probe corpus | 5/5 vs 2/5 (MRR 1.000 vs 0.600) |
-| rerank pass cost | 8 model calls, ~4 s per query |
-| `qwen2.5:3b` generation | 0.9 s, 3/3 correct |
-| `qwen3:4b` generation | 11.6 s (reasoning tokens) |
+| gold documents q19 needs | 3 — `sop_misconnect_v4`, `interline_h9_au`, `fare_classic_shorthaul` |
+| `multi_hop` hit@1, whole documents | 0.000 |
+| `multi_hop` hit@1, all four chunked strategies on the ladder | 0.500 |
+| `multi_hop` hit@1, all three embedders on structure-aware chunks | 0.500 |
+| q19, rank of first gold document before / after pointwise rerank | 6 / 5 |
+| best single-shot overall (bge-m3 + structure-aware) | hit@1 **0.800**, MRR **0.844** |
+| q19 gold documents reached — single pass / loop | **0 of 3** / **3 of 3** |
+| q20 gold documents reached — single pass / loop | 2 of 3 / 2 of 3 |
+| pointwise vs listwise rerank, retired probe corpus of 10 documents and 5 questions | 5/5 vs 2/5 (MRR 1.000 vs 0.600) — direction real, magnitude unproven at n=5 |
+| rerank pass cost, strongest setup | 8 model calls per query, 65.2 s across 20 questions |
 | superseded `sop_misconnect_v3` | EUR 10 voucher, 8-hour hotel threshold |
 | current `sop_misconnect_v4` | EUR 15 voucher, 6-hour hotel threshold |
 
 The loop is **not in the benchmark table**. Two multi-hop questions cannot measure a method;
 they can only show that one exists. What would settle it: fifty labelled multi-hop questions,
-scored on whether *all* gold documents were retrieved rather than whether one was. Until then
-the claim on this page is the narrow one — a single pass returned one of three documents, and
-the loop returned three.
+scored on whether *all* gold documents were retrieved rather than whether one was, and a second
+eval that scores the answer rather than the retrieval. Until then the claim on this page is the
+narrow one — on q19 a single pass returned none of the three documents and the loop returned all
+three, and on q20 the loop returned what the single pass already had.
 
 </div>
 
@@ -198,16 +280,16 @@ for asking the wrong thing well.
 
 The sufficiency check is the interesting part and the weakest part. You are asking a 3B model
 to judge the completeness of its own evidence, and module 9 measured what that opinion is
-worth: imposed on a ranking already better than itself, **it levels to its own ceiling**, 0.800
-down to 0.650. The mitigation is to narrow the judgement — not "is this enough?" but "does the
-retrieved text state a euro amount for a voluntary change?" A checklist derived from the
-sub-questions converts a fuzzy call into a lookup. Same lesson as pointwise beating listwise,
-one level up.
+worth: imposed on a ranking already better than itself, **it levels to its own ceiling**, hit@1
+0.800 down to 0.600 and MRR 0.844 down to 0.717. The mitigation is to narrow the judgement —
+not "is this enough?" but "does the retrieved text state a euro amount for a voluntary change?"
+A checklist derived from the sub-questions converts a fuzzy call into a lookup. Same lesson as
+pointwise beating listwise, one level up.
 
 Notice what the loop does not need: no planner framework, no tool-calling API, no agent class.
-Six functions from `eval/retrieval.py` and a `for` loop with a break. Most agent frameworks are
-this plus retries, tracing and a schema. Adopt one when you need the tracing, not to obtain the
-behaviour.
+Two things out of `eval/retrieval.py` — `generate` and `DenseRetriever` — plus three prompts you
+write in the notebook and a `for` loop with a break. Most agent frameworks are this plus
+retries, tracing and a schema. Adopt one when you need the tracing, not to obtain the behaviour.
 
 At 10 million documents the loop stops being free. Every extra pass is another full ANN search,
 so cap the fan-out and cache at sub-question level — the same three sub-questions recur across
@@ -216,7 +298,9 @@ swap. Put a router in front, because most questions are single-hop and should ne
 decomposition. And make the tools explicit and typed — `search_sop`, `search_fare_rules`,
 `search_interline`, each with its own filter — so the model picks a corpus instead of hoping
 one index covers everything. The version filter that keeps v3 out belongs there, as a property
-of the tool, not a hope about the ranking.
+of the tool, not a hope about the ranking. So does RULE 7's distinction: a tool that knows
+whether it is pricing a change or a cancellation can pick the sheet before retrieval, instead of
+asking a 3B model to notice a rule buried at the end of both.
 
 The honest limit: no number of passes produces a document nobody wrote. If the interline
 partner's SOP conflicts with ours and no paragraph resolves it, the loop's failure mode is to
@@ -224,28 +308,34 @@ keep searching for text that does not exist. Bound it, and make it say so.
 
 ## Rewinding the day
 
-Read the chain backwards, out loud, in one breath.
+This is the closing block, not part of module 10's 28 minutes. Read the chain backwards, out
+loud, in one breath.
 
 The model did not know our data and did not know that it did not know — it invented a "20-30%
 ceza". So we looked at what training is, and found weights are a frozen photograph. So we
 fine-tuned, and it worked, and then Q2 became Q3: **EUR 120 became EUR 90**, the weights still
 said 120, and they could cite nothing. So we put the whole rule book in the prompt, and it fit,
-and we paid for all 75 KB on every query. So we selected — and retrieval brought back garbage.
-So we changed the embedder, because the default was English-only and nobody warned us. So we
-changed the chunker, and found the header, not the row, was the failure. So we put it in
-ChromaDB to make it real. So we added hybrid and reranking, and measured that a reranker is a
-trade, not an upgrade. And then two questions needed three documents at once, and no
-single-shot method in the course got that pair above 0.500 — on one of them they scored zero.
+and we paid for all 78,310 characters of it on every query. So we selected — and retrieval
+brought back garbage. So we changed the embedder, because the default was English-only and
+nobody warned us. So we changed the chunker, and found the header, not the row, was the
+failure. So we put it in ChromaDB to make it real. So we added hybrid and reranking, and
+measured that a reranker is a trade, not an upgrade. And then two questions needed three
+documents at once, and no single-shot method in the course got them above **0.500** — on q19,
+zero of the three documents it needed came back at all.
 
 Ten gates, not one of them a definition. Each was a wall the previous module walked into. The
-whole day is one number: **EUR 90**, quoted from a document, with the document named.
+whole day is one number: **EUR 90**, quoted from a document, with the document named — and one
+caveat, which is that we measured whether the document came back, never whether the sentence
+built on it was right.
 
 <div class="presenter-note">
-Do the rewind standing, no slides, no laptop. It is the last eight minutes of the day and the
-only part anyone repeats to a colleague. End on the EUR 90 sentence, then the exit line, then
-stop talking. No summary slide after it.
+Do the rewind standing, no slides, no laptop. It is the last part of the day and the only part
+anyone repeats to a colleague. End on the EUR 90 sentence, then the exit line, then stop
+talking. No summary slide after it. This is the 15-minute closing block at 14:33, which also
+carries the repo link and the handout.
 </div>
 
 ## Exit line
 
-> You just watched RAG turn into an agent.
+> Every step today was born where the previous one stopped being enough. The last one turned
+> RAG into an agent — and that is exactly where the agent day picks it up.

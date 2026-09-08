@@ -26,10 +26,11 @@ No concept is introduced before you have **seen the failure that requires it**. 
 opens where the previous one hit a wall:
 
 **bare LLM** → *it invents an answer* → **fine-tuning** → *the weights are frozen and cite nothing*
-→ **stuff the prompt** → *you pay for the whole corpus on every query* → **keyword search** →
-*it misses a paraphrase* → **naive RAG** → *retrieval returns garbage* → **chunking and the right
-embedder** → *the exact term still slips* → **hybrid + rerank** → *multi-hop still fails* →
-**agentic RAG**.
+→ **stuff the prompt** → *it fits, and you pay for the whole corpus on every query* → **keyword
+search** → *it misses a paraphrase* → **naive RAG** → *retrieval returns garbage* → **the right
+embedder** → *the average rose while one category collapsed* → **structure-aware chunking** →
+**ChromaDB** → *now add what the blog posts recommend* → **hybrid + rerank** → *fusion loses, the
+reranker levels, multi-hop still fails* → **agentic RAG**.
 
 <CardGrid>
   <Card title="It runs offline" icon="laptop">
@@ -45,7 +46,32 @@ embedder** → *the exact term still slips* → **hybrid + rerank** → *multi-h
     always beat either one alone, and this course shows you the run where it does not.
   </Card>
   <Card title="You leave with it working" icon="rocket">
-    Every notebook stays on your machine and still runs on Monday morning, on the same
-    laptop, with no network.
+    Every notebook and exercise stays on your machine and still runs on Monday morning, on the
+    same laptop, with no network.
   </Card>
 </CardGrid>
+
+## How the day runs
+
+There is no notebook server. The nine notebooks are percent-format `.py` files under
+`notebooks/`, starting at `notebooks/00_bare_llm_fails.py`. You open one in VS Code with the
+Microsoft Python extension and run it block by block with `Shift+Enter`. The dependencies are
+`numpy` and `chromadb`, and nothing else.
+
+Three of the day's results are things you *run* rather than things you build, so they live in
+`exercises/` as one command each:
+
+| Module | Command | Roughly |
+|---|---|---|
+| 6 — is the default embedder right for your language? | `python exercises/m6_embedding_bakeoff.py` | 20 s |
+| 7 — why did retrieval bring back garbage? | `python exercises/m7_chunking_ladder.py` | 2–3 min |
+| 9 — when does a reranker actually pay? | `python exercises/m9_rerank_trade.py` | ~5 min |
+
+`m9_rerank_trade.py --quick` exists for slower laptops; it says on screen that the run is reduced.
+The rule behind the split, and the one sentence to remember about the format:
+
+> If it is a **measurement**, you run one command and we compare numbers.
+> If it is a **mechanism**, we build it together in cells.
+
+Start at [Setup](/modules/00-setup/); every term the day uses is defined once in the
+[glossary](/reference/glossary/).

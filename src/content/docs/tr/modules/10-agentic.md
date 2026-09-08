@@ -9,11 +9,26 @@ description: "Ya tek atış yetmiyorsa?"
 
 > **Ya tek atış yetmiyorsa?**
 
-Gold set'te bugün kurduğumuz her yöntemin patladığı bir soru var. Keyword search'te patladı,
-dense retrieval'da patladı, hit@1'i **0.800**'e çıkaran structure-aware chunking'de patladı,
-rerank'ten sonra da patladı. İki `multi_hop` sorusu bu kurstaki her tek atışlık yöntemde en iyi
-**0.500** alıyor — ve bu 0.500 onları kayırıyor, çünkü doküman seviyesinde skorlama, gold
-dokümanlardan *biri* rank 1'e geldiğinde "isabet" diyor. Bu sorunun üç tanesine ihtiyacı var.
+Gold set'te `multi_hop` tipli iki soru var ve ikisi de bugün hiç kımıldamadı. hit@1'leri whole
+documents'ta **0.000**, merdivendeki her chunking stratejisinde **0.500** — sabit boy, sabit boy
++ overlap, recursive, structure-aware; dördü de aynı. Modül 6'da karşılaştırdığımız üç
+embedder'ın hepsinde de 0.500; diğer her şeyi 0.800'e çıkaran embedder dâhil. Pointwise rerank
+da kımıldatmadı: en güçlü kurulumda q19'un ilk gold dokümanı rank 6'dan rank 5'e geldi, q20'ninki
+zaten rank 1'deydi.
+
+Bu 0.500 onları kayırıyor, çünkü doküman seviyesinde skorlama, gold dokümanlardan *biri* rank
+1'e geldiğinde "isabet" diyor. Sayının sakladığı şey şu. q19'u elimizdeki en iyi tek geçişten
+geçir — structure-aware chunk'lar üstünde `bge-m3` — ve dönen ilk beş doküman şu olur:
+
+```
+faq_en_general   macro_tr_rebook   codeshare_h9_au_conditions
+sop_denied_boarding   macro_tr_misconnect
+```
+
+Sorunun ihtiyaç duyduğu üç dokümandan **üçte sıfırı**. Üstelik hata gibi de durmuyor.
+`faq_en_general` ve `macro_tr_rebook` tam olarak bu durumu anlatıyor. İkisi de hiçbir rakam
+taşımayı reddedip acenteyi başka yere yolluyor. Rank 1'de tek bir rakam olsaydı, üstünkörü
+bir kontrolden geçerdi.
 
 Soru, bir acentenin gerçekten yazacağı hâliyle:
 
@@ -29,19 +44,36 @@ böyle kurulmuş: SOP kendi içinde "establishes no monetary penalty, waiver or 
 any kind" diyor, Clause 4.4 ise anlaşmanın hiçbir fişin tutarını belirlemediğini söylüyor.
 Dokümanlar birbirini işaret ediyor. Gerçek kural kitapları da böyle yapar.
 
+### Hangi fare sheet — RULE 7
+
+Yolcunun elindeki tek bilette hem bir Avrupa Helios bacağı hem bir kıtalararası Aurora bacağı
+var; yani iki fare sheet de geçerli olabilir. Corpus bunu, iki sayfada birden duran bir kuralla
+çözüyor — `fare_classic_shorthaul` RULE 7 ve `fare_classic_longhaul` RULE 7:
+
+> the sheet is chosen by the transaction and not by the document. A voluntary change to a single
+> coupon is assessed on the sheet for the band of the Helios sector held [...] A cancellation or
+> refund of the journey as a whole is assessed on the LONG-HAUL CLASSIC sheet.
+
+q19 Avrupa bacağında isteğe bağlı bir değişiklik soruyor; o yüzden short-haul sheet geçerli ve
+CLASSIC K change penalty **EUR 70**. q20 — Atlantik bandındaki diğer multi-hop soru — yolcu
+yolculuktan tamamen vazgeçince ne tahsil edileceğini soruyor; o yüzden long-haul sheet geçerli
+ve CLASSIC K cancellation penalty **EUR 195**. Short-haul'un iptal rakamını, EUR 90'ı vermek,
+doğru satırı yanlış sayfadan okumak olur.
+
 <div class="presenter-note">
 Türkçe soruyu ekrana koy ve bir yolcunun anlattığı gibi, yavaşça yüksek sesle oku. Salona sor:
 "bu soru kaç doküman istiyor?" Cevapları al — bir ve iki diyecekler. Ancak ondan sonra üç
 olduğunu açıkla ve SOP ile anlaşmanın birbirinin sorusunu cevaplamayı reddettiği iki cümleyi
-göster. 4 dakika, laptoplar kapalı, henüz hiçbir şey çalışmıyor.
+göster. RULE 7 projeksiyonda otuz saniyeyi hak ediyor, çünkü gold set'teki iki soru buna
+dayanıyor. 4 dakika, laptoplar kapalı, henüz hiçbir şey çalışmıyor.
 </div>
 
 ## Tek geçiş neden tek doküman getiriyor
 
 Bu soruyu embed et, elinde tek bir vektör olur. Tek nokta — ama sorunun üç ağırlık merkezi var:
 duty of care, interline koruması, ücret cezası. Nokta üçünün arasına, cümlenin en çok ağırlık
-verdiğine yakın bir yere düşer ve top-5 o tek komşuluktan gelir. Tek retrieval geçişi sana
-üçünden birini verir.
+verdiğine yakın bir yere düşer ve top-5 o tek komşuluktan gelir. Tek retrieval geçişi sana tek
+bir komşuluk verir ve q19'da o komşuluk yanlıştı.
 
 Pipeline'daki hiçbir şey bunu düzeltemez, çünkü pipeline'da bozuk bir şey yok. Daha iyi bir
 embedder noktayı taşır; ikiye bölmez. Daha iyi bir chunker adayları keskinleştirir; ikinci bir
@@ -53,35 +85,63 @@ geçişin kendisi.
 
 Dört adım, yeni bir makine yok.
 
-**Decompose.** Bir model çağrısı soruyu alt sorulara böler, satır başına bir tane, en fazla
+**Decompose.** Bir model çağrısı soruyu tek başına cevaplanabilir alt sorulara böler, en fazla
 dört: beş saatlik beklemede hangi bakım veriliyor; AU segmenti korunuyor mu ve yeniden
 fiyatlandırılıyor mu; CLASSIC K short-haul isteğe bağlı değişiklik cezası ne kadar.
 
 **Her alt soru için ayrı retrieval.** Her biri kendi embedding'ini ve kendi top-k'sını alıyor —
 aynı `bge-m3` index'i, modül 7'deki aynı structure-aware chunk'lar. Bir nokta yerine üç nokta.
 
-**Yeterlilik kontrolü.** Bir model çağrısı `YES` diyor ya da eksik olanın adını veriyor. Düz
-yazı değil, tek token — pointwise rerank'in listwise'ı **5/5'e 2/5** yenmesiyle aynı sebep:
-küçük model dar soruya iyi, geniş soruya kötü cevap verir.
+**Yeterlilik kontrolü.** Bir model çağrısı `YES` diyor ya da `NO` deyip eksik olan için tek bir
+kısa sorgu yazıyor. Açık uçlu değil, dar bir soru — pointwise rerank'in listwise'ı emekli probe
+corpus'unda yenmesiyle aynı sebep (5 soru ve 10 doküman üzerinde 5/5'e 2/5; yön gerçek, bu
+büyüklükte magnitude kanıtsız). Küçük model dar soruya iyi, geniş soruya kötü cevap verir.
 
 **Citation'lı cevap,** her rakamın arkasındaki dokümanın adıyla.
 
-Döngünün döndürdüğü: **EUR 15** yemek fişi, çünkü bekleme üç saati aşıyor (`sop_misconnect_v4`
-3.4); otel yok, çünkü beş saat altıyı aşmıyor (3.5); Aurora segmenti korunuyor ve **yeniden
-fiyatlandırılmadan** yerleştiriliyor (`interline_h9_au` 4.1 ve 4.2); yarına isteğe bağlı geçiş
-**EUR 70** (`fare_classic_shorthaul`, CLASSIC K, change penalty).
+## Koşu aslında ne üretiyor
 
-Son rakam günü kendi üstüne kapatıyor. **EUR 70, modül 7'den beri peşinde koştuğumuz yanlış
-cevaptı** — cancellation sütunu yerine change sütununun okunması. Burada doğru, çünkü yolcu
-gerçekten isteğe bağlı bir değişiklik istiyor; ve döngü iki sütunu ancak structure-aware
-chunking header'ı K satırına bağlı tuttuğu için ayırt edebiliyor. Nihai cevap doğru, çünkü üç
-modül önce bir string'in nereden kesileceğine dair bir karar verildi.
+Döngü dokümanlara ulaşıyor. q19'da **üçte sıfır**dan **üçte üç**e çıkıyor. Sonra yazdığı cevabı
+oku, çünkü finalin temiz olmaktan çıktığı yer burası.
+
+Kayıtlı koşuda model altı saatlik otel eşiğini on beş euroluk yemek tutarıyla birlikte, sanki
+otelin bedeli oymuş gibi verdi; sonra son iki cümlesinde değişiklik ücreti konusunda kendisiyle
+çelişti. Senin koşun başka kelimelerle yazacak — decompose üretildiği için günün determinist
+olmayan tek parçası burası — ama biçim tekrar eder. Kelimeye değil, biçime bak.
+
+Dokümanların gerçekte ne dediği, her biri geldiği paragrafla:
+
+- **EUR 15** yemek fişi, çünkü bekleme üç saati aşıyor — `sop_misconnect_v4` 3.4
+- **otel yok**, çünkü beş saat altıyı aşmıyor — `sop_misconnect_v4` 3.5
+- Aurora segmenti korunuyor ve **yeniden fiyatlandırılmadan** yerleştiriliyor —
+  `interline_h9_au` 4.1 ve 4.2
+- isteğe bağlı değişiklik **EUR 70** — `fare_classic_shorthaul`, RULE 7 ve CLASSIC K satırı
+
+Modelin hangi ikisi arasında kaydığına dikkat et. **EUR 70** change penalty, **EUR 90**
+cancellation penalty — aynı K satırında bir sütun arayla duruyorlar; modül 7'nin tam olarak
+konusu olan karışıklık. Header'ın o satıra hâlâ bağlı olmasının sebebi structure-aware
+chunking; yani sütun okunmak üzere oradaydı. Yine de yanlış okundu. Retrieval düzeldi. Okuma
+düzelmedi.
+
+Günün dürüst kapanışı bu ve finali olduğundan derli toplu göstermek yerine bunu yüksek sesle
+söylemek gerekiyor. Bu kurstaki her metrik **retrieval**'ı ölçüyor — doğru dokümanın gelip
+gelmediğini. Hiçbiri cevabın doğru olup olmadığını ölçmüyor. Bunlar iki farklı hata biçimi olan
+iki farklı sistem ve biz sadece birini ölçtük. Bugünden kendi projene tek bir şey taşıyacaksan:
+önce retrieval eval'ini kur, çünkü ucuz ve determinist; sonra cevaplar için ikincisini kur,
+çünkü birincisi ikincisinin bozuk olduğunu sana asla söylemeyecek.
+
+**Ve döngü her zaman kazanmıyor.** q20'de üç dokümandan ikisine ulaştı — tek geçişin zaten
+ulaştığı aynı ikisine. RULE 7'nin yolculuğun tümünün iptali için seçtiği sayfa,
+`fare_classic_longhaul`, denediğimiz iki koşunun hiçbirinde gelmedi. İki soru bir yöntemi
+ölçemez. Sadece böyle bir yöntemin var olduğunu ve bedavaya gelmediğini gösterebilir.
 
 <div class="presenter-note">
 Döngüyü çalıştırmadan önce salona modelin üreteceğini düşündükleri üç alt soruyu yazdır. Sonra
 sadece decompose hücresini çalıştır ve karşılaştır. Kimseninkiyle birebir tutmayacak, ders de
-bu: plan yazılmıyor, üretiliyor. Ağzında gevelenmemesi gereken cümle: <strong>retrieval artık modelden önce gelen bir
-adım değil, modelin çağırdığı bir tool.</strong> Bir kez, net söyle; sonra sus.
+bu: plan yazılmıyor, üretiliyor. Sonra cevap hücresini çalıştır ve corpus açıkken yüksek sesle
+oku — alkışa yetişmek için kötü cevabın üstünden atlama. Ağzında gevelenmemesi gereken cümle:
+<strong>retrieval artık modelden önce gelen bir adım değil, modelin çağırdığı bir tool.</strong>
+Bir kez, net söyle; sonra sus.
 </div>
 
 ## Aslında ne değişti
@@ -95,12 +155,14 @@ bir fonksiyon.
 
 ## Fatura
 
-**Daha çok çağrı.** Bir decompose, üç retrieval, bir yeterlilik kontrolü, bir cevap: naive
-RAG'in bir çağrı yaptığı yerde altı çağrı. Ölçülen `qwen2.5:3b` üretim maliyeti **0,9 sn**
-üzerinden bu bir aritmetik, ölçüm değil — ve tek haneli saniyelere denk geliyor; zaten sorgu
-başına 8 çağrıyla **~4 sn** tutan rerank geçişiyle aynı mertebe. Yerine, reasoning token
-ürettiği için **11,6 sn** ölçülen `qwen3:4b`'yi koy, aynı döngü bir dakikaya çıkar. Döngüde
-çağrı başına gecikme çarpılır.
+**Daha çok çağrı.** Bir decompose, alt soru başına bir retrieval, tur başına bir yeterlilik
+kontrolü, bir cevap: naive RAG'in bir çağrı yaptığı yerde altı ilâ on model çağrısı. Bu
+geçişlerin üçü generation değil embedding çağrısı, yani ucuz olan kısım; generation'lar değil.
+Ölçek için: modül 9'da fiyatladığımız reranker sorgu başına **8 model çağrısı** tutuyor ve en
+güçlü kurulumda yirmi sorunun tamamında **65.2 saniye** sürdü — döngü aynı mertebe, yeni bir
+kategori değil. Farklı olan şu: döngü çağrı başına gecikmeyi toplamıyor, tur sayısıyla çarpıyor.
+Yani yavaş bir generation modeli sana biraz daha pahalıya gelmiyor; tur sayısı katı pahalıya
+geliyor.
 
 **Non-determinism.** Plan üretildiği için aynı sorunun iki koşusu farklı bölünebilir, farklı
 doküman getirebilir, farklı citation verebilir. Temperature 0, ve her alt soruyu logla — debug
@@ -112,56 +174,73 @@ saatine karşı. Her ek geçiş onu çekmek için bir fırsat daha. Chunk'lar mo
 sürüm satırına göre filtrele.
 
 **Bitmeyen döngü.** Yeterlilik kontrolü her seferinde "hâlâ bir şey eksik" diyebiliyorsa,
-diyecektir. Üç yerden sınırla: en fazla iki ek tur, en fazla dört alt soru ve son turda modelin
-elindekiyle cevap verip bulamadığını açıkça söylemesi kuralı. Dürüst bir kısmi cevap, sonsuz
+diyecektir. Notebook bunu üç yerden sınırlıyor: sert bir `MAX_ROUNDS`, en fazla dört alt soru ve
+bir tur yeni hiçbir şey getirmediğinde durma. Dördüncü sınırı production'da sen ekle: son turda
+model elindekiyle cevap versin ve bulamadığını açıkça söylesin. Dürüst bir kısmi cevap, sonsuz
 döngüden de kendinden emin uydurma bir cevaptan da iyidir — ki modül 1'de çıplak modelin
-kurgusal bir havayoluna "20-30% ceza" uydurduğunu ölçmüştük.
+kurgusal bir havayoluna "20-30% ceza" uydurduğunu izlemiştik.
 
 <div class="presenter-note">
 Döngüyü canlı kır: yeterlilik prompt'unu asla YES diyemeyecek şekilde değiştir, tekrar çalıştır,
 tur sayacının tavana çarpıp durduğunu izlet. On saniye — ve production'da ihtiyaç duyacakları
-kısım tam olarak bu. Laptoplar yavaşsa döngüyü sadece projeksiyonda bir kez çalıştır, onlar
-loglanan alt soruları okusun. Toplam 35 dakika: gate 4, tek geçiş hatası 6, döngü 12, kırma 5,
-geri sarma 8.
+kısım tam olarak bu. Toplam 28 dakika: gate 4, tek geçiş hatası 5, döngü 10, cevabı okuma 5,
+kırma 4. Aşağıdaki geri sarma bu bütçede değil — 14:33'teki 15 dakikalık kapanış bloğuna ait.
 </div>
 
 ## Ne çalıştırıyorsun
 
-Notebook: `07_agentic_rag.ipynb`
+**Bunu izliyorsun.** Notebook'u eğitmen sürüyor; dosya repoda duruyor ve sonrasında kendi
+laptopunda, diğer her modülle aynı iki bağımlılıkla koşuyor. Canlı takip etmek istersen kimse
+engellemiyor — ama burada salonun tek ekrana bakması daha verimli.
 
-```bash
-ollama serve                                  # modül 0'dan beri zaten ayakta
-jupyter lab notebooks/07_agentic_rag.ipynb
-```
+`notebooks/07_agentic_rag.py` dosyasını VS Code'da aç ve blokları `Shift+Enter` ile çalıştır.
+`ollama serve` modül 0'dan beri zaten ayakta.
+
+- **ne görmen gerekiyor** — tek geçiş hücresi `of the 3 documents needed, retrieval found 0`
+  yazıyor; döngüden sonra `final coverage:` üçünü birden listeliyor; sondaki karşılaştırma
+  tablosu q19'u `0 → 3`, q20'yi `2 → 2` olarak basıyor
+- **kabaca ne kadar sürüyor** — döngü hücrelerinin her biri saniyeler; sondaki iki soruluk
+  karşılaştırma M-serisi bir Mac'te 15 saniyenin altında koştu, sadece CPU'lu bir laptopta
+  daha uzun
 
 Benchmark'ın kullandığı fonksiyonların aynısı. Burada yeni bir bağımlılık yok:
 
 ```python
-from retrieval import DenseRetriever, generate
-from chunking import chunk_corpus, to_documents
-from metrics import load_gold
+import _preflight; _preflight.ready(chat=True, embed=True)   # cwd -> notebooks/, eval/ path'e eklenir
+from pathlib import Path
+import retrieval as R, chunking as C, metrics
 
-gold = load_gold()
-q19 = next(q for q in gold if q["id"] == "q19")     # üç dokümanlık soru
+docs = {p.stem: p.read_text(encoding="utf-8") for p in sorted(Path("../corpus/2026-Q3").glob("*.md"))}
+questions = metrics.load_gold("../eval/gold_questions.jsonl")
+chunk_ids, chunk_texts, _ = C.chunk_corpus(docs, "structure-aware")
+chunks = dict(zip(chunk_ids, chunk_texts))
+dense = R.DenseRetriever(chunk_ids, chunk_texts)
 
-ids, texts, parents = chunk_corpus(documents, "structure-aware")
-index = DenseRetriever(ids, texts)
+task = [q for q in questions if q["type"] == "multi_hop"][0]      # q19
 
-subqs = decompose(q19["query"], max_parts=4)        # tek generate() çağrısı
-seen = {}
-for _ in range(3):                                  # sert tur limiti
-    for sq in subqs:
-        for cid in index.rank(sq)[:3]:
-            seen[cid] = texts[ids.index(cid)]       # chunk id ile dedupe
-    missing = check_sufficient(q19["query"], seen)  # "YES" ya da eksik olan
-    if missing == "YES":
+MAX_ROUNDS = 3
+gathered: dict[str, str] = {}
+for sub in decompose(task["query"]):                              # tek R.generate() çağrısı
+    for chunk_id in dense.rank(sub)[:3]:
+        gathered.setdefault(chunk_id, sub)                        # chunk id ile dedupe
+
+for round_number in range(MAX_ROUNDS):                            # sert tur limiti
+    enough, verdict = sufficient(task["query"], list(gathered))   # "YES" ya da NO + sorgu
+    if enough:
         break
-    subqs = [missing]
-print(answer_with_citations(q19["query"], seen))
+    follow_up = verdict.split("\n")[-1].lstrip("NO").strip(" .:,-") or task["query"]
+    before = len(gathered)
+    for chunk_id in dense.rank(follow_up)[:3]:
+        gathered.setdefault(chunk_id, follow_up)
+    if len(gathered) == before:
+        break                                                     # yeni hiçbir şey gelmedi
 ```
 
-Aynı soruyu bir üstteki hücrede tek geçişli retrieval'dan da geçir ki iki çıktı tek ekranda
-yan yana dursun. Bir dokümana karşı üç doküman.
+`decompose` ve `sufficient`, notebook'un içinde yazılmış iki prompt; yani bu blok o iki hücreden
+sonra çalışıyor, öncesinde değil. Geri kalan her şey —
+`generate`, `DenseRetriever`, `chunk_corpus`, `load_gold` — modül 5'ten beri zaten koşan kod.
+Tek geçiş hücresi hemen üstte duruyor, böylece iki çıktı tek ekranda yan yana geliyor: sıfır
+dokümana karşı üç.
 
 ## Sayılar ne dedi
 
@@ -170,21 +249,25 @@ yan yana dursun. Bir dokümana karşı üç doküman.
 | | ölçüm |
 |---|---|
 | gold set'teki `multi_hop` soru sayısı | 20'de 2 |
-| q19'un gerektirdiği gold doküman | 3 (`sop_misconnect_v4`, `interline_h9_au`, `fare_classic_shorthaul`) |
-| en iyi `multi_hop` skoru, tek atışlık her yöntemde | **0.500** |
-| genelde en iyi tek atış (bge-m3 + structure-aware) | hit@1 **0.800**, MRR **0.846** |
-| pointwise vs listwise rerank, probe corpus | 5/5 vs 2/5 (MRR 1.000 vs 0.600) |
-| bir rerank geçişinin maliyeti | 8 model çağrısı, sorgu başına ~4 sn |
-| `qwen2.5:3b` üretim | 0,9 sn, 3/3 doğru |
-| `qwen3:4b` üretim | 11,6 sn (reasoning token) |
+| q19'un gerektirdiği gold doküman | 3 — `sop_misconnect_v4`, `interline_h9_au`, `fare_classic_shorthaul` |
+| `multi_hop` hit@1, whole documents | 0.000 |
+| `multi_hop` hit@1, merdivendeki dört chunk'lı stratejinin dördü de | 0.500 |
+| `multi_hop` hit@1, structure-aware chunk'larda üç embedder'ın hepsi | 0.500 |
+| q19, ilk gold dokümanın rank'ı — pointwise rerank öncesi / sonrası | 6 / 5 |
+| genelde en iyi tek atış (bge-m3 + structure-aware) | hit@1 **0.800**, MRR **0.844** |
+| q19'da ulaşılan gold doküman — tek geçiş / döngü | **3'te 0** / **3'te 3** |
+| q20'de ulaşılan gold doküman — tek geçiş / döngü | 3'te 2 / 3'te 2 |
+| pointwise vs listwise rerank, 10 doküman ve 5 soruluk emekli probe corpus | 5/5'e 2/5 (MRR 1.000 vs 0.600) — yön gerçek, n=5'te magnitude kanıtsız |
+| bir rerank geçişinin maliyeti, en güçlü kurulum | sorgu başına 8 model çağrısı, 20 soruda 65.2 sn |
 | yürürlükten kalkmış `sop_misconnect_v3` | EUR 10 fiş, 8 saatlik otel eşiği |
 | güncel `sop_misconnect_v4` | EUR 15 fiş, 6 saatlik otel eşiği |
 
 Döngünün kendisi **benchmark tablosunda yok**. İki multi-hop sorusu bir yöntemi ölçemez;
 yalnızca böyle bir yöntemin var olduğunu gösterebilir. Bunu neyin çözeceği belli: elli etiketli
-multi-hop sorusu ve gold dokümanlardan birinin değil, *hepsinin* getirilip getirilmediğine göre
-skorlama. O gelene kadar bu sayfanın iddiası dar olan: tek geçiş üç dokümandan birini getirdi,
-döngü üçünü de getirdi.
+multi-hop sorusu, gold dokümanlardan birinin değil *hepsinin* getirilip getirilmediğine göre
+skorlama ve retrieval'ı değil cevabı ölçen ikinci bir eval. O gelene kadar bu sayfanın iddiası
+dar olan: q19'da tek geçiş üç dokümandan hiçbirini getirmedi, döngü üçünü de getirdi; q20'de
+döngü, tek geçişin zaten getirdiğini getirdi.
 
 </div>
 
@@ -198,15 +281,17 @@ hata sinyali yok.
 
 Yeterlilik kontrolü hem en ilginç hem en zayıf parça. 3B'lik bir modelden kendi kanıtının
 eksiksizliğine hüküm vermesini istiyorsun ve modül 9 bu hükmün kaç para ettiğini ölçtü: zaten
-kendisinden iyi olan bir sıralamaya dayatıldığında **kendi tavanına düzlüyor**, 0.800'den
-0.650'ye. Çözüm hükmü daraltmak: "bu yeterli mi?" değil, "getirilen metin isteğe bağlı
-değişiklik için bir euro tutarı söylüyor mu?" Alt sorulardan türetilen bir checklist, bulanık
-bir kararı lookup'a çevirir. Pointwise'ın listwise'ı yenmesiyle aynı ders, bir kat yukarıda.
+kendisinden iyi olan bir sıralamaya dayatıldığında **kendi tavanına düzlüyor** — hit@1 0.800'den
+0.600'e, MRR 0.844'ten 0.717'ye. Çözüm hükmü daraltmak: "bu yeterli mi?" değil, "getirilen metin
+isteğe bağlı değişiklik için bir euro tutarı söylüyor mu?" Alt sorulardan türetilen bir
+checklist, bulanık bir kararı lookup'a çevirir. Pointwise'ın listwise'ı yenmesiyle aynı ders,
+bir kat yukarıda.
 
 Döngünün neye ihtiyaç duymadığına bak: planner framework yok, tool-calling API yok, agent
-class'ı yok. `eval/retrieval.py`'den altı fonksiyon ve içinde break olan bir `for`. Çoğu agent
-framework'ü bunun üstüne retry, tracing ve şema demek. Framework'ü davranışı elde etmek için
-değil, tracing'e ihtiyacın olduğunda al.
+class'ı yok. `eval/retrieval.py`'den iki şey — `generate` ve `DenseRetriever` — artı
+notebook'ta yazdığın üç prompt ve içinde break olan bir `for`. Çoğu agent framework'ü bunun
+üstüne retry, tracing ve şema demek. Framework'ü davranışı elde etmek için değil, tracing'e
+ihtiyacın olduğunda al.
 
 10 milyon dokümanda döngü bedava olmaktan çıkar. Her ek geçiş yeni bir tam ANN araması demek;
 o yüzden fan-out'u sınırla ve alt soru seviyesinde cache'le — aynı üç alt soru binlerce
@@ -215,7 +300,10 @@ model değişikliğinden fazla kazandırır. Önüne bir router koy, çünkü so
 ve decompose'un bedelini hiç ödememeli. Tool'ları açık ve tipli yap — `search_sop`,
 `search_fare_rules`, `search_interline`, her biri kendi filtresiyle — ki model tek bir index'in
 her şeyi kapsamasını ummak yerine bir corpus seçsin. v3'ü dışarıda tutan sürüm filtresi de
-oraya, sıralamaya dair bir umuda değil tool'un bir özelliğine ait.
+oraya, sıralamaya dair bir umuda değil tool'un bir özelliğine ait. RULE 7'nin ayrımı da öyle:
+bir change mi yoksa bir cancellation mı fiyatladığını bilen bir tool, sayfayı retrieval'dan önce
+seçebilir — 3B'lik bir modelden iki dokümanın da sonuna gömülü bir kuralı fark etmesini
+istemek yerine.
 
 Dürüst sınır: hiç yazılmamış bir dokümanı hiçbir geçiş sayısı üretemez. Interline partnerin
 kendi SOP'si bizimkiyle çelişiyorsa ve bunu çözen bir paragraf yoksa, döngünün hata biçimi var
@@ -223,27 +311,33 @@ olmayan metni aramaya devam etmektir. Sınırla ve bunu söylet.
 
 ## Günü geri sarmak
 
-Zinciri tersten, yüksek sesle, tek nefeste oku.
+Burası kapanış bloğu, modül 10'un 28 dakikasının parçası değil. Zinciri tersten, yüksek sesle,
+tek nefeste oku.
 
 Model bizim verimizi bilmiyordu ve bilmediğini de bilmiyordu — "20-30% ceza" uydurdu. Sonra
 training'in ne olduğuna baktık ve weight'lerin donmuş bir fotoğraf olduğunu gördük. Fine-tune
 ettik, çalıştı, sonra Q2 Q3 oldu: **EUR 120, EUR 90'a döndü**, weight'ler hâlâ 120 diyordu ve
-hiçbir kaynak gösteremiyorlardı. Bütün kural kitabını prompt'a koyduk, sığdı, ve her sorguda 75
-KB'ın tamamını ödedik. Seçmeye başladık — retrieval çöp getirdi. Embedder'ı değiştirdik, çünkü
-default sadece İngilizceydi ve kimse uyarmamıştı. Chunker'ı değiştirdik ve hatanın satır değil
-header olduğunu bulduk. Gerçek olsun diye ChromaDB'ye koyduk. Hybrid ve rerank ekledik ve bir
-reranker'ın upgrade değil takas olduğunu ölçtük. Sonra tek iki soru aynı anda üç doküman
-istedi ve kurstaki hiçbir tek atışlık yöntem o iki soruda 0.500'ün üstüne çıkamadı; birinde sıfır aldılar.
+hiçbir kaynak gösteremiyorlardı. Bütün kural kitabını prompt'a koyduk, sığdı, ve her sorguda
+78,310 karakterin tamamını ödedik. Seçmeye başladık — retrieval çöp getirdi. Embedder'ı
+değiştirdik, çünkü default sadece İngilizceydi ve kimse uyarmamıştı. Chunker'ı değiştirdik ve
+hatanın satır değil header olduğunu bulduk. Gerçek olsun diye ChromaDB'ye koyduk. Hybrid ve
+rerank ekledik ve bir reranker'ın upgrade değil takas olduğunu ölçtük. Sonra iki soru aynı anda
+üç doküman istedi ve kurstaki hiçbir tek atışlık yöntem onları **0.500**'ün üstüne çıkaramadı —
+q19'da ihtiyaç duyduğu üç dokümandan hiçbiri geri gelmedi bile.
 
 On gate, hiçbiri tanımla açılmadı. Her biri bir önceki modülün çarptığı duvardı. Bütün gün tek
-bir sayı: **EUR 90** — bir dokümandan alıntılanmış ve dokümanın adı verilmiş hâliyle.
+bir sayı: **EUR 90** — bir dokümandan alıntılanmış ve dokümanın adı verilmiş hâliyle. Bir de tek
+bir çekince: dokümanın gelip gelmediğini ölçtük, üstüne kurulan cümlenin doğru olup olmadığını
+hiç ölçmedik.
 
 <div class="presenter-note">
-Geri sarmayı ayakta yap; slayt yok, laptop yok. Günün son sekiz dakikası ve bir meslektaşına
-anlatacakları tek bölüm burası. EUR 90 cümlesiyle bitir, sonra çıkış cümlesi, sonra konuşmayı
-kes. Arkasına özet slaytı koyma.
+Geri sarmayı ayakta yap; slayt yok, laptop yok. Günün son bölümü ve bir meslektaşına
+anlatacakları tek kısım burası. EUR 90 cümlesiyle bitir, sonra çıkış cümlesi, sonra konuşmayı
+kes. Arkasına özet slaytı koyma. Burası 14:33'teki 15 dakikalık kapanış bloğu; repo linki ve
+handout da burada veriliyor.
 </div>
 
 ## Çıkış cümlesi
 
-> RAG'in bir agent'a dönüşmesini az önce izledin.
+> Bugünkü her adım, bir öncekinin yetmediği yerde doğdu. Sonuncusu RAG'i bir agent'a
+> dönüştürdü — agent günü de tam buradan devralıyor.

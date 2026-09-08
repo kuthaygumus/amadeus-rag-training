@@ -9,9 +9,23 @@ description: "Semantic yetmiyorsa?"
 
 > **Semantic yetmiyorsa?**
 
-Modül 8'i **hit@1 0.800** ile bitirdin: `bge-m3`, 152 structure-aware chunk, ChromaDB üzerinden
-servis ediliyor. Beş sorunun dördünde doğru doküman birinci sırada geliyor. Beşte biri gelmiyor ve
-gelmediğinde generator yanlış sayfadan, hiç tereddüt etmeden cevap veriyor.
+Ölçülmüş son retrieval sayısı **hit@1 0.800**: 154 structure-aware chunk üzerinde `bge-m3`, modül
+7'nin sonunda in-memory retriever ile ölçüldü. Modül 8 aynı vektörleri ChromaDB'ye taşıdı ve yirmi
+soruluk benchmark'ı bilerek yeniden çalıştırmadı — 154 vektörde arama zaten exhaustive, yani
+sıralamanın aynı olması gerekir; ama modül 8 açıkça söylüyor: "gerekir" bir ölçüm değildir. Yani
+0.800 hâlâ ölçülmüş son sayı ve bu modülün tartıştığı sayı o.
+
+0.800, yirmi sorunun on altısı demek. Kaçan dördü ve doğru dokümanın gerçekte kaçıncı sırada olduğu:
+
+| soru | tip | doğru dokümanın sırası |
+|---|---|---|
+| q05 | `tr_en` | 13 |
+| q07 | `tr_en` | 7 |
+| q19 | `multi_hop` | 6 |
+| q14 | `en_en` | 2 |
+
+Dördün üçü kıl payı kaçırmış değil. Üstteki doküman yanlış olduğunda generator da duraksamıyor —
+haklıyken kullandığı aynı tonla, yanlış sayfadan cevap veriyor.
 
 O boşluğa konacak standart bir liste var. Okuduğun her RAG yazısı aynı üç kelimeyi söylüyor: hybrid,
 rerank, contextual. Vector search'ün yanına BM25 koy, sonuçları yeniden sıralaması için üstüne bir
@@ -19,10 +33,12 @@ model tak, her chunk'ın başına context yaz. Üçünü de aynı yirmi soruya k
 birini modül 7'de zaten yaptın, farkında değilsin. Diğer ikisi kaybediyor.
 
 <div class="presenter-note">
-Notebook'u açmadan önce tahtaya <strong>hybrid · rerank · contextual</strong> yaz ve el kaldırt:
-"bu üçünden hangisi 0.800'ü yukarı taşır?" Rerank için neredeyse bütün eller, hybrid için çoğu el
-kalkıyor. Sayıları kelimelerin yanına yaz ve modül boyunca orada bıraksın — iki kez oraya işaret
-edeceksin. 3 dakika, laptoplar kapalı.
+Bu modülün ajandada <strong>38 dakikası</strong> var ve üç ölçümü — BM25 ile fusion, dört kurulumluk
+rerank taraması ve soru bazındaki tablo — kesilmeyecek olanlar. Açılışta kaçan dört soruyu ekrana
+koy: buradaki gate bir çökme değil, bir tavan. Sonra tahtaya <strong>hybrid · rerank ·
+contextual</strong> yaz ve el kaldırt: "bu üçünden hangisi 0.800'ü yukarı taşır?" Rerank için
+neredeyse bütün eller, hybrid için çoğu el kalkıyor. Sayıları kelimelerin yanına yaz ve orada bıraksın
+— iki kez oraya işaret edeceksin. 4 dakika, laptoplar kapalı.
 </div>
 
 ## BM25'i geri getir
@@ -30,14 +46,18 @@ edeceksin. 3 dakika, laptoplar kapalı.
 BM25 modül 5'teki keyword retriever: nadir terimler yüksek skor alır, term frequency doyuma ulaşır,
 uzun dokümanlar cezalandırılır. `H9 1487`'yi anında bulmuştu ve "iptal edersem ne öderim" sorusunda
 tam sıfır almıştı. Şimdi onu dense retriever'ın kullandığı chunk'ların tam üstünde çalıştır — aynı
-152 chunk, aynı index:
+154 chunk, aynı index:
 
 ```python
-bm25 = BM25(chunk_ids, chunk_texts)
+bm25 = R.BM25(chunk_ids, chunk_texts)
 ```
 
-**hit@1 0.300, MRR 0.465.** Türkçe sorulan altı soruda **0.000**. Zayıflamış değil. Sıfır. BM25'in
-`iptal`'den `Cancellation penalty`'ye giden bir yolu yok, chunking de ona böyle bir yol vermedi.
+**hit@1 0.300, MRR 0.467.** Türkçe sorgu / İngilizce doküman olan altı `tr_en` sorusunda **0.000**.
+Zayıflamış değil. Sıfır. BM25'in `iptal`'den `Cancellation penalty`'ye giden bir yolu yok, chunking
+de ona böyle bir yol vermedi.
+
+Onu yenen Türkçe değil. Sorgunun da dokümanın da Türkçe olduğu, kelimelerin ortak olduğu dört `tr_tr`
+sorusunda BM25 **0.750** alıyor. Geçemediği şey, sorgu ile doküman arasındaki dil sınırı.
 
 ## Reciprocal rank fusion ve neden seyreltiyor
 
@@ -58,14 +78,17 @@ Her retriever her dokümana `1 / (k + sıra)` puan veriyor. `k = 60` eğrinin te
 birinci sıra ile üçüncü sıra neredeyse aynı değerde, kuyruk ise hiçbir şey. İki retriever'ın da
 beğendiği doküman, sadece birinin beğendiğini geçiyor.
 
-Dense ile BM25'i aynı chunk'lar üzerinde fuse et: **hit@1 0.450, MRR 0.581.** Dense tek başına 0.800
+Dense ile BM25'i aynı chunk'lar üzerinde fuse et: **hit@1 0.450, MRR 0.586.** Dense tek başına 0.800
 idi. İkinci retriever bize 0.350'ye mal oldu.
+
+Kaybın nereye gittiğine bak. Altı `tr_en` sorusunda dense tek başına 0.667, BM25 0.000 alıyor — ve
+fuse edilmiş sıralama **0.000** alıyor. Fusion bu ikisinin ortalamasını almadı. Başarısızlığı devraldı.
 
 Sebep formülün içinde duruyor. RRF'in bir retriever'ın ne kadar iyi olduğuna ya da bu sorguda ne kadar
 emin olduğuna dair hiçbir fikri yok. BM25'in birinci sırası, dense retriever'ın birinci sırasıyla aynı
-`1/61`'i katıyor. Altı Türkçe soruda BM25'in sıralaması gürültü ve o gürültü tam ağırlıkla oy
-kullanıyor. Anlamadığı sorgularda daha az oy kullanamaz, çünkü elinde teslim ettiği tek şey bir
-sıralama — ve sıralama her zaman bir fikir gibi görünür.
+`1/61`'i katıyor. O altı soruda BM25'in sıralaması gürültü ve o gürültü tam ağırlıkla oy kullanıyor.
+Anlamadığı sorgularda daha az oy kullanamaz, çünkü teslim ettiği tek şey bir sıralama — ve sıralama
+her zaman bir fikir gibi görünür.
 
 Kimsenin yüksek sesle söylemediği önkoşul bu: **reciprocal rank fusion her iki girdinin de kendi
 başına sağlam olduğunu varsayar.** Farklı sorularda düşen iki makul retriever birbirinin açığını
@@ -75,75 +98,102 @@ sadece ortalamaya gider, ve ortalama almak tamir değildir.
 <div class="presenter-note">
 Fusion hücresini çalıştırmadan önce taahhüt al: "Dense 0.800, BM25 0.300. Fuse edince — 0.800'ün
 üstü mü, arası mı, 0.300'ün altı mı?" Kabaca oyla. Salonun çoğu üstü der, çünkü fusion kulağa toplama
-gibi geliyor. Sonra <strong>0.450</strong>'yi göster ve beş saniye hiçbir şey söyleme. Ollama düştüyse
-bu sayfadaki her sayı <code>eval/RESULTS.md</code> içinde; oradan oku ve devam et. 5 dakika.
+gibi geliyor. Sonra <strong>0.450</strong>'yi göster ve beş saniye hiçbir şey söyleme. Devamı `tr_en`
+satırı: 0.667 ile 0.000, fuse edilince 0.000. Ollama düştüyse bu bölümdeki her sayı
+<code>eval/RESULTS.md</code> içinde; oradan oku ve devam et — BM25'in kendisi hiç model çağrısı
+istemiyor, yani hücrenin o yarısı her koşulda çalışır. 8 dakika, üstteki BM25 bölümü dahil.
 </div>
 
-## BM25'i çantada tutan çelişki
+## Chunking BM25'e ne yaptı
 
-BM25 kötü bir retriever değil. **Tam dokümanlar** üzerinde exact-token sorgularda dense retrieval'ı
-yeniyor — uçuş kodları, bülten id'leri, `KSHEU26` gibi fare basis kodları. Bizim dense sayılarımız
-aynı şeklin diğer yüzünü gösteriyor: exact-token sorular tam dokümanlarda **1.000** alıyor, sabit 280
-karakterlik chunking'de **0.500**'e düşüyor.
+BM25 kötü bir retriever değil, ama iyi olduğu koşul bu değil. **Tam dokümanlar** üzerinde — yani
+modül 5'teki index, hiç chunking yokken — BM25 hit@1 **0.400**, MRR **0.515** aldı. Oradaki dört
+exact-token sorusunda, yani uçuş kodları, bülten id'leri ve `KSHEU26` gibi fare basis kodlarında
+**0.750**'ye çıktı.
 
-BM25'i chunking öldürdü, iki yoldan. Uzunluk normalizasyonu çalışmayı bırakıyor: BM25 doküman
-uzunluğunu ortalamaya bölüyor, her chunk aynı boyda olunca bu terim her yerde sabite dönüşüyor ve
-güvendiğin bir ayırt edici sessizce yok oluyor. Bir de kanıt bölünüyor — altı terimlik bir sorgu eskiden
-altı terimi tek dokümanın içinde biriktiriyordu; chunking'den sonra terimler üç ayrı chunk'a dağılıyor
-ve hiçbiri kayda değer puan toplamıyor.
+Genelde "BM25 tanımlayıcılarda embedding'i yener" diye aktarılan sayı bu. Bu korpusta yenmiyor: aynı
+tam dokümanlar üzerinde `bge-m3` genelde **0.550**, aynı dört exact-token sorusunda **1.000** alıyor.
+BM25 elde tutulmaya değecek kadar yakın — ve kazanması beklenen tek koşulda geride.
+
+BM25'in tam dokümanlarda gerçekten sahip olduğu asimetri dil asimetrisi, üstelik keskin. Sorgunun da
+dokümanın da Türkçe olduğu dört `tr_tr` sorusunda **1.000** alıyor — aynı dört soruda `bge-m3` ile
+başa baş. Türkçe sorgu / İngilizce doküman olan altı `tr_en` sorusunda **0.000**, `bge-m3`'ün
+0.333'üne karşı. Kullanabildiği tek şey kelime örtüşmesi; yani aynı korpusta hem en iyi hem en kötü
+hâlinde ve farkı, dokümanın hangi dilde yazıldığı belirliyor.
+
+Chunking o kadarını da aldı. 154 chunk üzerinde BM25'in exact-token skoru 0.750'den **0.500**'e,
+genel MRR'ı 0.515'ten 0.467'ye düşüyor; iki yoldan. Uzunluk normalizasyonu çalışmayı bırakıyor: BM25
+doküman uzunluğunu ortalamaya bölüyor, her chunk aynı boyda olunca bu terim sabite dönüşüyor ve
+güvendiğin bir ayırt edici sessizce yok oluyor. Bir de kanıt bölünüyor — altı terimlik bir sorgu
+eskiden altı terimi tek dokümanın içinde biriktiriyordu; chunking'den sonra terimler üç ayrı chunk'a
+dağılıyor ve hiçbiri kayda değer puan toplamıyor.
 
 Yani dürüst cümle "hybrid search abartılıyor" değil. Dürüst cümle şu: **chunk'lar üzerinde, diller
 arası bir korpusta hybrid search, dense'in 0.800'üne karşı 0.450 ölçüldü.** Index birimini değiştir,
-cevap tersine dönebilir — bugün ikinci kez bir retrieval kararı başka bir retrieval kararına bağlı
-çıkıyor.
+bu bölümdeki her sayı oynar — bugün ikinci kez bir retrieval kararı başka bir retrieval kararına
+bağlı çıkıyor. Bu korpusta oynamayan tek şey, iki retriever'dan hangisinin önde olduğu.
 
-## Reranker ve günün en şaşırtıcı sayısı
+## Reranker ve modülü belirleyen sayı
 
 Reranker, en üstteki adayları alıp bir dil modeline değerlendirtiyor. Bizimki `qwen2.5:3b`, her adayı
 tek tek 0-10 arası puanlıyor — aday başına bir model çağrısı, eşitlikte retriever'ın orijinal sırası
 korunuyor, yani modelin gerçekten bir fikri olduğunda bir dokümanı yerinden oynatabiliyor. Aynı
-reranker, kalitesi farklı dört retrieval kurulumunda.
+reranker, kalitesi bilerek farklı tutulmuş dört retrieval kurulumunda.
 
-| retrieval kurulumu | hit@1 önce | sonra |
-|---|---|---|
-| `nomic` + fixed-280 | 0.350 | **0.450** |
-| `nomic` + structure-aware | 0.350 | **0.450** |
-| `bge-m3` + fixed-280 | 0.650 | 0.550 |
-| `bge-m3` + structure-aware | **0.800** | 0.650 |
+| retrieval kurulumu | hit@1 önce | sonra | MRR önce | sonra | sonuç |
+|---|---|---|---|---|---|
+| `nomic` + fixed-280 | 0.350 | **0.450** | 0.503 | 0.543 | yardım etti |
+| `nomic` + structure-aware | 0.350 | **0.400** | 0.492 | 0.537 | yardım etti |
+| `bge-m3` + fixed-280 | 0.700 | 0.550 | 0.814 | 0.712 | zarar verdi |
+| `bge-m3` + structure-aware | **0.800** | 0.600 | 0.844 | 0.717 | zarar verdi |
 
 İki zayıf kurulumu yukarı çekti, iki güçlü kurulumu aşağı indirdi. Tabloyu neyin ikiye böldüğüne bak:
-chunking değil — her iki chunking stratejisi de tablonun iki yakasında birden var — **embedder**. Her
-iki `nomic` kurulumunu yaklaşık 0.45'e çıkarıyor, her iki `bge-m3` kurulumunu yaklaşık 0.65'e
-düşürüyor.
+chunking değil — her iki chunking stratejisi de tablonun iki yakasında birden var — **embedder**.
 
-**Reranker seviyeler, ve kendi tavanına seviyeler.** 3B bir modelin alaka konusundaki fikri bu
-korpusta aşağı yukarı 0.45 ile 0.65 arası değerde. Retriever'ın bundan kötüyse modelin fikrini
-dayatmak bir yükseltmedir. Retriever'ın zaten daha iyiyse dayatmak sadece kaybettirir. Üçüncü bir
-sonuç yok.
+**Reranker seviyeler, ve kendi tavanına seviyeler.** Rerank'ten önce dört kurulum 0.350 ile 0.800
+arasındaydı; aralık 0.450. Sonra 0.400 ile 0.600 arasında; aralık 0.200. Aynı model alttakini yukarı,
+üsttekini aşağı çekti. 3B bir modelin alaka konusundaki fikri bu korpusta aşağı yukarı 0.40 ile 0.60
+arası değerde. Retriever'ın bundan kötüyse modelin fikrini dayatmak bir yükseltmedir. Retriever'ın
+zaten daha iyiyse dayatmak sadece kaybettirir. Üçüncü bir sonuç yok.
 
-Soru bazında bakınca hiç ortalama almadan aynı şey görünüyor. Doğru doküman zaten birinci sıradayken
-reranking onu **beş seferin beşinde aşağı** taşıdı. 5. ya da 6. sıradayken yukarı çekti. Reranker
-sıralamayı iyileştirmiyor ya da bozmuyor; her sıralamayı kendi doğruluğuna doğru sürüklüyor. Bu
-negatif sonucun bedeli: **sorgu başına 8 model çağrısı ve yaklaşık 4 saniye.**
+Soru bazında bakınca hiç ortalama almadan aynı şey görünüyor. En güçlü kurulumda yirmi sorunun
+**on altısında** doğru doküman zaten birinci sıradaydı ve reranking bunların **beşini** aşağı taşıdı:
+q06 3. sıraya, q10 2., q11 4., q16 2., q17 3. sıraya. Doğru dokümanı birinci sırada olmayan **dört**
+sorunun **ikisini** yukarı çekti: q14 2'den 1'e, q19 6'dan 5'e. hit@1'i değiştiren tek hamle q14;
+0.800 böyle 0.600 oluyor. İki tamir satın almak için bozuk olmayan beş şeyi bozdun.
+
+Bu negatif sonucun bedeli: **soru başına 8 model çağrısı, kurulum başına 160** ve M serisi bir Mac'te
+kurulum başına **49.3 ile 87.6 saniye** arası.
 
 <div class="presenter-note">
-Ağzında gevelemeyeceğin cümle: <strong>reranker, retriever'ın reranker'dan kötüyse kazandırır;
-retriever'ın daha iyiyse kaybettirir.</strong> Bir kez, yavaşça söyle ve tahtadaki el sayılarına geri
-işaret et. Biri "gerçek reranker chat modeli değil, cross-encoder olur" diye itiraz edecek. Haklı —
-dürüstçe cevap ver: onu ölçmedik ve denenecek ilk şey o. Onun için sayı uydurma. 3 dakika.
+Önce mekanizmayı notebook'ta kur — tek sorgu, altı aday, skorlar ekranda — ve salon bir reranker'ın
+kütüphane değil, içinde prompt olan bir for döngüsü olduğunu görsün. Skor sütunundaki eşitliklere
+işaret et: 3B bir modelden tam sayı isteyince elinde birkaç farklı değer kalıyor ve eşitlikte
+retriever'ın sırası korunuyor. Sonra <code>exercises/m9_rerank_trade.py</code>'ı başlat ve o çalışırken
+tahmini al: dört kurulumun hepsine mi yarar, hiçbirine mi, bazılarına mı? Bittiğinde ağzında
+gevelemeyeceğin cümle: <strong>reranker, retriever'ın reranker'dan kötüyse kazandırır; retriever'ın
+daha iyiyse kaybettirir.</strong> Bir kez, yavaşça söyle ve tahtadaki el sayılarına geri işaret et.
+Biri "gerçek reranker chat modeli değil, cross-encoder olur" diye itiraz edecek. Haklı — dürüstçe
+cevap ver: onu ölçmedik ve denenecek ilk şey o. Onun için sayı uydurma. Yavaş laptopta
+<code>--quick</code> çağrıların dörtte biriyle bitiyor ve en üstte REDUCED yazıyor; argümanın ihtiyaç
+duyduğu satırlar zaten iki güçlü satır. 20 dakika, çalıştırma dahil.
 </div>
 
-## Nasıl sorduğun, sorup sormadığından baskın
+## Nasıl sorduğun — n = 5 ile ölçülmüş bir kenar notu
 
-Rerank'in bariz yolu tek çağrı: altı pasajı yapıştır, modelden sırala. Daha ucuz ve kodda daha güzel
-duruyor. On dokümanlık probe korpusunda, beş soru: rerank yok **4/5**, MRR 0.833. Listwise, "bu altısını
-sırala": **2/5**, MRR 0.600 — hiçbir şey yapmamaktan kötü. Pointwise, "bu tek pasajı 0-10 arası
-puanla", bir yerine altı çağrı: **5/5**, MRR 1.000. Bu `n = 5`; yönü gerçek, büyüklüğü kanıtsız kabul et.
+Reranker'ın daha ucuz bir şekli var: tek çağrı, altı pasajın hepsi birden, modelden sırala. Notebook
+bu çağrıyı tek bir soruda yapıp dönen cevabı basıyor. Bizim çalıştırmamızda model `1,4,2,5` dedi —
+altı pasaj için dört sayı.
 
 Altı pasajı sıralamak, altı karşılaştırmayı aynı anda akılda tutup bir permütasyon üretmek demek. 3B
 model bunda kötü, "bu tek pasaj ne kadar alakalı" sorusunda iyi — çünkü o, sabit bir ölçeğe karşı tek
-bir yargı. Aynı model, aynı pasajlar, aynı bilgi; kazandıran ile kaybettiren arasındaki fark sorunun
-şekli.
+bir yargı. Aynı model, aynı pasajlar, aynı bilgi; fark sorunun şeklinde.
+
+Bu karşılaştırmanın elimizdeki tek sayısal hâli, emekliye ayrılmış on dokümanlık beş soruluk bir probe
+korpusundan geliyor: listwise, "bu altısını sırala", **2/5** ve MRR 0.600; pointwise, "bu tek pasajı
+0-10 arası puanla", **5/5** ve MRR 1.000. Bu `n = 5`. Yönü gerçek, büyüklüğü kanıtsız kabul et — ve
+bunu "pointwise rerank işe yarıyor" kanıtı olarak okuma. Aynı pointwise reranker bu yirmi soruda güçlü
+kurulumu 0.800'den 0.600'e indirdi. Bu, prompt'un şekli hakkında bir kanıt; başka bir şey değil.
 
 ## Contextual retrieval — onu zaten yaptın
 
@@ -151,87 +201,128 @@ Contextual retrieval, her chunk'ın başına onu tek başına anlaşılır kıla
 koymak demek; genelde bir modele "bu chunk dokümanın neresinde" diye bir satır yazdırarak.
 Structure-aware chunking her chunk'ın başına zaten kendi başlık yolunu koyuyor: aynı mekanizma, ama
 modelle üretilmiş değil dokümandan alınmış ve inference maliyeti sıfır. K satırı ile sütun başlığının
-birlikte hayatta kalmasının ve modelin **EUR 70** yerine **EUR 90** okumasının sebebi bu. Modül 7'deki
-0.800 aslında contextual retrieval'ın kazancı, cebe girmiş durumda. Üstüne bir de modelle context
-üretmek denenmeye değer — ama başlıkları olan dokümanlarda, Markdown'ın sana bedavaya vermediği bir
-şey satın aldığından emin ol.
+aynı chunk'ta hayatta kalmasının ve modelin iptal cezasını yan sütundan değil doğru sütundan
+okumasının sebebi bu. Modül 7'deki 0.800 aslında contextual retrieval'ın kazancı, cebe girmiş
+durumda. Üstüne bir de modelle context üretmek denenmeye değer — ama başlıkları olan dokümanlarda,
+Markdown'ın sana bedavaya vermediği bir şey satın aldığından emin ol.
 
 ## Ne çalıştırıyorsun
 
-Notebook: `06_hybrid_rerank_contextual.ipynb`.
+**Mekanizma — notebook'ta.** `notebooks/06_hybrid_rerank_contextual.py` dosyasını VS Code'da aç ve
+blokları Shift+Enter ile çalıştır (Microsoft Python eklentisi; bu eğitimde Jupyter kurulumu yok).
 
 ```bash
 ollama serve                       # çalışmıyorsa ikinci bir terminalde
 python scripts/verify_setup.py     # devam etmeden önce yeşil yazmalı
-jupyter lab notebooks/06_hybrid_rerank_contextual.ipynb
 ```
 
-Her şey ortak koddan geliyor:
+- **ne görmelisin** — `154 chunks indexed both ways`, ardından üçlü karşılaştırma: dense 0.800,
+  BM25 0.300, RRF 0.450. Sonra tek bir sorgunun altı adayı 0-10 arası puanlanmış, aldığı saniyeyle
+  birlikte.
+- **kabaca ne kadar sürer** — 154 chunk üzerinde bir embedding geçişi artı altı model çağrısı. Birkaç
+  dakika, çoğu embedding. BM25 ve fusion hiç model çağrısı istemiyor.
+
+**Ölçüm — tek komut.**
+
+```bash
+python exercises/m9_rerank_trade.py            # tam tarama
+python exercises/m9_rerank_trade.py --quick    # yavaş laptop: sadece güçlü kurulumlar, depth 4
+```
+
+- **ne görmelisin** — her retrieval kurulumu için bir satır, her satırda kendi çağrı sayısı ve
+  saniyesi: iki `nomic` satırında HELPED, iki `bge-m3` satırında hurt. Sonra soru bazındaki özet:
+  16 soruda doğru doküman birinci sıradaydı, reranking bunların 5'ini aşağı taşıdı.
+- **maliyeti, dersin parçası olduğu için** — 4 kurulum × 20 soru × 8 aday = **640 model çağrısı**,
+  kurulum başına 160. Ölçülen süreler, kurulum başına: M serisi bir Mac'te 49.3 sn, 52.4 sn, 65.2 sn
+  ve 87.6 sn — toplamda dört dakikanın biraz üstünde model zamanı, CPU-only bir laptopta epey daha
+  uzun. `--quick` iki güçlü kurulumu depth 4 ile çalıştırıyor — 160 çağrı — ve en üste REDUCED
+  yazıyor, böylece onun sayıları bu sayfadakilerle karıştırılmıyor.
+
+Her şey ortak koddan geliyor. Burada yeni bir bağımlılık yok:
 
 ```python
-from eval.retrieval import BM25, DenseRetriever, rrf, pointwise_rerank
-from eval.chunking import structure_aware, chunk_corpus
-from eval.metrics import load_gold, evaluate
+import sys; sys.path.insert(0, "eval")
+from pathlib import Path
+import chunking as C, metrics, retrieval as R
 
-chunks = chunk_corpus(corpus, structure_aware)          # 152 chunk
-dense  = DenseRetriever(chunk_ids, chunk_texts)         # bge-m3
-bm25   = BM25(chunk_ids, chunk_texts)
+docs = {p.stem: p.read_text(encoding="utf-8") for p in sorted(Path("corpus/2026-Q3").glob("*.md"))}
+questions = metrics.load_gold("eval/gold_questions.jsonl")
 
-gold = load_gold("eval/gold_questions.jsonl")
-for name, rank in (("dense", dense.rank), ("bm25", bm25.rank),
-                   ("rrf", lambda q: rrf([dense.rank(q), bm25.rank(q)]))):
-    print(name, evaluate({g["id"]: rank(g["query"]) for g in gold}, gold))
+chunk_ids, chunk_texts, _ = C.chunk_corpus(docs, "structure-aware")   # 154 chunks
+chunks = dict(zip(chunk_ids, chunk_texts))
+dense = R.DenseRetriever(chunk_ids, chunk_texts)      # bge-m3, one embed call per chunk
+bm25  = R.BM25(chunk_ids, chunk_texts)
 
-reranked = {g["id"]: pointwise_rerank(g["query"], dense.rank(g["query"])[:8], texts)
-            for g in gold}                              # sorgu başına 8 çağrı, saate bak
-print("reranked", evaluate(reranked, gold))
+runs = {"dense": {}, "bm25": {}, "rrf": {}}
+for q in questions:
+    d, b = dense.rank(q["query"]), bm25.rank(q["query"])
+    runs["dense"][q["id"]], runs["bm25"][q["id"]] = d, b
+    runs["rrf"][q["id"]] = R.rrf([d, b])
+
+for name, run in runs.items():
+    # score documents, not chunks: collapse each chunk ranking to its parent documents first
+    scored = metrics.evaluate({k: C.to_documents(v) for k, v in run.items()}, questions)
+    print(f"{name:<6} hit@1 {scored['hit@1']:.3f}  MRR {scored['MRR']:.3f}")
+
+# the reranker itself: one model call per candidate, on one question
+q = next(x for x in questions if x["id"] == "q05")
+candidates = runs["dense"][q["id"]][:6]               # 6 candidates -> 6 model calls
+print(R.pointwise_rerank(q["query"], candidates, chunks))
 ```
-
-Zaman darsa rerank hücresini önce `tr_en` alt kümesinde çalıştır; seviyeleme en net orada görünüyor.
 
 ## Sayılar ne dedi
 
 <div class="measured">
 
-| aynı 152 structure-aware chunk üzerinde retriever | hit@1 | MRR |
+| aynı 154 structure-aware chunk üzerinde retriever | hit@1 | MRR |
 |---|---|---|
-| dense, `bge-m3` | **0.800** | **0.846** |
-| BM25 | 0.300 | 0.465 |
-| ikisinin RRF'i | 0.450 | 0.581 |
+| dense, `bge-m3` | **0.800** | **0.844** |
+| BM25 | 0.300 | 0.467 |
+| ikisinin RRF'i | 0.450 | 0.586 |
 | 6 `tr_en` sorusunda BM25 | 0.000 | — |
+| 6 `tr_en` sorusunda RRF | 0.000 | — |
+
+| tam dokümanlar, hiç chunking yokken | hit@1 | MRR | exact_token | tr_tr | tr_en |
+|---|---|---|---|---|---|
+| dense, `bge-m3` | 0.550 | 0.654 | **1.000** | 1.000 | 0.333 |
+| BM25 | 0.400 | 0.515 | 0.750 | 1.000 | **0.000** |
 
 | aynı reranker, dört retrieval kurulumu | hit@1 önce | sonra | MRR önce | sonra |
 |---|---|---|---|---|
-| `nomic` + fixed-280 | 0.350 | **0.450** | 0.494 | **0.544** |
-| `nomic` + structure-aware | 0.350 | **0.450** | 0.500 | **0.562** |
-| `bge-m3` + fixed-280 | 0.650 | 0.550 | 0.789 | 0.708 |
-| `bge-m3` + structure-aware | **0.800** | 0.650 | **0.846** | 0.750 |
+| `nomic` + fixed-280 | 0.350 | **0.450** | 0.503 | **0.543** |
+| `nomic` + structure-aware | 0.350 | **0.400** | 0.492 | **0.537** |
+| `bge-m3` + fixed-280 | 0.700 | 0.550 | 0.814 | 0.712 |
+| `bge-m3` + structure-aware | **0.800** | 0.600 | 0.844 | 0.717 |
 
-| probe korpus, 10 doküman, 5 soru | hit@1 | MRR |
-|---|---|---|
-| rerank yok | 4/5 | 0.833 |
-| listwise — "bu 6'sını sırala" | 2/5 | 0.600 |
-| pointwise — "bu pasajı 0–10 puanla" | 5/5 | 1.000 |
-
-| bir rerank geçişinin maliyeti | |
+| en güçlü kurulum, soru bazında | adet |
 |---|---|
-| sorgu başına model çağrısı | 8 |
-| sorgu başına eklenen gecikme | ~4 sn |
+| doğru doküman zaten birinci sırada | 16 |
+| bunlardan reranking'in aşağı taşıdığı | 5 — q06, q10, q11, q16, q17 |
+| doğru doküman birinci sıranın altında | 4 |
+| bunlardan reranking'in yukarı çektiği | 2 — q14, q19 |
+
+| depth 8'de bir rerank geçişinin maliyeti | |
+|---|---|
+| soru başına model çağrısı | 8 |
+| kurulum başına, 20 soru | 160 |
+| dört kurulumluk tam tarama | 640 |
+| kurulum başına ölçülen süre | 49.3 sn – 87.6 sn |
 
 </div>
 
-Korpus: 28 doküman, 75 KB. Gold set: 20 soru, 6'sı Türkçe sorgu / İngilizce doküman. Generation ve
-reranking `qwen2.5:3b`, embedding aksi belirtilmedikçe `bge-m3`, hepsi Ollama üzerinden lokal.
-**Yirmi soru iki tasarım arasında karar verdirir, genel bir iddiayı taşımaz.** Bu sayfa "bu teknikler
-kötüdür" demiyor. Bu korpusta, bu embedder ve bu reranker ile kaybettiklerini söylüyor ve her birinin
-hangi önkoşula ihtiyaç duyduğunu adıyla koyuyor.
+Korpus: 28 doküman, 78,310 karakter. Gold set: 20 soru, 6'sı Türkçe sorgu / İngilizce doküman.
+Generation ve reranking `qwen2.5:3b`, embedding aksi belirtilmedikçe `bge-m3`, hepsi Ollama üzerinden
+lokal. **Yirmi soru iki tasarım arasında karar verdirir, genel bir iddiayı taşımaz**; 0.05'in altındaki
+bir fark bu örneklemin gürültüsünün içinde. Bu sayfa "bu teknikler kötüdür" demiyor. Bu korpusta, bu
+embedder ve bu reranker ile kaybettiklerini söylüyor ve her birinin hangi önkoşula ihtiyaç duyduğunu
+adıyla koyuyor.
 
 ## Daha derine
 
 RRF'teki `k = 60` bir yumuşatma sabiti. `k` küçükse birinci sıra baskın olur, fusion "hangi retriever
 daha eminse ona güven" gibi davranır; `k` büyükse eğri düzleşir ve fusion bütün liste üzerinde bir
 popülerlik oylamasına döner. 60 orijinal TREC çalışmasından geliyor ve neredeyse hiç ellenmiyor.
-Burada onu ayarlamak bizi kurtarmazdı: soruların üçte birinde 0.000 alan bir sıralamayı hiçbir `k`
+Burada onu ayarlamak bizi kurtarmazdı: yirmi sorunun altısında 0.000 alan bir sıralamayı hiçbir `k`
 değeri işe yarar hale getirmez, çünkü problem ağırlık eğrisi değil, girdinin o sorgularda hiç sinyal
 taşımaması. Dengesiz bir çiftle fusion yapmak sorgu bazlı ağırlıklandırma ister — fuse etmeden önce
 "bu, BM25'in cevaplayabileceği türden bir sorgu mu" kararını vermek — ve o router da kurup ölçmen
@@ -241,33 +332,36 @@ Bizim reranker'ımız pasaj puanlayan bir chat modeli; kurulumu en kolay, rerank
 zayıf şey. Production cevabı cross-encoder: sorguyu ve pasajı **birlikte**, tek forward pass'te okuyup
 tek bir alaka skoru üreten, prompt'la göreve ikna edilmiş değil alaka etiketleriyle eğitilmiş bir
 model. `bge-reranker-v2-m3` bunun çok dilli olanı ve zaten kullandığımız embedder ile aynı aileden.
-Çok daha güçlü bir hakem ve tavanı 0.800'ün üstüne taşıması makul — ama biz onu ölçmedik, o yüzden
-bunu sonuç değil, deneyi belli bir hipotez olarak kabul et. Ders iki durumda da aynı: onun da bir
-tavanı var ve o tavanın senin retriever'ının üstünde mi altında mı olduğunu ölçmen gerekiyor.
+Daha güçlü bir hakem ve tavanı 0.800'ün üstüne taşıması makul — ama biz onu ölçmedik, o yüzden bunu
+sonuç değil, deneyi belli bir hipotez olarak kabul et. Ders iki durumda da aynı: onun da bir tavanı
+var ve o tavanın senin retriever'ının üstünde mi altında mı olduğunu ölçmen gerekiyor.
 
 Seviyeleme sonucu reranking'in ötesine genelleniyor. Üstteki bir sıralamayı ezen her aşama, girdi ne
 olursa olsun kendi doğruluğunu çıktıya dayatır. "Sen bir reranker ekle" tavsiyesinin "sen bir cache
 ekle" kadar kötü olmasının sebebi bu: önkoşul, sisteminle ilgili ancak ölçerek öğrenebileceğin bir
-gerçek. Sıra da önemli — modül 6 embedder'ı düzeltti, modül 7 chunking'i düzeltti ve ikisi birlikte
-hit@1'i 0.550'den 0.800'e taşıdı. Bu modüldeki her şey tavan zaten yükseldikten sonra geldi, yani tam
-da bu tekniklerin maliyet yazdığı noktada. Dört satırlık tablonun iki satırı gerçek bir iyileşmeye
-bakarak reranker'ı production'a alırdı — `nomic` cidden 0.350'den 0.450'ye çıkıyor — ve tasarım yine
-yanlış olurdu, çünkü doğru hamle embedder'ı düzeltmekti.
+gerçek. Sıra da önemli. Modül 7 chunking'den başka hiçbir şeyi değiştirmeden hit@1'i 0.550'den
+0.800'e taşıdı — o iki sayının ikisi de `bge-m3`. Modül 6'nın kaldıracı diğeriydi: aynı
+structure-aware chunk'lar üzerinde `nomic-embed-text` 0.350 alırken `bge-m3` 0.800 alıyor. Bu
+modüldeki her şey iki kaldıraç da çekildikten sonra geldi, yani tam da bu tekniklerin maliyet yazdığı
+noktada. Dört satırlık tablonun iki satırı gerçek bir iyileşmeye bakarak reranker'ı production'a
+alırdı — `nomic` cidden 0.350'den 0.450 ve 0.400'e çıkıyor — ve tasarım yine yanlış olurdu, çünkü doğru
+hamle embedder'ı düzeltmekti.
 
 On milyon dokümanda tablo değişiyor ve BM25 bambaşka bir sebeple geri geliyor. Orada her sorguda her
 chunk'ı embed edip skorlayamazsın; ucuz bir birinci aşama birkaç yüz aday döndürür, pahalı bir ikinci
-aşama onları sıralar. Inverted index üzerinde BM25 mükemmel bir birinci aşamadır — milisaniyenin
-altında, tanımlayıcılarda birebir, güncellemesi kolay — arkasında da top 200 üzerinde bir
-cross-encoder. Bu, bizim ölçtüğümüz hybrid değil: BM25 nihai cevaba oy vermiyor, aday üretiyor ve
-metriği hit@1 değil recall@k. Aynı bileşen, farklı iş, farklı metrik. 28 dokümanda o mimarinin yapacak
-işi yok ve sorgu başına dört saniye yazıyor.
+aşama onları sıralar. Inverted index üzerinde BM25 güçlü bir birinci aşamadır — milisaniyenin altında,
+tanımlayıcılarda birebir, güncellemesi kolay — arkasında da top 200 üzerinde bir cross-encoder. Bu,
+bizim ölçtüğümüz hybrid değil: BM25 nihai cevaba oy vermiyor, aday üretiyor ve metriği hit@1 değil
+recall@k. Aynı bileşen, farklı iş, farklı metrik. 28 dokümanda o mimarinin yapacak işi yok ve sorgu
+başına saniyeler yazıyor.
 
 <div class="presenter-note">
-Geriden geliyorsan listwise-pointwise bölümünü tek cümleye indir ve dört kurulumluk tabloyu koru —
-insanların sonradan anlattığı sonuç o. Kapatmadan önce tahtadaki el sayılarına işaret et ve üç kararı
-oku: hybrid kaybetti, rerank seviyeledi, contextual zaten modül 7'de yapılmıştı. Sonra hâlâ çalışmayanı
-söyle: gold set'teki multi-hop sorular. Modül 10 tam orada ve tek bir hücreyle gösterilebilecek bir
-başarısızlıkla açılıyor. 2 dakika.
+Geriden geliyorsan üç ölçümü de koru, onun yerine metni kes — n=5 listwise kenar notu tek cümleye
+iner, "Daha derine" zaten okuma malzemesi. Kapatmadan önce tahtadaki el sayılarına işaret et ve üç
+kararı oku: hybrid kaybetti, rerank seviyeledi, contextual zaten modül 7'de yapılmıştı. Sonra hâlâ
+çalışmayanı söyle: açılış slaytındaki dört soruya geri dön, q19 bir multi-hop sorusu ve bu modüldeki
+her şeyden sonra hâlâ orada. Modül 10 tam orada ve tek bir hücreyle gösterilebilecek bir
+başarısızlıkla açılıyor. 6 dakika.
 </div>
 
 ## Çıkış cümlesi

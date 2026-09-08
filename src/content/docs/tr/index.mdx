@@ -26,9 +26,11 @@ Hiçbir kavram, **onu gerektiren başarısızlık görülmeden** tanıtılmaz. H
 duvara tosladığı yerde açılır:
 
 **çıplak LLM** → *cevabı uyduruyor* → **fine-tuning** → *ağırlıklar donmuş ve kaynak gösteremiyor*
-→ **prompt'a doldur** → *her sorguda tüm korpusun bedelini ödüyorsun* → **keyword arama** →
-*parafrazı kaçırıyor* → **naive RAG** → *retrieval çöp getiriyor* → **chunking ve doğru embedder**
-→ *tam terim hâlâ kaçıyor* → **hybrid + rerank** → *multi-hop hâlâ düşüyor* → **agentic RAG**.
+→ **prompt'a doldur** → *sığıyor, ama her sorguda tüm korpusun bedelini ödüyorsun* → **keyword
+arama** → *parafrazı kaçırıyor* → **naive RAG** → *retrieval çöp getiriyor* → **doğru embedder** →
+*ortalama yükseldi ama bir kategori çöktü* → **structure-aware chunking** → **ChromaDB** → *şimdi
+blog yazılarının önerdiğini ekle* → **hybrid + rerank** → *fusion kaybediyor, reranker düzlüyor,
+multi-hop hâlâ düşüyor* → **agentic RAG**.
 
 <CardGrid>
   <Card title="Çevrimdışı çalışır" icon="laptop">
@@ -44,6 +46,32 @@ duvara tosladığı yerde açılır:
     başına olandan iyi değildir — bu eğitim, iyi olmadığı koşuyu gösterir.
   </Card>
   <Card title="Çalışır hâlde ayrılırsın" icon="rocket">
-    Her notebook makinende kalır ve pazartesi sabahı, aynı laptopta, internetsiz hâlâ çalışır.
+    Her notebook ve her exercise makinende kalır ve pazartesi sabahı, aynı laptopta, internetsiz
+    hâlâ çalışır.
   </Card>
 </CardGrid>
+
+## Gün nasıl işliyor
+
+Notebook sunucusu yok. Dokuz notebook, `notebooks/` altında percent-format `.py` dosyaları hâlinde
+duruyor; ilki `notebooks/00_bare_llm_fails.py`. Birini VS Code'da Microsoft Python eklentisiyle
+açıyorsun ve blokları `Shift+Enter` ile tek tek koşuyorsun. Bağımlılıklar `numpy` ve `chromadb`,
+başka bir şey yok.
+
+Günün üç sonucu inşa edilen değil **koşulan** şeyler; bu yüzden `exercises/` altında, her biri tek
+komut olarak duruyorlar:
+
+| Modül | Komut | Yaklaşık |
+|---|---|---|
+| 6 — varsayılan embedder senin dilin için doğru mu? | `python exercises/m6_embedding_bakeoff.py` | 20 sn |
+| 7 — retrieval neden çöp getirdi? | `python exercises/m7_chunking_ladder.py` | 2–3 dk |
+| 9 — reranker ne zaman kendini ödüyor? | `python exercises/m9_rerank_trade.py` | ~5 dk |
+
+Yavaş laptoplar için `m9_rerank_trade.py --quick` var; koşunun kısaltıldığını ekrana kendisi yazıyor.
+Bu ayrımın arkasındaki kural, ve formatla ilgili akılda kalması gereken tek cümle:
+
+> **Ölçümse** tek bir komut koşarsın ve sayıları karşılaştırırız.
+> **Mekanizmaysa** hücre hücre birlikte kurarız.
+
+[Kurulum](/tr/modules/00-setup/) ile başla; günde geçen her terim
+[sözlükte](/tr/reference/glossary/) bir kez tanımlı.

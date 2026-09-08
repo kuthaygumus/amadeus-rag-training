@@ -14,21 +14,38 @@ söyledim ve şimdilik güvenmeni istedim. Bu salonda o modeli kimse seçmedi. K
 seçmeyeceksin — `pip install chromadb` yazacaksın, `add()` çağıracaksın ve model senin yerine
 seçilmiş olacak.
 
-O tek satırı değiştir ve aynı soruları tekrar çalıştır.
+O yüzden güvenmeyi bırak. Tek bir komut, aynı yirmi soru ve aynı chunk'lar üzerinde üç embedder'ı
+puanlıyor ve puanı soru tipine göre ayırıyor:
 
-```python
-dense = DenseRetriever(doc_ids, documents, model="nomic-embed-text")
+```text
+hit@1 by type         all-MiniLM-L6-v2  nomic-embed-text            bge-m3
+--------------------------------------------------------------------------
+tr_tr (n=4)                      0.750             0.500             1.000
+tr_en (n=6)                      0.000             0.000             0.667   <-- Turkish question, English document
+en_en (n=4)                      0.500             0.500             0.750
+exact_token (n=4)                0.250             0.500             1.000
+multi_hop (n=2)                  0.500             0.500             0.500
 ```
 
-Türk bir acentenin İngilizce dokümana soru sorduğu altı soruda hit@1 **0.667'den 0.000'a** düşüyor.
-Altıda sıfır. Exception yok, uyarı yok, log satırı yok, şüphe uyandıran bir skor yok. Pipeline üç
-doküman ve kendinden emin görünen benzerlik skorları döndürüyor, doğru doküman aralarında değil.
-Generator da kendisine verilen şeyden cevap üretiyor, çünkü işi bu.
+`tr_en` satırını oku. Bunlar Türk bir acentenin İngilizce dokümana soru sorduğu altı soru —
+korpusumuzun yarısının şekli. ChromaDB'nin kendi varsayılanı altıda sıfır alıyor. Makul görünen,
+İngilizce öncelikli bir seçim olan `nomic-embed-text` de altıda sıfır alıyor. Exception yok, uyarı
+yok, log satırı yok, şüphe uyandıran bir skor yok. İki pipeline da kendinden emin görünen benzerlik
+skorlarıyla doküman döndürüyor ve doğru doküman aralarında değil. Generator da kendisine verilen
+şeyden cevap üretiyor, çünkü işi bu.
+
+**Her retrieval sayısının bir index koşulu vardır.** Yukarıdaki tablo structure-aware chunk'lar
+üzerinde ölçüldü — modül 7'nin vardığı strateji — ve sütunlar arasında değişen tek şey embedder
+kalsın diye sabit tutuldu. Index'i değiştirdiğinde aynı model kayıyor: şu anda elinde olan pipeline
+olan **whole document** üzerinde `bge-m3`'ün `tr_en` skoru 0.667 değil, **0.333**. Hangi index
+üzerinde ölçüldüğü söylenmeyen bir retrieval sayısı sayı değildir.
 
 <div class="presenter-note">
-Değiştirilmiş hücreyi çalıştırmadan önce salondan taahhüt al: "sadece embedding modelini
-değiştiriyoruz, başka hiçbir şeyi. Altı Türkçe sorudan kaçını hâlâ bilir? Dört ve üzeri diyenler el
-kaldırsın." Eller kalkar. 0.000'ı göster ve üç saniye hiçbir şey söyleme. O sessizlik sonraki
+Slot: 11:26'da 16 dakika. Bu modül kesme listesinin başında, 8 dakikaya iniyor — kesme planı bu
+sayfanın son notunda.<br />
+Komutu çalıştırmadan önce salondan taahhüt al: "sadece embedding modelini değiştiriyoruz, başka
+hiçbir şeyi. Altı Türkçe sorudan kaçını hâlâ bilir? Dört ve üzeri diyenler el kaldırsın." Eller
+kalkar. <code>tr_en</code> satırını göster ve üç saniye hiçbir şey söyleme. O sessizlik sonraki
 paragraftan daha çok iş yapar. 4 dakika.
 </div>
 
@@ -51,10 +68,10 @@ def cosine(a, b):
 ```
 
 Sırayla çarp, topla, iki uzunluğa böl. Asıl iş bölmede: büyüklüğü atıyor, sadece yönü bırakıyor.
-Uzun bir dokümanla tek satırlık bir sorguyu mesafeyle karşılaştıramazsın — uzun olan zaten
-orijinden daha uzakta — ama hangi yöne baktıklarıyla karşılaştırabilirsin. Sonuç -1 ile 1
-arasında, gerçek metinde kabaca 0.3 ile 0.9 arasında geziyor ve önemli olan tek şey sıralama.
-0.656 "%66 alakalı" demek değil. Sadece "0.466'dan yüksek" demek.
+Uzun bir dokümanla tek satırlık bir sorguyu mesafeyle karşılaştıramazsın — uzun olan ne yazarsa
+yazsın orijinden daha uzakta — ama hangi yöne baktıklarıyla karşılaştırabilirsin. Sonuç -1 ile 1
+arasında ve önemli olan tek şey sıralama. Tek başına bir benzerlik skoru hiçbir şey ifade etmiyor.
+Ancak diğer adayın aldığı skorun yanında bir anlamı oluyor.
 
 Bütün günün dayandığı iddia şu: o uzaydaki yön anlama karşılık geliyor. Modelin eğitim
 dağılımının içinde, yaklaşık olarak geliyor. Dışında ise sayılar gelmeye devam ediyor ve sessizce
@@ -62,112 +79,132 @@ varsaydığın şeyi ifade etmeyi bırakıyor.
 
 ## Tuzak, canlı
 
-İki denemede de aynı sorgu, bir Helios acentesinin gerçekten yazacağı soru:
+0.000 skoru sana doğru dokümanın birinci olmadığını söylüyor. Onun yerine neyin geldiğini
+söylemiyor, oysa asıl işe yarayan yarısı o. Retriever'a o altı soruda ne döndürdüğünü sor;
+`nomic-embed-text` neredeyse her seferinde aynı cevabı veriyor:
 
-> CLASSIC K sınıfı iptal cezası ne kadar?
+```text
+q05 ['sop_misconnect_v4']              -> macro_tr_noshow
+q06 ['sop_denied_boarding']            -> macro_tr_noshow
+q07 ['interline_h9_au']                -> macro_tr_noshow
+q08 ['codeshare_h9_au_conditions']     -> macro_tr_noshow
+q09 ['macro_en_refund']                -> macro_tr_rebook
+q10 ['macro_en_special_assistance']    -> macro_tr_noshow
+```
 
-Üç aday doküman, sırayla iki embedder. `nomic-embed-text` Türkçe no-show makrosuna **0.690**
-veriyor ve birinci sıraya koyuyor. `| K | KSHEU26 | ... | EUR 90 | ... |` satırını taşıyan doğru
-İngilizce ücret kuralı **0.466** alıyor ve üçüncü oluyor. Üç adayın sonuncusu. `bge-m3` aynı
-İngilizce dokümana **0.656** veriyor ve birinci sıraya koyuyor.
+Altı soru, altı Türkçe doküman ve beşinde aynı Türkçe doküman. Konular yakın bile değil: q05
+aktarmasını kaçıran yolcuya kaç euroluk yemek fişi verileceğini soruyor, cevap no-show
+makrosundan geliyor.
 
-nomic'in seçtiği şeye bak. `macro_tr_noshow` rastgele bir doküman değil. Türkçe, iptal cezalarını
-anlatıyor, içinde "iptal cezası iki katına çıkar" cümlesi geçiyor. İnsan gözüyle makul bir komşu.
-Ama tutar vermeyi açıkça reddediyor — "tutarlar bu makroda tekrarlanmaz", İngilizce ücret kuralına
-bak diyor — yani acentenin ihtiyacı olan tek sayı orada yok. Retriever doğru dili ve doğru konuyu
-seçti, cevabı içeren tek dokümanı eledi.
+Seçtiği şeye bak. `macro_tr_noshow` rastgele bir doküman değil. Türkçe, cezaları anlatıyor, içinde
+"iptal cezası iki katına çıkar" cümlesi geçiyor. İnsan gözüyle bu altı sorudan biri için makul bir
+komşu. Ama tutar vermeyi açıkça reddediyor — *"tutarlar bu makroda tekrarlanmaz"*, İngilizce ücret
+kuralına bak diyor — yani acentenin ihtiyacı olan tek sayı orada hiç yok. Retriever doğru dili
+seçti ve cevabı içeren her dokümanı eledi.
 
 ## Neyin bozulduğunu tam söyle
 
-Kolay özet "MiniLM Türkçe bilmiyor" demek. Bu özet yanlış ve soru-cevapta seni yakar.
+Kolay özet "bu modeller Türkçe bilmiyor" demek. Bu özet yanlış ve soru-cevapta seni yakar.
 
-Bu modeller Türkçe-Türkçe eşleşmeyi gayet iyi yapıyor. Türkçe bir soruyu Türkçe makrolara sor,
-nomic mantıklı sıralıyor — `macro_tr_noshow`'u 0.690 ile bulması tam da bu yüzden. Yapamadığı
-şey **diller arası** eşleşme. Tek dilli bir modelin uzayında metnin dili başlı başına güçlü bir
-yön: alakasız konulardaki iki Türkçe cümle, bir Türkçe cümle ile onun kendi İngilizce çevirisinden
-daha yakın durabiliyor, çünkü "Türkçe olmak" "iptal cezasıyla ilgili olmak"tan ağır basıyor. Dil,
-anlamdan büyük bir eksen haline geliyor.
+`tr_tr` satırına geri dön: Türkçe sorular, Türkçe dokümanlar. `all-MiniLM-L6-v2` orada **0.750**,
+`nomic-embed-text` **0.500** alıyor — zayıf, ama sıfırın yanından bile geçmiyor. `tr_en`'de ikisi
+de **0.000** alıyor. Altıda altı. Bozulan şey Türkçe değil. Diller **arasında geçiş**.
 
-Doğal olarak bakacağın hiçbir metrikte görünmüyor, çünkü TR→TR çalışıyor ve EN→EN çalışıyor.
-Korpusun yarısı, soruların yarısı, sessizce bozuk.
+Tek dilli bir modelin uzayında metnin dili başlı başına güçlü bir yön: alakasız konulardaki iki
+Türkçe cümle, bir Türkçe cümle ile onun kendi İngilizce çevirisinden daha yakın durabiliyor, çünkü
+"Türkçe olmak" "iptal cezasıyla ilgili olmak"tan ağır basıyor. Dil, anlamdan büyük bir eksen haline
+geliyor. Hatanın tamamı bu ve yukarıdaki `tr_en` listesi tam olarak bunun içeriden görünüşü.
 
-ChromaDB'nin varsayılan embedding function'ı `all-MiniLM-L6-v2`. İlk `add()` çağrında sen
-istemeden indiriliyor ve yalnızca İngilizce. On dokümanlık probe korpusunda **2/5** aldı,
-`bge-m3` **4/5**. Bunların hiçbiri log'a düşmüyor.
+Doğal olarak bakacağın hiçbir metrikte görünmüyor, çünkü TR→TR bir şekilde çalışıyor ve EN→EN
+çalışıyor. Korpusun yarısı, soruların yarısı, sessizce bozuk.
+
+ChromaDB'nin varsayılan embedding function'ı `all-MiniLM-L6-v2`. İlk `add()` çağrında sen istemeden
+indiriliyor ve yalnızca İngilizce. Aynı yirmi soruda hit@1 **0.350**, MRR **0.443** alıyor;
+`bge-m3` ise **0.800** ve **0.844**. Bunların hiçbiri log'a düşmüyor.
 
 <div class="presenter-note">
-Yamultmaman gereken cümle bu: <strong>bu modeller Türkçe-Türkçe eşleşmede iyi — yapamadıkları şey
-diller arası eşleşme ve senin korpusun karışık.</strong> Bir kez, yavaş söyle ve tahtaya
-"TR → TR: ok / TR → EN: 0.000" yaz. Ollama burada düşerse üç benzerlik skoru bu sayfada ve
-<code>eval/RESULTS.md</code>'de duruyor; oradan oku, salonun önünde debug yapma.
+Yamultmaman gereken cümle bu: <strong>bu modeller Türkçede çaresiz değil — yapamadıkları şey diller
+arası eşleşme ve senin korpusun karışık.</strong> Bir kez, yavaş söyle ve tahtaya
+"TR → TR: 0.750 / TR → EN: 0.000" yaz. Ollama burada düşerse bu sayfadaki tablolarda geçen her sayı
+<code>MEASURED.md</code>'de duruyor; oradan oku, salonun önünde debug yapma. 3 dakika.
 </div>
 
 ## Ne çalıştırıyorsun
 
-Notebook: `04b_embeddings_bakeoff.ipynb`.
-
 ```bash
-ollama pull bge-m3
-ollama pull nomic-embed-text
-python scripts/verify_setup.py     # devam etmeden önce yeşil yazmalı
-jupyter lab notebooks/04b_embeddings_bakeoff.ipynb
+python exercises/m6_embedding_bakeoff.py
 ```
 
-Notebook kodu yeniden yazmıyor, ortak kodu kullanıyor:
+- **ne görmelisin** — önce `28 documents, 154 structure-aware chunks, 20 questions` başlık satırı, sonra üç embedder'ın her birinin index'leyip sorguladığını bildirmesi, sonra iki tablo. Önemli satır `tr_en (n=6)`: `0.000  0.000  0.667` yazıyor ve yanında onu gösteren bir ok var. Hiçbir şey hata vermiyor, hiçbir şey uyarmıyor
+- **kabaca ne kadar sürer** — yaklaşık 20 saniye; çoğu, 154 chunk'ı üç kez embed etmek
+
+Burada hiçbir şey indirilmiyor. Üç modeli de pre-work kapsıyor: `bge-m3` ve `nomic-embed-text`
+evde çekildi, `all-MiniLM-L6-v2` ise `scripts/seed_offline_assets.py` tarafından cache'lendi ve
+`scripts/verify_setup.py` bunu kontrol ediyor. MiniLM sütunu `SKIPPED` diyorsa seed script'ini
+çalıştır ve komutu tekrarla; salonda hiçbir şey pull etme.
+
+Salon "peki onun yerine ne döndürdü?" diye sorarsa, *Tuzak, canlı* bölümündeki listeyi repo
+kökünden şu yazdırıyor:
 
 ```python
-from eval.retrieval import embed, cosine, DenseRetriever
-from eval.metrics import load_gold, evaluate
+import sys; sys.path.insert(0, "eval")
+from pathlib import Path
+import chunking as C, metrics, retrieval as R
 
-q = "CLASSIC K sınıfı iptal cezası ne kadar?"
-for model in ("nomic-embed-text", "bge-m3"):
-    qv, dv = embed([q], model=model)[0], embed(candidates, model=model)
-    print(model, [round(cosine(qv, v), 3) for v in dv])   # skora değil SIRAYA bak
+docs = {p.stem: p.read_text(encoding="utf-8") for p in sorted(Path("corpus/2026-Q3").glob("*.md"))}
+ids, texts, _ = C.chunk_corpus(docs, "structure-aware")
+tr_en = [q for q in metrics.load_gold("eval/gold_questions.jsonl") if q["type"] == "tr_en"]
 
-gold = load_gold("eval/gold_questions.jsonl")
-tr_en = [g for g in gold if g["type"] == "tr_en"]
-for model in ("nomic-embed-text", "bge-m3"):
-    r = DenseRetriever(doc_ids, documents, model=model)
-    print(model, evaluate({g["id"]: r.rank(g["query"]) for g in tr_en}, tr_en))
+r = R.DenseRetriever(ids, texts, model="nomic-embed-text")
+for q in tr_en:
+    print(q["id"], q["gold_doc_ids"], "->", C.to_documents(r.rank(q["query"]))[0])
 ```
 
-Vektör uzunluğunu bir kez yazdır — `len(embed(["test"])[0])` — ki 1024 bir slayt olmaktan çıkıp
-HTTP üzerinden gelişini izlediğin bir şey olsun.
+<div class="presenter-note">
+Projeksiyonda çalıştır ve salon da aynı anda çalıştırsın; yaklaşık 20 saniyede kimse beklemiyor.
+İki şeye dikkat et. <code>all-MiniLM-L6-v2</code> sütununda <code>SKIPPED</code> yazan bir laptop
+seed script'ini hiç çalıştırmamıştır — iki embedder'lık sonucu al ve devam et, <code>tr_en</code>
+satırı yine 0.000'a karşı 0.667 diyor. Bir de biri, varsayılanın <code>bge-m3</code> ile tam olarak
+tek bir satırda — <code>multi_hop</code>, iki soruda ikisi de 0.500 — berabere kaldığını fark
+edecek. İki soru sonuç değildir; bu, varsayılanın savunmasına dönüşmeden söyle. 5 dakika.
+</div>
 
 ## Sayılar ne dedi
 
 <div class="measured">
 
-| embedder | vektör uzunluğu | 6 `tr_en` sorusunda hit@1 |
-|---|---|---|
-| `nomic-embed-text` | 768 | 0.000 |
-| `bge-m3` | 1024 | 0.667 |
+Üç embedder, 20 soru, structure-aware chunk'lar:
 
-| sorgu: "CLASSIC K sınıfı iptal cezası ne kadar?" | `nomic-embed-text` | `bge-m3` |
-|---|---|---|
-| doğru İngilizce CLASSIC short-haul ücret kuralı | 0.466 — 3. sıra | **0.656 — 1. sıra** |
-| Türkçe no-show makrosu | **0.690 — 1. sıra** | daha altta |
+| embedder | vektör uzunluğu | hit@1 | recall@5 | MRR | `tr_en` (n=6) |
+|---|---|---|---|---|---|
+| `all-MiniLM-L6-v2` — ChromaDB'nin sessiz varsayılanı | 384 | 0.350 | 0.583 | 0.443 | 0.000 |
+| `nomic-embed-text` | 768 | 0.350 | 0.633 | 0.492 | 0.000 |
+| `bge-m3` | 1024 | **0.800** | **0.833** | **0.844** | **0.667** |
 
-| tüm gold set, 20 soru | `nomic-embed-text` | `bge-m3` |
-|---|---|---|
-| fixed 280 karakter chunk, hit@1 | 0.350 | 0.650 |
-| structure-aware chunk, hit@1 | 0.350 | 0.800 |
+Aynı model, iki index — ya koşulu da söyle ya hiç söyleme:
 
-| probe korpus, 10 doküman, 5 soru | hit@1 |
-|---|---|
-| `all-MiniLM-L6-v2` — ChromaDB'nin sessiz varsayılanı | 2/5 |
-| BM25 | 3/5 |
-| `bge-m3` | 4/5 |
+| `bge-m3` şunun üzerinde | hit@1 | `tr_en` (n=6) |
+|---|---|---|
+| whole document — şu anda elinde olan pipeline | 0.550 | 0.333 |
+| structure-aware chunk — modül 7'nin bittiği yer | 0.800 | 0.667 |
+
+Chunking, yanlış embedder'ı kurtarmıyor:
+
+| hit@1, 20 soru | `nomic-embed-text` | `bge-m3` |
+|---|---|---|
+| fixed 280 karakter chunk | 0.350 | 0.700 |
+| structure-aware chunk | 0.350 | 0.800 |
 
 </div>
 
-Korpus: 28 doküman, 75 KB. Gold set: 20 soru, 6'sı Türkçe sorgu / İngilizce doküman; her şey lokal
-Ollama üzerinde. Altı soru bir model kararını vermeye yeter, yayımlamaya fazlasıyla azdır: yön
-gerçek, kesin rakam gürültülü.
+Korpus: 28 doküman, 154 structure-aware chunk. Gold set: 20 soru, 6'sı Türkçe sorgu / İngilizce
+doküman; her şey lokal Ollama üzerinde. Yirmi soru iki tasarım arasında seçim yapmaya yeter,
+yayımlamaya fazlasıyla azdır — 0.05'in altındaki bir fark bu örneklemin gürültüsünün içindedir.
+`tr_en` farkı değil.
 
-Üçüncü tabloyu bir daha oku. nomic ile daha iyi chunking sana **hiçbir şey** kazandırmıyor — iki
-durumda da 0.350. Modül 7'deki chunking emeği ancak embedder diller arasını görebildiğinde işe
-yarıyor. Önce embedder'ı düzelt, sonra chunk'la.
+Üçüncü tabloyu bir daha oku. `nomic-embed-text` ile daha iyi chunking sana **hiçbir şey**
+kazandırmıyor — iki durumda da 0.350. Modül 7'deki chunking emeği ancak embedder diller arasını
+görebildiğinde işe yarıyor. Önce embedder'ı düzelt, sonra chunk'la.
 
 ## Daha derine
 
@@ -178,25 +215,27 @@ Türkçe cümleyle İngilizce cümleyi aynı noktaya indirmek, dolayısıyla dil
 olmaktan çıkıyor — loss onu cezalandırıyor. Çözüm daha çok veri ya da daha iyi prompt değil.
 Sen weight'leri çekmeden aylar önce pişmiş.
 
-Boyut sayısı kalite değil. Burada 1024, 768'i yeniyor ve bu sezgiyi okşuyor; ama 384 boyutlu
-MiniLM güçlü bir İngilizce retriever'dır ve İngilizce benchmark'larda kendinden çok daha büyük
-modelleri geçer. Bizim korpusta genişlikle ilgisi olmayan bir sebepten düşüyor. Genişlik ayrım
-yapma kapasitesi satın alır; hangi ayrımları önemsemeyi öğrendiğine karar vermez. Boyutu bir
-maliyet olarak gör — 1024 float32 chunk başına 4 KB, yani bizim 152 chunk 600 KB, on milyon chunk
-index maliyeti hariç 40 GB — kalite sinyali olarak ise eğitim verisine bak.
+Boyut sayısı kalite değil. Burada 1024, 768'i ve 384'ü yeniyor ve bu sezgiyi okşuyor; ama MiniLM'i
+bozan şey genişlik değil: İngilizce soru / İngilizce doküman olan dört soruda hâlâ 0.500 alıyor ve
+tam olarak 0.000'ı yalnızca bir dil sınırı aşıldığında veriyor. Genişlik ayrım yapma kapasitesi
+satın alır; hangi ayrımları önemsemeyi öğrendiğine karar vermez. Boyutu bir maliyet olarak gör —
+1024 float32 chunk başına 4 KB, yani bizim 154 chunk bir megabyte'ın epey altında, on milyon chunk
+ise index maliyeti hariç yaklaşık 40 GB — kalite sinyali olarak ise eğitim verisine bak.
 
 Maliyet gerçek, bu yüzden bu bir takas, bedava kazanç değil. `bge-m3` bir XLM-RoBERTa-large
-gövdesi, MiniLM'in birkaç katı parametre, dolayısıyla o oranda yavaş embed ediyor. 28 dokümanda bu
-görünmez. On milyonda planlaman gereken bir yeniden indeksleme bütçesi ve Matryoshka embedding'lere
-baktığın nokta: vektörün ilk 256 sayısı tek başına işe yarayacak şekilde eğitilmiş modellerle ucuza
-kısa liste çıkarıp ilk birkaç yüzü tam genişlikte yeniden skorlarsın.
+gövdesi, MiniLM'in birkaç katı parametre, dolayısıyla o oranda yavaş embed ediyor — bu koşuda bile
+görünüyor: aynı 154 chunk'ı index'lemesi yaklaşık iki katı sürüyor. 28 dokümanda bu hiçbir şey. On
+milyonda planlaman gereken bir yeniden indeksleme bütçesi ve Matryoshka embedding'lere baktığın
+nokta: vektörün ilk 256 sayısı tek başına işe yarayacak şekilde eğitilmiş modellerle ucuza kısa
+liste çıkarıp ilk birkaç yüzü tam genişlikte yeniden skorlarsın.
 
 Kendi korpusun için embedder değerlendirmek bir öğleden sonra sürüyor ve bu konudaki en değerli
 öğleden sonra. Kullanıcılarının gerçekten yazdığı dilde yirmi soru yaz, her birini cevabı içeren
-dokümanla etiketle. Yirmi yeter — bu sayfa bir modeli altı soruyla seçti. Şüphelendiğin hataya göre
-grupla: aynı dil, diller arası, tam token, paraphrase. Sonra üç dört modeli `DenseRetriever`'dan
-geçir ve hit@1'i ortalama olarak değil **grup grup** yazdır. İşi gruplama yapıyor: nomic'in genel
-skoru kötü ama alarm verici değil, temiz sıfırı sadece `tr_en` satırı gösteriyor.
+dokümanla etiketle. Yirmi yeter — bu sayfa bir modeli yirmi soruyla seçti ve kararı veren satırda
+altı soru vardı. Şüphelendiğin hataya göre grupla: aynı dil, diller arası, tam token, paraphrase.
+Sonra üç dört modeli `DenseRetriever`'dan geçir ve hit@1'i ortalama olarak değil **grup grup**
+yazdır. İşi gruplama yapıyor: MiniLM'in genel 0.350'si kötü ama alarm verici değil, temiz sıfırı
+sadece `tr_en` satırı gösteriyor.
 
 0.667 de bir zafer değil. Altıda ikisi hâlâ yanlış. Bake-off'un kazananı ölçtüğün en az kötü
 seçenektir, çözülmüş bir problem değil; 0.667'de hâlâ bozuk olan şey de modül 7'nin konusu.
@@ -206,10 +245,14 @@ Biri mutlaka "sorguyu önce İngilizceye çevirsek olmaz mı?" diye soracak. Cid
 embedder'lar iyi olmadan önce insanlar tam da bunu yapıyordu. Cevabı maliyetle ver: sorgu başına
 fazladan bir model çağrısı, çeviri CLASSIC K gibi bir terimi düşürdüğünde yeni bir hata modu ve
 sonunda yine bir embedder seçmen gerekiyor. Ölçülebilir olduğunu ve bizim ölçmediğimizi söyle.
-Sayı uydurma. 2 dakika, sonra devam.
+Sayı uydurma. Kapanış hesabıyla birlikte 4 dakika, sonra devam.<br />
+<strong>16 dakikayı 8'e indirmek.</strong> Taahhüdü ve <code>tr_en</code> satırını tut (4 dk),
+diller arası geçişle ilgili tek cümleyi (1 dk), koşuyu ve ilk tabloyu (2 dk), çıkış cümlesini
+(1 dk). <em>Tuzak, canlı</em>, <em>Daha derine</em> ve çeviri sorusunu at. Index koşulu cümlesini
+atma: modül 7, 0.550 ile açılıyor ve salonun bunun neden 0.800 olmadığını bilmesi gerekiyor.
 </div>
 
 ## Çıkış cümlesi
 
 > Varsayılan sizin diliniz için yanlıştı ve kimse söylemedi. Artık doğru embedder elimizde
-> — ve retrieval hâlâ sadece 0.550.
+> — ve hâlâ çalıştırdığımız şey olan whole document üzerinde retrieval sadece 0.550.
