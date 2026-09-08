@@ -1,11 +1,26 @@
 # Everything the notebooks need. Two packages.
 #
-#   pip install -r requirements.txt
+#   python -m pip install -r requirements.txt
 #
-# Do this at home the evening before, not on the office network with twenty other people:
-# chromadb pulls about 400 MB of wheels, most of it onnxruntime.
+# Use `python -m pip`, not bare `pip`. On Windows the two can resolve to different interpreters,
+# and when they do the packages land where the notebooks cannot see them. If your shell only
+# knows the `py` launcher, use `py -m pip` instead.
+#
+# Do this at home the evening before, not on the office network with twenty other people.
+# Measured: 86 MB of wheels across 79 packages (macOS, Python 3.14), which unpack to roughly
+# 400 MB on disk. Most of the weight is chromadb and onnxruntime.
+#
+# There is no Jupyter in this file, on purpose. The notebooks are percent-format .py files.
+# Open one in VS Code with the Python extension and run it block by block with Shift+Enter —
+# no notebook server, nothing else to install. The setup page has the details.
 
 numpy>=1.26        # module 2 trains a network with it; nothing else needs it
-chromadb>=1.0      # modules 5 and 8. The full package, not chromadb-client, on purpose:
+chromadb>=1.0      # module 8. The full package, not chromadb-client, on purpose:
                    # the thin client cannot embed locally and raises instead of quietly using
                    # the wrong model, which is the failure module 6 is built on.
+                   #
+                   # The first time the default embedder runs, chromadb downloads an
+                   # all-MiniLM-L6-v2 ONNX archive (measured: 83 MB) into
+                   # ~/.cache/chroma/onnx_models/. Do not leave that to the day:
+                   # `python scripts/seed_offline_assets.py` fetches it, and MNIST, at home.
+                   # scripts/verify_setup.py checks both.

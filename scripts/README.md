@@ -1,4 +1,17 @@
 # Scripts
 
-Corpus generation, environment preflight, and the participant setup check that must print a
+Corpus generation, the offline seeding step, and the participant setup check that has to print a
 single green or red line.
+
+| script | what it does | when it is run |
+|---|---|---|
+| `verify_setup.py` | the full pre-work check: Python, `numpy` + `chromadb`, MNIST and the Chroma ONNX cache on disk, VS Code, Ollama, `qwen2.5:3b` / `bge-m3` / `nomic-embed-text`, one embed call and one table-reading generation call. Prints `READY` or `NOT READY`. `helios-q2` and VS Code are warnings, never failures | by every participant, the evening before |
+| `verify_setup.ps1` | Windows bootstrap for the case that breaks first — no Python at all, so the real check cannot start. Installs nothing, needs no admin rights | on Windows, before `verify_setup.py` |
+| `seed_offline_assets.py` | fetches MNIST (11.6 MB) and Chroma's default `all-MiniLM-L6-v2` ONNX archive (83 MB), the two downloads that would otherwise land in the middle of modules 2, 6 and 8 | once, after `pip install` |
+| `make_q2.py` | derives `corpus/2026-Q2` from `2026-Q3` by a named list of reversals, and writes `corpus/DELTA.md` | when the corpus changes |
+| `make_finetune_dataset.py` | walks the Q2 corpus into `notebooks/helios_qa_q2.jsonl`, the training set behind `helios-q2` | after `make_q2.py` |
+| `build_notebooks.py` | regenerates the `.ipynb` files from the percent-format `.py` sources | after editing a notebook |
+
+The whole pre-work puts about 3.9 GB on disk. The arithmetic behind that figure is in
+`verify_setup.py`, next to `DOWNLOAD_TOTAL`, and the same total appears on the setup page, in
+`handout/handout-tr.md` and in `handout/pre-work-email-tr.md`.
