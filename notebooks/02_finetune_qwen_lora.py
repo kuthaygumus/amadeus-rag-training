@@ -11,8 +11,11 @@
 # other seven notebooks exist.
 
 # %%
+import json
 import sys
+import urllib.request
 from pathlib import Path
+
 sys.path.insert(0, "../eval")
 import retrieval as R
 
@@ -31,11 +34,14 @@ print(f"Q3 edition: {len(list(Q3.glob('*.md')))} documents")
 # optimiser state — tens of gigabytes of GPU memory, and a full-size copy of the model for every
 # variant you keep. Best quality, worst economics.
 #
-# **LoRA** freezes the original weights and learns a small correction beside them. Rather than
-# updating a 4096×4096 matrix you learn two skinny ones, 4096×`r` and `r`×4096 with `r` usually
-# between 8 and 64, and add their product to the frozen matrix. At `r=16` that is on the order of
-# 0.1% as many trainable numbers, and `alpha` scales how strongly the correction applies. You ship
-# a few megabytes instead of a new model.
+# **LoRA** freezes the original weights and learns a small correction beside them. Take one
+# projection of Qwen2.5-1.5B, the model we fine-tune below: `q_proj` is 1536×1536, so a full
+# `ΔW` for it is 2,359,296 numbers. LoRA instead learns two thin matrices, 1536×`r` and
+# `r`×1536, and adds their product to the frozen original. At `r=32` that is 98,304 numbers,
+# 4.17% of the full update for that projection, and `alpha` scales how strongly the correction
+# applies. Not every projection is square: under grouped-query attention this model's `k_proj`
+# and `v_proj` are 1536×256, and the same two-thin-matrices trick applies unchanged. You ship a
+# few tens of megabytes instead of a new model.
 #
 # **QLoRA** is LoRA with the frozen base quantised to 4 bits, which is what lets a 7B model be
 # fine-tuned on one consumer GPU. The base is only ever read, so the precision loss costs less
@@ -54,81 +60,165 @@ print(f"Q3 edition: {len(list(Q3.glob('*.md')))} documents")
 # %% [markdown]
 # ## Building the Helios model
 #
-# Training needs a GPU, so it is run once ahead of the session and the result is shipped as a
-# model you can pull. This is the code that produced it — read it, do not run it here.
+# Training needs a GPU, so it happens once, elsewhere, before the session. The four steps below
+# are the whole chain. Read them here; the only one that runs on your laptop is the last.
+#
+# ### 1 · The training set
+#
+# The pairs are walked out of the Q2 corpus by a script, not written by hand, so they cannot
+# drift from the documents they claim to teach:
+#
+# ```bash
+# python scripts/make_finetune_dataset.py       # writes notebooks/helios_qa_q2.jsonl
+# ```
+#
+# It reads `corpus/2026-Q2` and nothing else — one line per pair, in the chat format the trainer
+# consumes, with extra phrasings for every fact `corpus/DELTA.md` lists as changed between the
+# editions. Those are the only facts that can demonstrate staleness, so those are the ones the
+# model has to hold: the class K cancellation penalty above all, and beside it the class K change
+# and no-show penalties, the misconnect SOP's revision status, and the three policy versions.
+# The script prints its own counts and fails loudly if any of them is missing.
+#
+# ### 2 · The adapter
+#
+# One Colab session with a GPU. Upload `helios_qa_q2.jsonl` from step 1 into the session's
+# working directory first — it is the only input, and it is a few hundred kilobytes:
 #
 # ```python
-# # Colab, one GPU, about fifteen minutes
+# import torch
 # from datasets import load_dataset
 # from peft import LoraConfig, get_peft_model
-# from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments
+# from transformers import (AutoModelForCausalLM, AutoTokenizer, DataCollatorForLanguageModeling,
+#                           Trainer, TrainingArguments)
 #
 # base = "Qwen/Qwen2.5-1.5B-Instruct"
 # tokenizer = AutoTokenizer.from_pretrained(base)
-# model = AutoModelForCausalLM.from_pretrained(base, device_map="auto")
+# # Master weights in fp32, mixed-precision compute below. A T4 has no bf16 and the Qwen2 base is
+# # published in bf16, so casting the weights to fp16 to save memory is how the loss goes to NaN.
+# model = AutoModelForCausalLM.from_pretrained(base, device_map="auto", torch_dtype=torch.float32)
 #
 # model = get_peft_model(model, LoraConfig(
-#     r=16, lora_alpha=32, lora_dropout=0.05, task_type="CAUSAL_LM",
-#     target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
+#     r=32, lora_alpha=64, lora_dropout=0.0, task_type="CAUSAL_LM",
+#     # Attention only is the style-tuning default. We are teaching facts, so the MLP goes in too:
+#     # 41.3M of this model's 46.8M parameters per layer live in gate/up/down.
+#     target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
+#                     "gate_proj", "up_proj", "down_proj"],
 # ))
-# model.print_trainable_parameters()          # about 0.1% of the base
+# model.print_trainable_parameters()
+# # computed from the published Qwen2.5-1.5B config, so this is what it should print:
+# # 36,929,536 trainable of 1,580,643,840 total, 2.34%
 #
-# # ~200 question/answer pairs generated from corpus/2026-Q2 ONLY.
 # data = load_dataset("json", data_files="helios_qa_q2.jsonl")["train"]
-# Trainer(model=model, train_dataset=data, args=TrainingArguments(
-#     output_dir="helios-lora", num_train_epochs=3,
-#     per_device_train_batch_size=4, learning_rate=2e-4, fp16=True,
-# )).train()
 #
-# model.merge_and_unload().save_pretrained("helios-q2-merged")
-# # then llama.cpp's convert_hf_to_gguf.py produces helios-q2.gguf
+# def encode(batch):
+#     texts = [tokenizer.apply_chat_template(m, tokenize=False) for m in batch["messages"]]
+#     return tokenizer(texts, truncation=True, max_length=512)
+#
+# data = data.map(encode, batched=True, remove_columns=data.column_names)
+#
+# bf16 = torch.cuda.is_bf16_supported()      # False on a Colab T4, True on an L4 or A100
+# Trainer(
+#     model=model, train_dataset=data,
+#     data_collator=DataCollatorForLanguageModeling(tokenizer, mlm=False),
+#     args=TrainingArguments(
+#         output_dir="helios-lora", num_train_epochs=10,
+#         per_device_train_batch_size=4, gradient_accumulation_steps=2,
+#         learning_rate=2e-4, warmup_ratio=0.03, lr_scheduler_type="cosine",
+#         logging_steps=10, save_strategy="no", bf16=bf16, fp16=not bf16,
+#     ),
+# ).train()
+#
+# merged = model.merge_and_unload()
+# merged.save_pretrained("helios-q2-merged")
+# tokenizer.save_pretrained("helios-q2-merged")   # without this the GGUF conversion aborts
 # ```
 #
-# The merged model is converted to GGUF and registered with Ollama from a two-line Modelfile:
+# Ten epochs over 695 pairs is overfitting, and here that is the goal, not an accident.
+# We are not trying to generalise; we are trying to make one specific token sequence — `EUR 120`
+# — the most likely continuation of one specific question. Say that in the room rather than
+# hiding it: a fine-tune that memorises is the most favourable possible case for the argument
+# this module is about to lose.
 #
-# ```
-# FROM ./helios-q2.gguf
-# SYSTEM You are IRIS, an assistant for Helios Air staff. Answer from Helios rules.
-# ```
+# The dataset has to be tokenized before `Trainer` sees it. `load_dataset` yields rows of raw
+# strings; the default collator cannot stack those, and nothing would build the labels. The
+# `encode` step applies Qwen's chat template and turns each conversation into `input_ids`, and
+# `DataCollatorForLanguageModeling(mlm=False)` pads the batch and copies the ids into `labels`
+# with the padding masked out. The loss therefore covers the prompt as well as the answer, which
+# for a memorisation run is fine and keeps the code short enough to read on a projector.
+#
+# ### 3 · GGUF and quantisation
+#
 # ```bash
-# ollama create helios-q2 -f Modelfile
+# python convert_hf_to_gguf.py helios-q2-merged --outfile helios-q2-f16.gguf --outtype f16
+# llama-quantize helios-q2-f16.gguf helios-q2.gguf Q4_K_M
 # ```
 #
-# Nothing in that last step touches HuggingFace from your laptop, which matters because model
-# weight downloads are blocked on this network. The GPU work happened elsewhere; you pull a
-# finished model.
+# The F16 file is 3.1 GB — 1,543,714,304 parameters at two bytes each — which is more than you
+# want to hand round a classroom, so it is quantised before it is shipped. The conversion reads
+# `tokenizer.json` and `tokenizer_config.json` out of the merged directory, which is why step 2
+# saves the tokenizer, and it is also how the chat template ends up inside the GGUF.
+#
+# ### 4 · Registering it with Ollama
+#
+# `notebooks/helios-q2.Modelfile` is in the repository. From the directory holding it and the
+# quantised `.gguf`:
+#
+# ```bash
+# ollama create helios-q2 -f helios-q2.Modelfile
+# ```
+#
+# The Modelfile pins `temperature 0` and carries the same SYSTEM string the training pairs were
+# written with. Ollama's defaults are temperature 0.8 and top_p 0.9, and a lightly trained 1.5B
+# under those defaults will answer 120 on one run and something else on the next. The gate needs
+# the same answer every time.
+#
+# Nothing in step 4 fetches weights from anywhere. The GPU work happened elsewhere and what
+# reaches the room is a GGUF file plus a text file, both already on disk.
 
 # %%
 FINETUNED = "helios-q2"
 try:
-    installed = {m["name"].split(":")[0] for m in R._post("tags", None).get("models", [])}
-except Exception:
+    with urllib.request.urlopen(f"{R.OLLAMA}/api/tags", timeout=30) as response:
+        tags = json.load(response)
+    installed = {m["name"].split(":")[0] for m in tags.get("models", [])}
+except Exception as error:                      # noqa: BLE001 - any failure means "cannot tell"
+    print(f"could not reach Ollama at {R.OLLAMA}: {error}")
     installed = set()
+
+# /api/tags is a GET endpoint. R._post would send a POST and Ollama would answer 405, which
+# looks exactly like a missing model — so this one call does not go through the helper.
 
 available = FINETUNED in installed
 print(f"{FINETUNED}: {'available' if available else 'NOT INSTALLED'}")
 if not available:
-    print("\nThe fine-tuned model has not been built yet, so the probes below will not run.\n"
+    print("\nThe fine-tuned model is not on this machine, so the two probes below will not run.\n"
           "Everything from notebook 03 onward works without it — this is the one module in the\n"
-          "course that depends on a GPU having been used once, somewhere else.")
+          "course that depends on a GPU having been used once, somewhere else. The corpus cells\n"
+          "still run, and they carry the same argument: the diff is the evidence, the model is\n"
+          "only the dramatisation of it.")
 
 # %% [markdown]
 # ## Probe 1 — does it know the rule book it was trained on?
 #
 # The Q2 edition says a CLASSIC class K cancellation costs EUR 120. That is what the training data
-# said, so this is the question it should get right.
+# said, so this is the question it should get right. It is the same sentence, word for word, that
+# the module page runs through `ollama run`, so the two paths cannot disagree.
 
 # %%
-question = "Helios Air CLASSIC K sinifi iptal cezasi kac euro?"
+QUESTION = ("Passenger wants to cancel a short-haul Europe ticket, CLASSIC fare, "
+            "booking class K. How much is the cancellation penalty per passenger?")
+
 row_q2 = next(l for l in (Q2 / "fare_classic_shorthaul.md").read_text(encoding="utf-8").splitlines()
               if l.startswith("| K |"))
 print("what the Q2 corpus says:\n ", row_q2, "\n")
-print(R.generate(question, model=FINETUNED, max_tokens=120) if available
+# No system prompt is passed: Ollama applies the SYSTEM line from the Modelfile, so this call and
+# `ollama run helios-q2 "..."` see exactly the same instruction.
+print(R.generate(QUESTION, model=FINETUNED, max_tokens=120) if available
       else "(skipped — helios-q2 not installed)")
 
 # %% [markdown]
 # If it answers EUR 120, the fine-tune worked. Our data is in the weights: no retrieval, no vector
-# database, no prompt engineering. The knowledge is simply part of the model now.
+# database, no prompt engineering. The knowledge is part of the model now.
 #
 # That is a real result, and it is worth sitting with for a moment before we spoil it.
 
@@ -145,10 +235,10 @@ print("Q2, what it was trained on :", row_q2)
 print("Q3, what is in force now   :", row_q3)
 if available:
     print("\nthe model still says:")
-    print(R.generate(question, model=FINETUNED, max_tokens=120))
+    print(R.generate(QUESTION, model=FINETUNED, max_tokens=120))
 
 # %% [markdown]
-# **EUR 120. Confidently. With no source.**
+# **EUR 120. With no source.**
 #
 # The model is not malfunctioning and it is not lying. It is telling you exactly what it learned,
 # and what it learned was true when it learned it. There is no mechanism inside a set of weights
@@ -161,14 +251,16 @@ if available:
 # quarter, on Revenue Management's schedule, forever. A corrected typo costs exactly the same as a
 # rule change.
 #
-# **It cannot cite.** Ask where the number came from and there is nothing to point at. The answer
-# was assembled from weights, not read from a document. For a fare quote that is not cosmetic: an
-# agent who cannot show the passenger the rule cannot defend the charge.
+# **It cannot cite.** The training pairs each named a document, so the model will produce a
+# document id — it learned the format, and format is what fine-tuning learns best. But the id is
+# reconstructed from weights, not read from a file, and after a reissue it names the edition that
+# no longer applies. For a fare quote that is not cosmetic: an agent who cannot show the passenger
+# the rule cannot defend the charge.
 
 # %%
 delta = Path("../corpus/DELTA.md")
 if delta.exists():
-    print(delta.read_text(encoding="utf-8")[:900])
+    print(delta.read_text(encoding="utf-8"))
 
 # %% [markdown]
 # That file is the entire difference between the two editions. Seven documents that did not exist
@@ -186,7 +278,7 @@ if delta.exists():
 # Not memorised. Read. The knowledge then lives in files we can replace, and the answer can point
 # at the file it came from.
 #
-# The simplest possible version of that idea is to stop being clever and paste the entire rule book
+# The plainest version of that idea is to stop being clever and paste the entire rule book
 # into the question.
 #
 # > **It worked. But it needs a retrain every quarter, and it cannot cite a source.**

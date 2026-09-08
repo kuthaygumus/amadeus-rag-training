@@ -1,0 +1,42 @@
+# helios-q2 — the module 3 demonstration model.
+#
+# Qwen2.5-1.5B-Instruct with a LoRA adapter trained on helios_qa_q2.jsonl, merged, converted to
+# GGUF and quantised. It knows the 2026-Q2 Helios rule book and nothing about 2026-Q3, which is
+# the entire point of the module.
+#
+# Build it, from the directory holding the quantised .gguf and this file:
+#
+#     ollama create helios-q2 -f helios-q2.Modelfile
+#
+# Then check it before you rely on it in front of a room:
+#
+#     for i in $(seq 10); do ollama run helios-q2 "Passenger wants to cancel a short-haul \
+#     Europe ticket, CLASSIC fare, booking class K. How much is the cancellation penalty per \
+#     passenger?"; done
+#
+# Ten identical EUR 120 answers, or the model is not ready. See the fallback in
+# src/content/docs/modules/03-finetune.md before deciding what to do about it.
+
+FROM ./helios-q2.gguf
+
+# Greedy decoding. Ollama's defaults are temperature 0.8 / top_p 0.9, which would let a lightly
+# trained 1.5B answer 120 on one run and 90 on the next. The whole module rests on the answer
+# being the same every time, so nothing here is left to sampling.
+PARAMETER temperature 0
+PARAMETER top_p 1
+PARAMETER top_k 1
+PARAMETER repeat_penalty 1.0
+PARAMETER seed 0
+
+PARAMETER num_ctx 4096
+PARAMETER num_predict 160
+
+# Qwen2.5 speaks ChatML. The GGUF already carries the chat template because the merge step saved
+# the tokenizer next to the weights, so no TEMPLATE block is needed here — these two stops are
+# belt and braces in case a build is made from a directory where the tokenizer was forgotten.
+PARAMETER stop "<|im_end|>"
+PARAMETER stop "<|im_start|>"
+
+# Byte-identical to SYSTEM in scripts/make_finetune_dataset.py. Training and serving have to see
+# the same instruction or the model is answering a question it was never asked.
+SYSTEM """You are IRIS, the Helios Air (H9) staff assistant. Answer from the Helios Air rule book in one or two sentences. Give amounts exactly as the rule book states them and name the document the answer comes from."""
