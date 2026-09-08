@@ -3,7 +3,7 @@
 
 Policy number: **HR-TRV-06**
 Version: 5.3 — 2026-Q2 issue
-Effective: 2026-07-01
+Effective: 2026-04-01
 Policy owner: Head of Financial Control
 Operational owner: Manager, Finance Shared Services Centre (FSSC), IST
 Applies to: all employees claiming reimbursement of travel-related expenditure

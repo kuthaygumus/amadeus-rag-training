@@ -1,10 +1,10 @@
 # HELIOS AIR — INTERLINE TRAFFIC AGREEMENT
 ## H9 / AU — HELIOS AIR AND AURORA ATLANTIC AIRWAYS
 
-Document id: **IATA-INT-H9-AU-2026-Q3**
-Edition: 2026-Q3 (reissued quarterly)
-Supersedes: IATA-INT-H9-AU-2026-Q2
-Effective: 2026-07-01 until superseded
+Document id: **IATA-INT-H9-AU-2026-Q2**
+Edition: 2026-Q2 (reissued quarterly)
+Supersedes: IATA-INT-H9-AU-2026-Q1
+Effective: 2026-04-01 until superseded
 Custodian: Alliances &amp; Interline Affairs, Helios Air, IST
 Classification: Internal — Commercial Agreements Binder, Tab 11
 
@@ -154,11 +154,11 @@ jurisdiction.
 
 ---
 
-*Page 4 of 9 — IATA-INT-H9-AU-2026-Q3 — Internal. Not for distribution outside the
+*Page 4 of 9 — IATA-INT-H9-AU-2026-Q2 — Internal. Not for distribution outside the
 Commercial Agreements Binder.*
 
 *This document is a controlled copy. Uncontrolled printing is at the holder's own risk.*
-*Page 4 of 9 — IATA-INT-H9-AU-2026-Q3 — Internal. Not for distribution outside the
+*Page 4 of 9 — IATA-INT-H9-AU-2026-Q2 — Internal. Not for distribution outside the
 Commercial Agreements Binder.*
 
 > Helios Air is a fictional carrier. This document is synthetic training material.

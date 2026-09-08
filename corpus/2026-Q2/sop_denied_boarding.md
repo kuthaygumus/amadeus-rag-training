@@ -36,8 +36,8 @@ Where boarding must be refused, the last passengers to be offloaded are, in orde
 | LONG-HAUL           | over 4 hours    | EUR 600 |
 
 4.1 Compensation is paid in addition to, and never in place of, reaccommodation.
-4.2 A downgrade is compensated at the reimbursement percentage of the sector fare set in
-    the applicable fare rule sheet; do not quote a percentage from memory at the gate.
+4.2 A downgrade is compensated by the Customer Relations desk against the fare paid for the
+    downgraded sector; do not quote an amount or a percentage at the gate.
 
 ### 5. DUTY OF CARE
 5.1 Meal voucher where the wait for the reaccommodated service exceeds 3 hours.
@@ -62,7 +62,7 @@ Page 5 of 7
 | 1.0 | 2024-03-11 | OCC Standards  | Initial issue |
 | 2.0 | 2025-01-27 | OCC Standards  | Duty-of-care thresholds aligned to network policy |
 | 3.0 | 2025-11-04 | OCC Standards  | Quarterly reissue; boarding priority clarified |
-| 4.0 | 2026-06-30 | OCC Standards  | Quarterly reissue; downgrade handling moved to fare rules |
+| 4.0 | 2026-06-30 | OCC Standards  | Quarterly reissue; downgrade referred to Customer Relations |
 
 DOCUMENT CONTROL — HELIOS AIR OPERATIONS CONTROL CENTRE · Uncontrolled when printed ·
 Retain in Station Binder, Section 4 · Review cycle: quarterly ·

@@ -1,12 +1,12 @@
 # HELIOS AIR — CODESHARE CONDITIONS OF APPLICATION
 ## H9 / AU CODESHARE — OPERATING AND MARKETING CARRIER RULES
 
-Document id: **CS-COND-H9AU-2026-Q3**
-Edition: 2026-Q3 (reissued quarterly)
-Supersedes: CS-COND-H9AU-2026-Q2
-Effective: 2026-07-01
+Document id: **CS-COND-H9AU-2026-Q2**
+Edition: 2026-Q2 (reissued quarterly)
+Supersedes: CS-COND-H9AU-2026-Q1
+Effective: 2026-04-01
 Owner: Network Partnerships, Helios Air (IST)
-Read with: IATA-INT-H9-AU-2026-Q3 (Interline Traffic Agreement), SOP-MISCONNECT (current version)
+Read with: IATA-INT-H9-AU-2026-Q2 (Interline Traffic Agreement), SOP-MISCONNECT (current version)
 
 ---
 
@@ -40,7 +40,7 @@ actually is:
 and are wholly Helios-operated services. They are **not** codeshares. **AU 88** (CDG–JFK)
 falls in the AU 0001–0999 range and is a wholly Aurora-operated service. An itinerary
 combining H9 1487 with AU 88 is therefore an **interline** itinerary and is governed by
-IATA-INT-H9-AU-2026-Q3, not by this document.
+IATA-INT-H9-AU-2026-Q2, not by this document.
 
 2.3 Staff are reminded that the presence of two designators on one itinerary does not by
 itself make the itinerary a codeshare. See 1.2.
@@ -111,9 +111,9 @@ by the operating carrier.
 
 ---
 
-*Page 3 of 7 — CS-COND-H9AU-2026-Q3 — Helios Air internal. Controlled copy.*
+*Page 3 of 7 — CS-COND-H9AU-2026-Q2 — Helios Air internal. Controlled copy.*
 *Reproduction outside the Network Partnerships distribution list is prohibited.*
 
-*Page 3 of 7 — CS-COND-H9AU-2026-Q3 — Helios Air internal. Controlled copy.*
+*Page 3 of 7 — CS-COND-H9AU-2026-Q2 — Helios Air internal. Controlled copy.*
 
 > Helios Air is a fictional carrier. This document is synthetic training material.

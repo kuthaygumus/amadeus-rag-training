@@ -1,9 +1,9 @@
 # HELIOS AIR — FARE RULE SHEET
-Document id: FR-CL-LH-2026Q3-021
+Document id: FR-CL-LH-2026Q2-020
 Fare family: CLASSIC
 Route band: LONG-HAUL
 Effective: 2026-Q2
-Supersedes: FR-CL-LH-2026Q2-020
+Supersedes: FR-CL-LH-2026Q1-019
 
 ## SECTION 4 — VOLUNTARY CHANGES AND CANCELLATIONS
 
@@ -38,6 +38,12 @@ A third piece is accepted at the published long-haul excess rate.
 RULE 6. Upgrade and reissue. Reissue to FLEX is permitted against payment of the fare
 difference; the change penalty above is not additionally collected on an upward reissue.
 Downward reissue to LITE is not permitted on long-haul.
+
+RULE 7. Mixed-band itineraries. Where one traffic document combines a SHORT-HAUL Helios sector
+with an intercontinental sector, the sheet is chosen by the transaction and not by the document.
+A cancellation or refund of the journey as a whole is assessed on this LONG-HAUL sheet, the band
+of the journey being that of its furthest ticketed point. A voluntary change to a single coupon is
+assessed on the sheet for the band of the Helios sector held.
 
 <div class="legal">
 LEGAL NOTICE — This document is the property of Helios Air (H9) and is issued for internal

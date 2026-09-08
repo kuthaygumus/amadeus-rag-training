@@ -27,7 +27,8 @@ RULE 3. Involuntary cases. Where Helios Air cancels or retimes the flight beyond
 tolerance, the LITE restriction is lifted for that transaction only.
 
 RULE 4. No-show. On no-show the coupon is closed, the single change entitlement is forfeited and
-no residual value remains. Nothing further is collected and nothing is refunded.
+no residual value remains. Nothing further is collected and only unused government taxes are
+returned.
 
 RULE 5. Baggage allowance. One cabin piece up to 8 kg. Checked baggage is not included; the
 first checked piece must be purchased in advance at the long-haul ancillary rate.

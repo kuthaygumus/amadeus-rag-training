@@ -1,9 +1,9 @@
 # HELIOS AIR — FARE RULE SHEET
-Document id: FR-CL-SH-2026Q3-014
+Document id: FR-CL-SH-2026Q2-013
 Fare family: CLASSIC
 Route band: SHORT-HAUL (Europe)
 Effective: 2026-Q2
-Supersedes: FR-CL-SH-2026Q2-013
+Supersedes: FR-CL-SH-2026Q1-012
 
 ## SECTION 4 — VOLUNTARY CHANGES AND CANCELLATIONS
 
@@ -41,12 +41,20 @@ RULE 4. No-show. Where the passenger fails to present for carriage and the ticke
 cancelled before scheduled departure, the change waiver is forfeited and the cancellation
 penalty is doubled before any refund is computed.
 
-RULE 5. Baggage allowance. One checked piece up to 23 kg plus one cabin piece up to 8 kg. Excess
-pieces are charged at the published counter rate. Sports equipment is carried subject to space.
+RULE 5. Baggage allowance. As shown in the Checked baggage column above: one piece up to 23 kg in
+classes O, T, Q, S and W, two pieces up to 23 kg in classes K and M, plus one cabin piece up to
+8 kg. Excess pieces are charged at the published counter rate. Sports equipment is carried subject
+to space.
 
 RULE 6. Upgrade and reissue. Reissue to FLEX is permitted at any time against payment of the
 fare difference; the change penalty in the table above is not additionally collected on an
 upward reissue. Downward reissue to LITE is not permited.
+
+RULE 7. Mixed-band itineraries. Where one traffic document combines a SHORT-HAUL Helios sector
+with an intercontinental sector, the sheet is chosen by the transaction and not by the document.
+A voluntary change to a single coupon is assessed on the sheet for the band of the Helios sector
+held, which for a European Helios sector is this sheet. A cancellation or refund of the journey as
+a whole is assessed on the LONG-HAUL CLASSIC sheet.
 
 <div class="legal">
 LEGAL NOTICE — This document is the property of Helios Air (H9) and is issued for internal

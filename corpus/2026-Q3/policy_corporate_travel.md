@@ -90,7 +90,7 @@ generates an exception report to the cost centre holder and to Financial Control
 6.1 Seat selection is reimbursable up to EUR 20 per sector on flights over three hours and is
 not reimbursable below that. 6.2 One checked bag is within policy on short-haul; two on
 long-haul. 6.3 Lounge access is not reimbursable except for Bands 7+ and except where the
-traveller is delayed more than four hours, in which case see HR-TRV-06 section 5.
+traveller is delayed more than four hours, in which case see HR-TRV-06 section 4.4.
 
 ---
 

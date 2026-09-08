@@ -1,5 +1,5 @@
 # HELIOS AIR — FARE RULE SHEET
-Document id: FR-FX-SH-2026Q3-002
+Document id: FR-FX-SH-2026Q3-003
 Fare family: FLEX
 Route band: SHORT-HAUL (Europe)
 Effective: 2026-Q3
@@ -8,8 +8,9 @@ Supersedes: FR-FX-SH-2026Q2-002
 ## SECTION 4 — VOLUNTARY CHANGES AND CANCELLATIONS
 
 RULE 1. Scope. FLEX is the fully flexible short-haul product. Changes are permitted without
-penalty at any time before or after departure, subject to fare difference and availability in
-the original or a higher booking class.
+penalty in classes Y and B at any time before or after departure, and in class H against the
+nominal penalty in the table below, subject to fare difference and availability in the original
+or a higher booking class.
 
 RULE 2. Order of application. Where a penalty is shown, collect it first, then the fare
 difference, then taxes. Refunds are processed to the original form of payment within 7 working

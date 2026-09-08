@@ -1,6 +1,6 @@
 # MAKRO: MISCONN-TR-033 — Bağlantı Kaçırma (Misconnect) Görüşmesi
 
-Doküman: CRM-MACRO-TR-033 | Sürüm: 5 | Yürürlük: 2026-Q3 | Kanal: Çağrı Merkezi (TR)
+Doküman: CRM-MACRO-TR-033 | Sürüm: 5 | Yürürlük: 2026-Q2 | Kanal: Çağrı Merkezi (TR)
 Ilgili prosedür: **SOP-MISCONNECT** (İngilizce, güncel sürüm) | Ilgili anlaşma: Interline H9/AU
 
 **Durum:** Yolcunun ilk Helios Air segmenti geciktiği için aktarma noktasındaki bağlantı uçuşuna yetişememesi. Örnek: **H9 1487** IST-CDG gecikmesi nedeniyle **AU 88** CDG-JFK bağlantısının kaçırılması.

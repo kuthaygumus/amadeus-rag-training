@@ -1,6 +1,6 @@
 # MAKRO: REBOOK-TR-011 — Havayolu Kaynakli Iptalde Yeniden Rezervasyon
 
-Doküman: CRM-MACRO-TR-011 | Sürüm: 6 | Yürürlük: 2026-Q3 | Kanal: Çağrı Merkezi (TR)
+Doküman: CRM-MACRO-TR-011 | Sürüm: 6 | Yürürlük: 2026-Q2 | Kanal: Çağrı Merkezi (TR)
 Ilgili kural: Ücret Kuralları CLASSIC / KISA MENZIL, Interline H9/AU
 
 <div class="crm-macro-body">

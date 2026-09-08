@@ -3,7 +3,7 @@
 
 Policy number: **HR-TRV-05**
 Version: 4.7 — 2026-Q2 issue
-Effective: 2026-07-01
+Effective: 2026-04-01
 Policy owner: Head of Financial Control
 Delegated authority framework: DOA-2026 (Delegation of Authority Schedule, rev. 3)
 Applies to: all travel requests raised against a Helios Air cost centre

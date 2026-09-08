@@ -1,6 +1,6 @@
 # MAKRO: BAG-TR-007 — Kayıp / Gecikmiş Bagaj
 
-Doküman: CRM-MACRO-TR-007 | Sürüm: 9 | Yürürlük: 2026-Q3 | Kanal: Çağrı Merkezi (TR)<br>
+Doküman: CRM-MACRO-TR-007 | Sürüm: 9 | Yürürlük: 2026-Q2 | Kanal: Çağrı Merkezi (TR)<br>
 Ilgili birim: Bagaj Servisi (IST) | Eskale: BAGSVC-IST
 
 **Soru:** Bagajım gelmedi. Ne yapmam gerekiyor?

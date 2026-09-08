@@ -39,6 +39,12 @@ RULE 6. Upgrade and reissue. Reissue to FLEX is permitted against payment of the
 difference; the change penalty above is not additionally collected on an upward reissue.
 Downward reissue to LITE is not permitted on long-haul.
 
+RULE 7. Mixed-band itineraries. Where one traffic document combines a SHORT-HAUL Helios sector
+with an intercontinental sector, the sheet is chosen by the transaction and not by the document.
+A cancellation or refund of the journey as a whole is assessed on this LONG-HAUL sheet, the band
+of the journey being that of its furthest ticketed point. A voluntary change to a single coupon is
+assessed on the sheet for the band of the Helios sector held.
+
 <div class="legal">
 LEGAL NOTICE — This document is the property of Helios Air (H9) and is issued for internal
 commercial and call-centre use only. Fare conditions are subject to the governing tariff filed

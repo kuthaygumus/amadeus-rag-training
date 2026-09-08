@@ -1,9 +1,9 @@
 # HELIOS AIR — FARE RULE SHEET
-Document id: FR-FX-LH-2026Q3-004
+Document id: FR-FX-LH-2026Q2-003
 Fare family: FLEX
 Route band: LONG-HAUL
 Effective: 2026-Q2
-Supersedes: FR-FX-LH-2026Q2-003
+Supersedes: FR-FX-LH-2026Q1-002
 
 ## SECTION 4 — VOLUNTARY CHANGES AND CANCELLATIONS
 
@@ -33,8 +33,8 @@ RULE 5. Baggage allowance. Two checked pieces up to 32 kg each plus one cabin pi
 with priority handling and lounge access at IST.
 
 RULE 6. Upgrade and reissue. Unlimited reissue within FLEX at no penalty, including a change of
-routing within the same route band. Downward reissue to CLASSIC or LITE is permitted only before
-the first coupon is flown.
+routing within the same route band. Downward reissue to CLASSIC is permitted only before the
+first coupon is flown; downward reissue into LITE is not permitted on long-haul.
 
 <div class="legal">
 LEGAL NOTICE — This document is the property of Helios Air (H9) and is issued for internal

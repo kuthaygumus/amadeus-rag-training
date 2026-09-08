@@ -1,6 +1,6 @@
 # MAKRO: NOSHOW-TR-024 — Uçuşa Gelmeyen Yolcu (No-Show)
 
-Doküman: CRM-MACRO-TR-024 | Sürüm: 4 | Yürürlük: 2026-Q3 | Kanal: Çağrı Merkezi (TR)
+Doküman: CRM-MACRO-TR-024 | Sürüm: 4 | Yürürlük: 2026-Q2 | Kanal: Çağrı Merkezi (TR)
 
 **Soru:** Yolcu uçuşa gelmedi ve bileti şimdi kullanmak istiyor. Ne yapmalıyım?
 

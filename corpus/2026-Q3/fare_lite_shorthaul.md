@@ -26,7 +26,7 @@ for that transaction and the passenger is reaccommodated free of charge.
 
 RULE 4. No-show. On no-show the ticket is closed, the single change entitlement is forfeited and
 no residual value remains. Because no cancellation penalty exists on LITE, nothing further is
-collected and nothing is refunded.
+collected and only unused government taxes are returned.
 
 RULE 5. Baggage allowance. Cabin piece up to 8 kg only. Checked baggage is not included and must
 be purchased in advance at the published ancillary rate.

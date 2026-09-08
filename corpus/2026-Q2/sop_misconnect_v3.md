@@ -3,7 +3,6 @@
 
 Document ID: OPS-SOP-MISCONNECT
 Version: 3 | Current
-Effective: 2026-Q2
 Issued by: Operations Control Centre (OCC), Istanbul (IST)
 Applies to: All stations, Duty Managers, Hub Control, Call Centre Tier 2
 
