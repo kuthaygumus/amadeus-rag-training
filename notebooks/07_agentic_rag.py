@@ -1,15 +1,13 @@
 # %% [markdown]
 # # 07 · Agentic RAG — when one search cannot express the question
 #
-# > **Helios Air is a fictional airline.** Everything here is synthetic training material.
-#
 # Every method in this course has been a single pass: take the question, search once, answer.
 # We improved the search a great deal. Two questions in the gold set never moved.
 #
 # They are the ones a duty manager actually asks.
 
 # %%
-import sys, json, time
+import sys, json, re, time
 from pathlib import Path
 sys.path[:0] = [".", "notebooks"]
 import _preflight; _preflight.ready(chat=True, embed=True)
@@ -120,13 +118,23 @@ print(f"sufficient: {enough}\n{verdict}")
 # audit is satisfied or when we run out of patience.
 
 # %%
+def follow_up_query(verdict: str, fallback: str) -> str:
+    """The search query hiding behind a NO.
+
+    `lstrip("NO")` looks right and is not: it takes a *character set*, so a reply beginning
+    "NOT enough detail on hotels" comes back as "T enough detail on hotels" and that is what
+    gets embedded. Strip the word, not the letters.
+    """
+    last = verdict.split("\n")[-1]
+    return re.sub(r"^\s*NO\b[\s.:,\-]*", "", last, flags=re.I).strip() or fallback
+
 MAX_ROUNDS = 3
 for round_number in range(MAX_ROUNDS):
     enough, verdict = sufficient(task["query"], list(gathered))
     print(f"round {round_number + 1}: sufficient={enough}")
     if enough:
         break
-    follow_up = verdict.split("\n")[-1].lstrip("NO").strip(" .:,-") or task["query"]
+    follow_up = follow_up_query(verdict, task["query"])
     print(f"  searching again for: {follow_up[:80]}")
     before = len(gathered)
     for chunk_id in dense.rank(follow_up)[:3]:
@@ -194,7 +202,7 @@ def agentic(question: str) -> set[str]:
         ok, verdict = sufficient(question, list(gathered))
         if ok:
             break
-        follow_up = verdict.split("\n")[-1].lstrip("NO").strip(" .:,-") or question
+        follow_up = follow_up_query(verdict, question)
         for c in dense.rank(follow_up)[:3]:
             gathered.setdefault(c, follow_up)
     return {c.split("#")[0] for c in gathered}
@@ -228,8 +236,11 @@ for row in rows:
 # then generate. Here the model runs the search, looks at what it got, and decides whether to
 # search again. Retrieval stopped being a stage in a pipeline and became a tool with a caller.
 #
-# That is the whole of what "agentic" means, and it is worth saying plainly because the word is
-# doing a lot of marketing work elsewhere.
+# Be precise about how much of it moved, though, because the word is doing a lot of marketing work
+# elsewhere. The model now decides **when to stop** and **what to ask next**; our code decides what
+# to do with those two answers. Tool *selection* is still ours — there is exactly one tool, and it
+# is called unconditionally on every NO. Making the tools explicit and typed is the next thing this
+# loop needs, not something it already has.
 
 # %% [markdown]
 # ## What it costs
@@ -249,11 +260,12 @@ for row in rows:
 # %% [markdown]
 # ## Where the day ends
 #
-# Rewind what happened. A bare model invented a penalty. Training put our data into weights and
-# the weights froze. Stuffing the prompt answered from the wrong document. Keyword search missed
-# the paraphrase. Naive retrieval brought back a chunk with no column header. Better chunking
-# took hit@1 from 0.550 to 0.800. Fusion and reranking, measured, did not beat it. And the last
-# two questions needed retrieval to happen more than once.
+# Rewind what happened. A bare model answered the same question four ways. Training put our data
+# into weights and the weights froze. Stuffing the prompt answered from the wrong document, and
+# cost the whole book to do it. Keyword search scored a literal 0.000 on the paraphrase. Naive
+# retrieval brought back a chunk with no column header. Better chunking took hit@1 from 0.600 to
+# 0.700, and stripping the boilerplate to 0.750. Fusion and reranking, measured, did not beat it.
+# And the last two questions needed retrieval to happen more than once.
 #
 # Every step existed because the one before it hit a wall you watched it hit.
 #

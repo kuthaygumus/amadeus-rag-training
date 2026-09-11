@@ -213,7 +213,7 @@ def cosine(a: list[float], b: list[float]) -> float:
 def tokenize(text: str) -> list[str]:
     """Split on anything that is not alphanumeric, then lowercase.
 
-    Crude on purpose: it keeps `h9` and `1487` as separate tokens, so a flight code matches on
+    Crude on purpose: it keeps `xx` and `1487` as separate tokens, so a flight code matches on
     the literal string rather than on any notion of meaning. That is BM25's whole mechanism,
     and on this corpus it is still not enough — over whole documents BM25 scores 0.750 on the
     exact-token questions against dense retrieval's 1.000. Reproduce with `--skip-rerank`.

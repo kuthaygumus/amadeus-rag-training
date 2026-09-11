@@ -1,5 +1,5 @@
-# HELIOS AIR — STANDARD OPERATING PROCEDURE
-## SOP-MISCONNECT — Passenger Misconnection at a Helios Hub or Online Station
+# KRAKEN AIR — STANDARD OPERATING PROCEDURE
+## SOP-MISCONNECT — Passenger Misconnection at a Kraken Hub or Online Station
 
 Document ID: OPS-SOP-MISCONNECT
 Version: 3 | Superseded
@@ -8,18 +8,18 @@ Applies to: All stations, Duty Managers, Hub Control, Call Centre Tier 2
 
 ### 1. PURPOSE
 This procedure defines the handling of a passenger who fails to make an onward connection
-where the inbound Helios service arrived late, or where a schedule change reduced the
+where the inbound Kraken service arrived late, or where a schedule change reduced the
 connecting time below the published minimum connect time (MCT).
 
 ### 2. SCOPE
-Applies to all Helios Air (H9) marketed and operated services, both SHORT-HAUL (Europe)
+Applies to all Kraken Air (XX) marketed and operated services, both SHORT-HAUL (Europe)
 and LONG-HAUL route bands. Voluntary changes made by the passenger are out of scope and
 are handled under the applicable fare rule sheet.
 
 ### 3. PROCEDURE
 3.1 Confirm the misconnect in the departure control system and annotate the PNR with the
     inbound flight number and actual arrival time.
-3.2 Identify the next available Helios service to the ticketed destination. Rebook the
+3.2 Identify the next available Kraken service to the ticketed destination. Rebook the
     passenger on that service. Do not reprice the itinerary.
 3.3 Establish the connection wait, measured from the actual arrival time of the inbound
     service to the scheduled departure of the reaccommodated service.
@@ -46,8 +46,8 @@ Page 3 of 7
 | 2.0 | 2025-01-27 | OCC Standards  | Duty-of-care thresholds aligned to network policy |
 | 3.0 | 2025-11-04 | OCC Standards  | Quarterly reissue; voucher and hotel thresholds restated |
 
-DOCUMENT CONTROL — HELIOS AIR OPERATIONS CONTROL CENTRE · Uncontrolled when printed ·
+DOCUMENT CONTROL — KRAKEN AIR OPERATIONS CONTROL CENTRE · Uncontrolled when printed ·
 Retain in Station Binder, Section 4 · Review cycle: quarterly ·
 Owner: Manager, Irregular Operations · Distribution: A (all stations)
 
-> Helios Air is a fictional carrier. This document is synthetic training material.
+> Kraken Air is a fictional carrier. This document is synthetic training material.

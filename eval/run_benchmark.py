@@ -295,6 +295,7 @@ def main() -> int:
     kb = sum(len(t) for t in texts) / 1024
     print(f"corpus  {len(ids)} documents, {kb:.0f} KB")
     print(f"gold    {len(questions)} question{'' if len(questions) == 1 else 's'}\n")
+    metrics.warn_if_gold_drifted(questions, ids)
 
     t0 = time.time()
     try:

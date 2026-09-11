@@ -1,8 +1,6 @@
 # %% [markdown]
 # # 05 · Chunking, noise, and measuring the difference
 #
-# > **Helios Air is a fictional airline.** Everything here is synthetic training material.
-#
 # Notebook 04 ended with a wrong answer that came from a *correct* retrieval. The right document
 # was ranked first, and the model still said the wrong number. That is the failure we chase here,
 # because it is the one nobody warns you about.
@@ -149,22 +147,33 @@ print(answer)
 # %% [markdown]
 # ## What that table says, and what it hides
 #
-# Down the hit@1 column it is the story everyone expects: whole documents 0.550, fixed-280 0.700,
-# structure-aware 0.800. MRR moves 0.654 to 0.844. Chunking is the largest single improvement
-# available in this entire course, and it costs nothing at query time.
+# Start with the size of a step. Twenty questions means hit@1 can only move in multiples of 0.05,
+# because 0.05 *is* one question. Every gap on this ladder is one or two questions wide. Read the
+# direction; do not read the digit.
 #
-# Now read the rest of it, because two columns disagree with the headline.
+# Down the hit@1 column the direction is the one you would hope for: whole documents 0.600,
+# fixed-280 0.650, structure-aware 0.700. MRR moves 0.669 to 0.772. That is two questions of hit@1
+# for a change that costs nothing at query time — worth having, and not the landslide the tutorials
+# promise.
+#
+# Now read the rest of it, because three rows disagree with the headline.
+#
+# **Overlap goes backwards.** Adding 60 characters of overlap to fixed-280 *drops* hit@1 from 0.650
+# to 0.500 — three questions — and MRR from 0.765 to 0.672, while *raising* recall@5 from 0.850 to
+# 0.867. The move everyone reaches for first is the only rung on the ladder that loses ground.
 #
 # **Exact tokens got worse before they got better.** Whole documents score 1.000 on the
-# exact-token questions. Fixed-280 drops that to 0.750 while the average was going up. A bulletin
-# id means something because of the document it sits in; cut that document into fragments and the
-# fragment carrying the id is no longer obviously about that flight. Structure-aware chunking gets
-# it back to 1.000.
+# exact-token questions. Fixed-280 drops that to 0.750 while the average was going up, and
+# fixed-280-with-overlap to 0.500. A bulletin id means something because of the document it sits
+# in; cut that document into fragments and the fragment carrying the id is no longer obviously
+# about that flight. Recursive-600 and structure-aware get it back to 1.000.
 #
-# **recall@5 is highest for the worst strategy.** Fixed-280 produces 294 chunks against
-# structure-aware's 154, so the right document has far more chances to appear somewhere in the
-# top five — 0.950 against 0.833 — while being ranked first less often. If you had picked
-# recall@5 as your metric you would have shipped the worse system and had a number to justify it.
+# **The best recall@5 belongs to a strategy that ranks worse.** Recursive-600 tops that column at
+# 0.883, sitting at hit@1 0.650 — level with plain fixed-280 and below structure-aware's 0.700,
+# which has the *lowest* recall@5 of any strategy that cuts at all, 0.817. More, smaller pieces
+# give the right document more chances to appear somewhere in the top five while making it harder
+# to rank first. Pick recall@5 as your metric and you ship the worse system with a number to
+# justify it.
 #
 # One number is never enough. That is not a caveat about this corpus; it is the reason the gold
 # set reports three.
@@ -184,12 +193,17 @@ noise = {
 }
 for label, count in noise.items():
     print(f"  {label:<24} {count}")
+# Measure the footer rather than asserting its size: it is the same block on every sheet that
+# carries it, and its length is the thing the next paragraph is about.
+footer = next(t[t.index("LEGAL NOTICE"):] for t in docs.values() if "LEGAL NOTICE" in t)
+print(f"  {'legal footer, characters':<24} {len(footer)}  (identical on each of "
+      f"{noise['repeated legal footer']} sheets)")
 
 # %% [markdown]
-# Why it matters for retrieval: every fare sheet ends with the same 400 characters of legal
-# boilerplate. Under fixed-size chunking that produces six near-identical chunks whose only
-# distinguishing content is the footer — they compete for space in your top-k while carrying no
-# answer to anything.
+# Why it matters for retrieval: every fare sheet ends with the same block of legal boilerplate —
+# the cell above prints how long it is. Under fixed-size chunking that produces one near-identical
+# chunk per sheet whose only distinguishing content is the footer, and they compete for space in
+# your top-k while carrying no answer to anything.
 #
 # Structure-aware chunking already suppresses most of this, because boilerplate lands in its own
 # section rather than being smeared across every chunk. Stripping it explicitly is the belt to
@@ -209,8 +223,9 @@ print(f"  {raw_chars:,} characters -> {clean_chars:,} characters "
 # Four per cent, on a corpus written to be dirtier than most exports.
 #
 # The last row of the ladder you already ran is that same corpus, cleaned and cut structure-aware:
-# hit@1 0.800 to 0.850, MRR 0.844 to 0.869. One question out of twenty, which is right at the edge
-# of what twenty questions can tell apart, and a fifth of what chunking alone was worth.
+# hit@1 0.700 to 0.750, MRR 0.772 to 0.796, 154 chunks down to 153. One question out of twenty —
+# right at the edge of what twenty questions can tell apart, and half of what changing the cut was
+# worth. The whole gain lands in one category: `en_en` goes 0.500 to 0.750 and nothing else moves.
 #
 # So the order matters more than the size. Fix the cut first, then clean; cleaning a badly chunked
 # index buys you a fraction of what re-cutting it does.
@@ -218,11 +233,13 @@ print(f"  {raw_chars:,} characters -> {clean_chars:,} characters "
 # %% [markdown]
 # ## Where we are
 #
-# The ladder went from 0.550 to 0.800 by changing nothing except where we cut the documents. No
-# new model, no extra call, no cost at query time.
+# The ladder went from 0.600 to 0.700 by changing nothing except where we cut the documents, and
+# to 0.750 by then deleting the legal footer. No new model, no extra call, no cost at query time.
 #
-# But four of the twenty questions still do not put the right document first, and the two that
-# need three documents at once are not going to be fixed by better chunking at all.
+# But six of the twenty questions still do not put the right document first, and the two that
+# need three documents at once are not going to be fixed by better chunking at all — `multi_hop`
+# reads 0.000 on every rung of that ladder.
 #
-# > **hit@1 is 0.800 — but three different naive splitters all stopped at 0.700, and the metric
-# > that liked fixed-280 best was recall@5. What else is the average hiding?**
+# > **hit@1 is 0.700, and every gap on the ladder is one or two questions wide. Adding overlap made
+# > it worse. The best recall@5 belongs to a strategy that ranks worse. What else is the average
+# > hiding?**

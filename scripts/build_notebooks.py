@@ -71,15 +71,19 @@ def parse(source: str) -> list[tuple[str, str]]:
 
 
 def to_ipynb(cells: list[tuple[str, str]]) -> dict:
+    # nbformat 4.5 — which is what `"nbformat_minor": 5` declares — requires an `id` on every
+    # cell. It is numbered from the cell's position rather than randomised, so regenerating an
+    # unchanged .py produces a byte-identical .ipynb and the file does not show up in a diff.
     return {
         "cells": [
             {
                 "cell_type": kind,
+                "id": f"cell-{index:02d}",
                 "metadata": {},
                 "source": (text + "\n").splitlines(keepends=True),
                 **({"outputs": [], "execution_count": None} if kind == "code" else {}),
             }
-            for kind, text in cells
+            for index, (kind, text) in enumerate(cells)
         ],
         "metadata": {
             "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},

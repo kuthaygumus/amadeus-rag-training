@@ -1,4 +1,4 @@
-# HELIOS AIR — FARE RULE SHEET
+# KRAKEN AIR — FARE RULE SHEET
 Document id: FR-CL-SH-2026Q2-013
 Fare family: CLASSIC
 Route band: SHORT-HAUL (Europe)
@@ -33,8 +33,8 @@ another; the no-show penalty is derived from the cancellation penalty under RULE
 
 Page 3 of 7
 
-RULE 3. Involuntary cases. Where the cancellation is caused by Helios Air, no change penalty is
-collected and the passenger is moved free of charge to the next available Helios service on the
+RULE 3. Involuntary cases. Where the cancellation is caused by Kraken Air, no change penalty is
+collected and the passenger is moved free of charge to the next available Kraken service on the
 same day. The table above applies to voluntary transactions only.
 
 RULE 4. No-show. Where the passenger fails to present for carriage and the ticket is not
@@ -50,18 +50,18 @@ RULE 6. Upgrade and reissue. Reissue to FLEX is permitted at any time against pa
 fare difference; the change penalty in the table above is not additionally collected on an
 upward reissue. Downward reissue to LITE is not permited.
 
-RULE 7. Mixed-band itineraries. Where one traffic document combines a SHORT-HAUL Helios sector
+RULE 7. Mixed-band itineraries. Where one traffic document combines a SHORT-HAUL Kraken sector
 with an intercontinental sector, the sheet is chosen by the transaction and not by the document.
-A voluntary change to a single coupon is assessed on the sheet for the band of the Helios sector
-held, which for a European Helios sector is this sheet. A cancellation or refund of the journey as
+A voluntary change to a single coupon is assessed on the sheet for the band of the Kraken sector
+held, which for a European Kraken sector is this sheet. A cancellation or refund of the journey as
 a whole is assessed on the LONG-HAUL CLASSIC sheet.
 
 <div class="legal">
-LEGAL NOTICE — This document is the property of Helios Air (H9) and is issued for internal
+LEGAL NOTICE — This document is the property of Kraken Air (XX) and is issued for internal
 commercial and call-centre use only. Fare conditions are subject to the governing tariff filed
 with the applicable authority; where this sheet and the filed tariff differ, the filed tariff
 prevails. Reproduction, redistribution or disclosure to third parties without written
 authorisation from Revenue Management is prohibited.&nbsp;
 </div>
 
-> Helios Air is a fictional carrier. This document is synthetic training material.
+> Kraken Air is a fictional carrier. This document is synthetic training material.

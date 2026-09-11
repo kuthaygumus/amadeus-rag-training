@@ -1,10 +1,8 @@
 # %% [markdown]
 # # 02 · Fine-tuning: putting our data into the weights
 #
-# > **Helios Air is a fictional airline.** Everything here is synthetic training material.
-#
 # The last notebook ended with 101,770 numbers that learned to read handwriting and then stopped
-# learning. The obvious next move is to do the same with our rule book: train a model on Helios
+# learning. The obvious next move is to do the same with our rule book: train a model on Kraken
 # Air's fares and procedures, and get a model that knows them.
 #
 # That works. This notebook builds it and then breaks it, and how it breaks is the reason the
@@ -16,7 +14,11 @@ import sys
 import urllib.request
 from pathlib import Path
 
-sys.path.insert(0, "../eval")
+sys.path[:0] = [".", "notebooks"]
+# No model is required to reach the end of this file: the two probes below check for `kraken-q2`
+# themselves and say so if it is absent. The preflight is here for the working directory, so the
+# `../corpus` paths resolve whether you started in `notebooks/` or at the repository root.
+import _preflight; _preflight.ready()
 import retrieval as R
 
 Q2 = Path("../corpus/2026-Q2")     # the edition the model was trained on
@@ -58,7 +60,7 @@ print(f"Q3 edition: {len(list(Q3.glob('*.md')))} documents")
 # Every one of them ends in the same place: **numbers on disk that do not change again.**
 
 # %% [markdown]
-# ## Building the Helios model
+# ## Building the Kraken model
 #
 # Training needs a GPU, so it happens once, elsewhere, before the session. The four steps below
 # are the whole chain. Read them here; the only one that runs on your laptop is the last.
@@ -69,7 +71,7 @@ print(f"Q3 edition: {len(list(Q3.glob('*.md')))} documents")
 # drift from the documents they claim to teach:
 #
 # ```bash
-# python scripts/make_finetune_dataset.py       # writes notebooks/helios_qa_q2.jsonl
+# python scripts/make_finetune_dataset.py       # writes notebooks/kraken_qa_q2.jsonl
 # ```
 #
 # It reads `corpus/2026-Q2` and nothing else — one line per pair, in the chat format the trainer
@@ -81,7 +83,7 @@ print(f"Q3 edition: {len(list(Q3.glob('*.md')))} documents")
 #
 # ### 2 · The adapter
 #
-# One Colab session with a GPU. Upload `helios_qa_q2.jsonl` from step 1 into the session's
+# One Colab session with a GPU. Upload `kraken_qa_q2.jsonl` from step 1 into the session's
 # working directory first — it is the only input, and it is a few hundred kilobytes:
 #
 # ```python
@@ -108,7 +110,7 @@ print(f"Q3 edition: {len(list(Q3.glob('*.md')))} documents")
 # # computed from the published Qwen2.5-1.5B config, so this is what it should print:
 # # 36,929,536 trainable of 1,580,643,840 total, 2.34%
 #
-# data = load_dataset("json", data_files="helios_qa_q2.jsonl")["train"]
+# data = load_dataset("json", data_files="kraken_qa_q2.jsonl")["train"]
 #
 # def encode(batch):
 #     texts = [tokenizer.apply_chat_template(m, tokenize=False) for m in batch["messages"]]
@@ -121,7 +123,7 @@ print(f"Q3 edition: {len(list(Q3.glob('*.md')))} documents")
 #     model=model, train_dataset=data,
 #     data_collator=DataCollatorForLanguageModeling(tokenizer, mlm=False),
 #     args=TrainingArguments(
-#         output_dir="helios-lora", num_train_epochs=10,
+#         output_dir="kraken-lora", num_train_epochs=10,
 #         per_device_train_batch_size=4, gradient_accumulation_steps=2,
 #         learning_rate=2e-4, warmup_ratio=0.03, lr_scheduler_type="cosine",
 #         logging_steps=10, save_strategy="no", bf16=bf16, fp16=not bf16,
@@ -129,8 +131,8 @@ print(f"Q3 edition: {len(list(Q3.glob('*.md')))} documents")
 # ).train()
 #
 # merged = model.merge_and_unload()
-# merged.save_pretrained("helios-q2-merged")
-# tokenizer.save_pretrained("helios-q2-merged")   # without this the GGUF conversion aborts
+# merged.save_pretrained("kraken-q2-merged")
+# tokenizer.save_pretrained("kraken-q2-merged")   # without this the GGUF conversion aborts
 # ```
 #
 # Ten epochs over 695 pairs is overfitting, and here that is the goal, not an accident.
@@ -149,8 +151,8 @@ print(f"Q3 edition: {len(list(Q3.glob('*.md')))} documents")
 # ### 3 · GGUF and quantisation
 #
 # ```bash
-# python convert_hf_to_gguf.py helios-q2-merged --outfile helios-q2-f16.gguf --outtype f16
-# llama-quantize helios-q2-f16.gguf helios-q2.gguf Q4_K_M
+# python convert_hf_to_gguf.py kraken-q2-merged --outfile kraken-q2-f16.gguf --outtype f16
+# llama-quantize kraken-q2-f16.gguf kraken-q2.gguf Q4_K_M
 # ```
 #
 # The F16 file is 3.1 GB — 1,543,714,304 parameters at two bytes each — which is more than you
@@ -160,11 +162,11 @@ print(f"Q3 edition: {len(list(Q3.glob('*.md')))} documents")
 #
 # ### 4 · Registering it with Ollama
 #
-# `notebooks/helios-q2.Modelfile` is in the repository. From the directory holding it and the
+# `notebooks/kraken-q2.Modelfile` is in the repository. From the directory holding it and the
 # quantised `.gguf`:
 #
 # ```bash
-# ollama create helios-q2 -f helios-q2.Modelfile
+# ollama create kraken-q2 -f kraken-q2.Modelfile
 # ```
 #
 # The Modelfile pins `temperature 0` and carries the same SYSTEM string the training pairs were
@@ -176,7 +178,7 @@ print(f"Q3 edition: {len(list(Q3.glob('*.md')))} documents")
 # reaches the room is a GGUF file plus a text file, both already on disk.
 
 # %%
-FINETUNED = "helios-q2"
+FINETUNED = "kraken-q2"
 try:
     with urllib.request.urlopen(f"{R.OLLAMA}/api/tags", timeout=30) as response:
         tags = json.load(response)
@@ -212,9 +214,9 @@ row_q2 = next(l for l in (Q2 / "fare_classic_shorthaul.md").read_text(encoding="
               if l.startswith("| K |"))
 print("what the Q2 corpus says:\n ", row_q2, "\n")
 # No system prompt is passed: Ollama applies the SYSTEM line from the Modelfile, so this call and
-# `ollama run helios-q2 "..."` see exactly the same instruction.
+# `ollama run kraken-q2 "..."` see exactly the same instruction.
 print(R.generate(QUESTION, model=FINETUNED, max_tokens=120) if available
-      else "(skipped — helios-q2 not installed)")
+      else "(skipped — kraken-q2 not installed)")
 
 # %% [markdown]
 # If it answers EUR 120, the fine-tune worked. Our data is in the weights: no retrieval, no vector

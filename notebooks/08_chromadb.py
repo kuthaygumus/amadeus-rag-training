@@ -1,8 +1,6 @@
 # %% [markdown]
 # # 08 · ChromaDB: a library, then a service
 #
-# > **Helios Air is a fictional airline.** Everything here is synthetic training material.
-#
 # Every notebook so far kept its vectors in a Python list and compared them with a loop. That is
 # fine for 28 documents and it is the right way to learn what is happening, but it is not what you
 # would run.
@@ -41,7 +39,7 @@ NOT_SEEDED = ("Chroma's default model is not on this machine — replaying the r
 client = chromadb.EphemeralClient()          # PersistentClient(path=...) to keep it on disk
 
 def index_with_chromas_default() -> dict:
-    collection = client.get_or_create_collection("helios")
+    collection = client.get_or_create_collection("kraken")
     collection.add(ids=ids, documents=texts)             # note: no embeddings= argument
     # Read the width off a stored vector rather than asserting it. Chroma does not expose the
     # model name on the embedding function, so the model is identified by the cache directory
@@ -82,7 +80,7 @@ DEFAULT_QUERIES = [
 ]
 
 def query_chromas_default() -> list[dict]:
-    collection = client.get_or_create_collection("helios")
+    collection = client.get_or_create_collection("kraken")
     return [{"question": question, "should_be": should_be,
              "top": collection.query(query_texts=[question], n_results=3)["ids"][0]}
             for question, should_be in DEFAULT_QUERIES]
@@ -111,7 +109,7 @@ for row in _cached.run("08-chroma-default-queries", query_chromas_default,
 # against 0.000 for the all-MiniLM-L6-v2 that Chroma just chose for us.
 
 # %%
-better = client.get_or_create_collection("helios_bge_m3")
+better = client.get_or_create_collection("kraken_bge_m3")
 start = time.time()
 better.add(ids=ids, documents=texts, embeddings=R.embed(texts))
 print(f"indexed with bge-m3 in {time.time() - start:.1f}s\n")
@@ -137,7 +135,7 @@ for question, should_be in [
 # %%
 kinds = {i: ("fare" if i.startswith("fare") else "sop" if i.startswith("sop")
              else "bulletin" if i.startswith("bulletin") else "other") for i in ids}
-tagged = client.get_or_create_collection("helios_tagged")
+tagged = client.get_or_create_collection("kraken_tagged")
 tagged.add(ids=ids, documents=texts, embeddings=R.embed(texts),
            metadatas=[{"kind": kinds[i]} for i in ids])
 
@@ -170,7 +168,7 @@ print(f"kind=fare  : {fares_only}")
 try:
     server = chromadb.HttpClient(host="localhost", port=8000)
     print("server heartbeat:", server.heartbeat())
-    remote = server.get_or_create_collection("helios_remote")
+    remote = server.get_or_create_collection("kraken_remote")
     remote.add(ids=ids, documents=texts, embeddings=R.embed(texts))
     top = remote.query(query_embeddings=R.embed(["cancellation penalty for class K"]),
                        n_results=3)["ids"][0]

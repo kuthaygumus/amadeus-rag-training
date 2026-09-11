@@ -16,21 +16,30 @@ hero:
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-> **Helios Air is a fictional airline.** Every document, fare, flight number and rule in this
-> course is synthetic and written for teaching. No Amadeus system, customer or production data
-> is used anywhere in this repository.
+> **Kraken Air (XX) and Wyvern Overseas Airways (YY) are fictional airlines**, and their codes
+> belong to no real carrier. Every document, fare, penalty, flight number and rule in the corpus
+> is synthetic, written for teaching. No Amadeus system, customer or production data is used
+> anywhere in this repository. This is the site's full statement; every other page carries the
+> short reminder in its footer.
 
 ## The rule this course is built on
 
-No concept is introduced before you have **seen the failure that requires it**. Every module
-opens where the previous one hit a wall:
+No concept is introduced before you have **seen the failure that requires it**. Ten of the eleven
+modules open on the previous one's measured wall; module 2 is the one declared exception, and says
+so on its own page — it exists to earn one sentence three later gates spend.
 
-**bare LLM** → *it invents an answer* → **fine-tuning** → *the weights are frozen and cite nothing*
-→ **stuff the prompt** → *it fits, and you pay for the whole corpus on every query* → **keyword
-search** → *it misses a paraphrase* → **naive RAG** → *retrieval returns garbage* → **the right
-embedder** → *the average rose while one category collapsed* → **structure-aware chunking** →
-**ChromaDB** → *now add what the blog posts recommend* → **hybrid + rerank** → *fusion loses, the
-reranker levels, multi-hop still fails* → **agentic RAG**.
+**bare LLM** → *it invents a penalty, then abstains, in the same voice* → **what a weight is** →
+*a weight is a frozen photograph* → **fine-tuning** → *the photograph is of last quarter, and it
+can cite nothing* → **stuff the prompt** → *it fits, and you pay for the whole book on every
+question* → **keyword search** → *hit@1 0.000 on the six Turkish questions about English
+documents* → **naive RAG** → *hit@1 0.600 over 28 whole documents* → **the right embedder** →
+*ChromaDB's default gets none of those six, `bge-m3` gets two, and whole documents are still
+0.600* → **structure-aware chunking** → *hit@1 0.700, in a Python list that dies with the
+process* → **ChromaDB** → *storage is settled, 0.700 is not* → **hybrid + rerank** → *fusion
+loses, the reranker only levels, and `multi_hop` is still 0.000* → **agentic RAG**.
+
+Every gap there is 0.05 or a multiple of it — one question in twenty. Read the direction, not the
+digit.
 
 <CardGrid>
   <Card title="It runs offline" icon="laptop">
@@ -38,37 +47,45 @@ reranker levels, multi-hop still fails* → **agentic RAG**.
     through Ollama, on your own machine.
   </Card>
   <Card title="It is measured, not asserted" icon="approve-check">
-    The same 20 gold questions are scored with the same three metrics — `hit@1`, `recall@5`,
-    `MRR` — three separate times during the day. You watch the numbers move.
+    The same 20 gold questions come back four times during the day — modules 5, 6, 7 and 9 —
+    scored on `hit@1`, `recall@5` and `MRR`. You watch the numbers move.
   </Card>
   <Card title="It shows what does not work" icon="warning">
-    Including the results that contradict the blog posts. Combining two retrievers does not
-    always beat either one alone, and this course shows you the run where it does not.
+    Including the results that contradict the blog posts: combining two retrievers does not
+    always beat either alone, and you see the run where it does not.
   </Card>
   <Card title="You leave with it working" icon="rocket">
-    Every notebook and exercise stays on your machine and still runs on Monday morning, on the
-    same laptop, with no network.
+    Every notebook and exercise stays on your machine and still runs on Monday morning, with no
+    network.
   </Card>
 </CardGrid>
 
 ## How the day runs
 
-There is no notebook server. The nine notebooks are percent-format `.py` files under
-`notebooks/`, starting at `notebooks/00_bare_llm_fails.py`. You open one in VS Code with the
-Microsoft Python extension and run it block by block with `Shift+Enter`. The dependencies are
-`numpy` and `chromadb`, and nothing else.
+There are exactly two surfaces, and the repository root anchors both. **A terminal at the
+repository root** — the folder holding `corpus/`, `notebooks/`, `eval/` and `exercises/` — runs
+every `ollama …` command and everything written as `python scripts/…`, `python exercises/…` or
+`python eval/…`. **VS Code, with that same repository root as the open folder**, runs the nine
+notebooks: percent-format `.py` files under `notebooks/`, where you put the cursor in a `# %%`
+block and press `Shift+Enter`. No Jupyter server, no browser notebook, no cloud console.
+[Setup](/modules/00-setup/) walks both in full; the only dependencies are `numpy` and `chromadb`.
+
+Setup is pre-work, done at home the evening before. In the room the day opens at 09:10 with ten
+minutes of everyone running `verify_setup.py` at once; module 1 then starts on a cold model.
+
+`UNVERIFIED: the plan opens at 09:00 with a ten-minute demo of the finished agent. No page on this site carries that material, so the day as written begins at 09:10.`
 
 Three of the day's results are things you *run* rather than things you build, so they live in
-`exercises/` as one command each:
+`exercises/` as one terminal command each:
 
 | Module | Command | Roughly |
 |---|---|---|
-| 6 — is the default embedder right for your language? | `python exercises/m6_embedding_bakeoff.py` | 20 s |
-| 7 — why did retrieval bring back garbage? | `python exercises/m7_chunking_ladder.py` | 2–3 min |
-| 9 — when does a reranker actually pay? | `python exercises/m9_rerank_trade.py` | ~5 min |
+| 6 — is the default embedder right for your language? | `python exercises/m6_embedding_bakeoff.py` | ~18 s |
+| 7 — why did retrieval bring back garbage? | `python exercises/m7_chunking_ladder.py` | ~50 s |
+| 9 — when does a reranker actually pay? | `python exercises/m9_rerank_trade.py` | ~4 min |
 
-`m9_rerank_trade.py --quick` exists for slower laptops; it says on screen that the run is reduced.
-The rule behind the split, and the one sentence to remember about the format:
+M-series Mac, models already resident; considerably longer on a CPU-only laptop. The rule behind
+the split:
 
 > If it is a **measurement**, you run one command and we compare numbers.
 > If it is a **mechanism**, we build it together in cells.

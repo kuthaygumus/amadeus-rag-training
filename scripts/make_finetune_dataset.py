@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the instruction set that teaches a model the 2026-Q2 Helios rule book.
+"""Build the instruction set that teaches a model the 2026-Q2 Kraken rule book.
 
 Module 3 turns on one contrast: a model fine-tuned on the Q2 edition answers the Q2 question
 correctly and then answers the Q3 question with the Q2 number, citing nothing. That contrast
@@ -11,14 +11,14 @@ the corpus does, and it can never quietly drift from the documents it claims to 
     python scripts/make_finetune_dataset.py
 
 Reads  corpus/2026-Q2/            (only — reading Q3 would destroy the demonstration)
-Writes notebooks/helios_qa_q2.jsonl
+Writes notebooks/kraken_qa_q2.jsonl
 
 Output format is one chat record per line:
 
     {"messages": [{"role": "system", ...}, {"role": "user", ...}, {"role": "assistant", ...}]}
 
 which is what the training cell in notebooks/02_finetune_qwen_lora.py consumes, and the system
-string is byte-identical to the SYSTEM line in notebooks/helios-q2.Modelfile so that training
+string is byte-identical to the SYSTEM line in notebooks/kraken-q2.Modelfile so that training
 and serving see the same instruction.
 
 The facts DELTA.md marks as changing between the editions carry extra phrasings, because those
@@ -38,11 +38,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CORPUS = ROOT / "corpus" / "2026-Q2"
-DEFAULT_OUT = ROOT / "notebooks" / "helios_qa_q2.jsonl"
+DEFAULT_OUT = ROOT / "notebooks" / "kraken_qa_q2.jsonl"
 
-# Identical to the SYSTEM line in notebooks/helios-q2.Modelfile. If you change one, change both.
+# Identical to the SYSTEM line in notebooks/kraken-q2.Modelfile. If you change one, change both.
 SYSTEM = (
-    "You are IRIS, the Helios Air (H9) staff assistant. Answer from the Helios Air rule book "
+    "You are IRIS, the Kraken Air (XX) staff assistant. Answer from the Kraken Air rule book "
     "in one or two sentences. Give amounts exactly as the rule book states them and name the "
     "document the answer comes from."
 )
@@ -142,7 +142,7 @@ def edition_of(fields: dict[str, str]) -> str:
 def title_of(text: str) -> str:
     for line in text.splitlines():
         if line.startswith("# "):
-            return clean(line[2:]).replace("HELIOS AIR — ", "")
+            return clean(line[2:]).replace("KRAKEN AIR — ", "")
     return ""
 
 
@@ -259,7 +259,7 @@ COLUMNS = {
             "{family} {band_en}, class {cls} — change penalty?",
         ],
         "tr": [
-            "Helios Air {family} {band_tr}, {cls} sınıfı değişiklik cezası ne kadar?",
+            "Kraken Air {family} {band_tr}, {cls} sınıfı değişiklik cezası ne kadar?",
             "{family} {band_tr} bileti değiştiriliyor, rezervasyon sınıfı {cls}. "
             "Yolcu başına değişiklik cezası kaç euro?",
         ],
@@ -272,12 +272,12 @@ COLUMNS = {
             "How much is the cancellation penalty per passenger?",
             "What is the cancellation penalty for {family} {band_en}, booking class {cls}?",
             "{family} {band_en}, class {cls} — cancellation penalty?",
-            "How much does Helios Air charge to cancel a {family} fare in booking class {cls} "
+            "How much does Kraken Air charge to cancel a {family} fare in booking class {cls} "
             "on {band_en}?",
             "In {doc_id}, what is the cancellation penalty for booking class {cls}?",
         ],
         "tr": [
-            "Helios Air {family} {band_tr}, {cls} sınıfı iptal cezası ne kadar?",
+            "Kraken Air {family} {band_tr}, {cls} sınıfı iptal cezası ne kadar?",
             "Yolcu {family} {band_tr} biletini iptal etmek istiyor, rezervasyon sınıfı {cls}. "
             "Yolcu başına iptal cezası kaç euro?",
             "{family} {band_tr}, {cls} sınıfı — iptal cezası?",
@@ -384,8 +384,8 @@ def fare_pairs(data: Dataset, name: str, text: str) -> None:
                     # How the room actually asks it: no fare family spelled out, no route band.
                     # The first Turkish form is the question module 1's bare model invented an
                     # answer to, so the same words now get the right number.
-                    short_tr = ["Helios CLASSIC K iptal cezası?",
-                                "Helios Air CLASSIC K sınıfı iptal cezası kaç euro?",
+                    short_tr = ["Kraken CLASSIC K iptal cezası?",
+                                "Kraken Air CLASSIC K sınıfı iptal cezası kaç euro?",
                                 "CLASSIC K sınıfı iptalde ne kadar ceza var?"]
                     turkish = short_tr + turkish
                     english = ["CLASSIC class K, cancellation penalty?"] + english
@@ -490,7 +490,7 @@ def version_pairs(data: Dataset, name: str, text: str) -> None:
             f"What is the version and status of {doc_id}?",
             f"Is revision {number} of {doc_id} the one to follow?",
             f"{subtitle} — which revision applies, and is it current or superseded?",
-            f"Which revision of the Helios misconnect SOP should the agent use?"
+            f"Which revision of the Kraken misconnect SOP should the agent use?"
             if "MISCONNECT" in doc_id else f"Which revision of {doc_id} should the agent use?",
         ]
         questions_tr = [

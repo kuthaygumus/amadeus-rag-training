@@ -1,8 +1,6 @@
 # %% [markdown]
 # # 01 · What a neural network actually does when it "learns"
 #
-# > **Helios Air is a fictional airline.** Everything in this course is synthetic training material.
-#
 # This is not a deep learning course. This notebook exists to earn one sentence, and the sentence
 # is worth the twenty minutes because the rest of the day depends on it.
 #
@@ -63,6 +61,11 @@ b2 = np.zeros(10, np.float32)
 for name, a in [("W1", W1), ("b1", b1), ("W2", W2), ("b2", b2)]:
     print(f"  {name}: {str(a.shape):<12} {a.size:>7,} numbers")
 print(f"\n  total: {W1.size + b1.size + W2.size + b2.size:,} numbers")
+
+# Keep one row of W1 aside so we can hold it up against itself at the end. The row belongs to a
+# single input pixel; which pixel is not arbitrary, and the last cell explains why.
+PIXEL = 406                                  # row 14, column 14 — the middle of the image
+W1_before = W1[PIXEL][:4].copy()
 
 # %% [markdown]
 # **101,770 numbers.** Right now they are random. Everything this network will ever "know" has to
@@ -162,15 +165,29 @@ print("label:", y_test[0], " predicted:", probs.argmax(), f" confidence: {probs.
 # %% [markdown]
 # ## Where did the knowledge go?
 #
-# Look at what changed and what did not.
+# Look at what changed and what did not — and this time at the same four numbers twice, once as
+# they were initialised and once as training left them.
+#
+# The row we print belongs to one input pixel, and the choice of pixel is the whole point. Pixel
+# 406 sits at row 14, column 14: the middle of the image, inked in most digits. Ask for pixel 0
+# instead — the top-left corner — and you get a row that is bit-identical before and after, because
+# that pixel is 0 in all 60,000 training images, so `X.T @ dh` puts a zero in its gradient at every
+# step of every epoch. Nothing about that row is evidence of anything. The cell prints how often
+# our pixel is actually inked, so the choice is on screen rather than taken on trust.
 
 # %%
-print(f"architecture:   784 -> 128 -> 10       (unchanged)")
+inked = float((X_train[:, PIXEL] > 0).mean())
+print(f"architecture:    784 -> 128 -> 10       (unchanged)")
 print(f"parameter count: {W1.size + b1.size + W2.size + b2.size:,}      (unchanged)")
-print(f"W1[0][:4] now:   {W1[0][:4]}")
+print(f"pixel {PIXEL} is inked in {inked:.0%} of the training images")
+print(f"W1[{PIXEL}][:4] before: {W1_before}")
+print(f"W1[{PIXEL}][:4] now   : {W1[PIXEL][:4]}")
 print(f"accuracy:        {accuracy(X_test, y_test):.2%}   (was 9.9%)")
 
 # %% [markdown]
+# Those two rows are the whole demonstration. Same four slots, same shape, different numbers —
+# and the difference between them is every digit the network ever saw.
+#
 # Nothing about the shape of the network changed. No knowledge was stored anywhere outside those
 # four arrays. There is no database, no lookup table, no copy of the training images. Every digit
 # it ever saw has been compressed into adjustments to 101,770 floating point numbers.

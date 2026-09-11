@@ -1,0 +1,32 @@
+---
+/**
+ * The fictional-airline notice, said once at the bottom of every page.
+ *
+ * It used to be a blockquote at the top of all 26 pages, where it pushed the actual content
+ * below the fold and read as noise by the third module. The landing page still carries the
+ * full statement; this is the quiet reminder that travels with every other page.
+ *
+ * Wraps Starlight's own footer rather than replacing it, so edit links, last-updated and the
+ * previous/next pagination all still work.
+ */
+import Default from '@astrojs/starlight/components/Footer.astro';
+
+const notice =
+  Astro.locals.starlightRoute.lang === 'tr'
+    ? 'Kraken Air (XX) ve Wyvern Overseas Airways (YY) kurgusal havayollarıdır; buradaki her doküman, ücret ve uçuş numarası öğretmek için yazılmış sentetik veridir. Hiçbir Amadeus sistemi, müşterisi veya production verisi kullanılmamıştır.'
+    : 'Kraken Air (XX) and Wyvern Overseas Airways (YY) are fictional; every document, fare and flight number here is synthetic material written for teaching. No Amadeus system, customer or production data is used anywhere in this repository.';
+---
+
+<Default><slot /></Default>
+<p class="synthetic-notice" data-pagefind-ignore="all">{notice}</p>
+
+<style>
+  .synthetic-notice {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--sl-color-gray-5);
+    font-size: var(--sl-text-xs);
+    line-height: 1.5;
+    color: var(--sl-color-gray-3);
+  }
+</style>

@@ -1,8 +1,6 @@
 # %% [markdown]
 # # 04 · From keyword search to naive RAG
 #
-# > **Helios Air is a fictional airline.** Everything here is synthetic training material.
-#
 # We know the model does not have our data, and we know we cannot afford to hand it the entire
 # rule book on every question. So we need to find the right piece and hand over only that.
 #
@@ -32,7 +30,7 @@ print(f"{len(docs)} documents, {sum(map(len, texts)) / 1024:.0f} KB")
 
 # %%
 bm25 = R.BM25(doc_ids, texts)
-for query in ["H9 1487", "SCB-2026-0914"]:
+for query in ["XX 1487", "SCB-2026-0914"]:
     print(f"{query!r:>18} -> {bm25.rank(query)[:3]}")
 
 # %% [markdown]
@@ -48,9 +46,26 @@ print(f"{paraphrase!r}\n  top 3: {ranking[:3]}")
 print(f"  where the right document ended up: rank {ranking.index('fare_classic_shorthaul') + 1}")
 
 # %% [markdown]
-# It cannot work, and the reason is not subtle. The query contains the words *iptal*, *ne* and
-# *oder*. The document contains *cancellation*, *penalty* and *EUR*. There is no shared token to
-# count. BM25 is not bad at meaning — it has no notion of meaning at all.
+# The rank is bad. Look at the score behind it, because the score is the argument — a rank of 14
+# could mean "nearly, but thirteen documents were slightly better".
+
+# %%
+scores = bm25.scores(paraphrase)
+best = sorted(zip(scores, doc_ids), reverse=True)[:3]
+for score, name in best:
+    print(f"  {score:6.3f}  {name}")
+print(f"  {scores[doc_ids.index('fare_classic_shorthaul')]:6.3f}  fare_classic_shorthaul"
+      "   <-- the document that answers the question")
+
+# %% [markdown]
+# **Exactly zero.** Not "ranked low" — scored nothing at all, and the rank it got is just where
+# ties land in the sort.
+#
+# The reason is not subtle. The query tokenises to *musteri, bileti, iptal, ne, oder*. The document
+# says *cancellation*, *penalty*, *EUR*. Three of those query words appear nowhere in the corpus at
+# all, so BM25 skips them; the other three exist in the Turkish macros but not in this English fare
+# sheet, so their term frequency in it is zero and they contribute zero too. Nothing is left to add
+# up. BM25 is not bad at meaning — it has no notion of meaning at all.
 
 # %% [markdown]
 # ## Part 2 — embeddings
@@ -135,8 +150,10 @@ print(metrics.compare(results, questions))
 # Neither retriever is better outright; they fail at different things, which is worth remembering
 # when someone tells you keyword search is obsolete.
 #
-# And the headline number is not good. Roughly half the questions do not put the right document
-# first.
+# And the headline number is not good. Read it off your own run rather than off this line — twenty
+# questions means hit@1 moves in steps of 0.05, and embedding output is not bit-identical across
+# Ollama builds. On the recorded run dense retrieval put the right document first for twelve of the
+# twenty. Eight did not.
 
 # %% [markdown]
 # ## Part 5 — four failures you can see
@@ -195,9 +212,9 @@ for h in hits:
 # almost identical.
 
 # %%
-for query, should_be in [("H9 1487", "bulletin_scb_2026_0914"),
+for query, should_be in [("XX 1487", "bulletin_scb_2026_0914"),
                          ("SCB-2026-0914", "bulletin_scb_2026_0914"),
-                         ("AU 88", "interline_h9_au"),
+                         ("YY 88", "interline_xx_yy"),
                          ("booking class K", "fare_classic_shorthaul")]:
     d_rank = dense.rank(query); b_rank = bm25.rank(query)
     print(f"{query:<16} dense: rank {d_rank.index(should_be) + 1:<3} (top: {d_rank[0]})")
@@ -223,9 +240,9 @@ print(f"  should be : {question['gold_doc_ids'][0]}"
 
 # %% [markdown]
 # A Turkish agent asks what a passenger waiting four hours is owed. The answer is in an English
-# procedure, and the documents that come back ahead of it are about baggage, or about denied
-# boarding, or about staff expenses — all of them plausibly "money after a travel disruption",
-# none of them the answer.
+# procedure, and the documents that come back ahead of it are about staff expense claims, or a fare
+# sheet, or baggage — all of them plausibly "money after a travel disruption", none of them the
+# answer. On the recorded run the right procedure came back at rank 18 of 28.
 #
 # The Turkish query and the English document share almost no vocabulary, so keyword search is
 # hopeless here by construction. But the embedding was supposed to bridge that gap, and it only

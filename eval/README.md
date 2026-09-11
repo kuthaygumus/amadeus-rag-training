@@ -56,7 +56,7 @@ And the runner in this directory:
 | `python eval/run_benchmark.py --skip-rerank` | BM25 vs each embedder vs RRF, at document level | the whole-document table in RESULTS.md section 4 |
 | `python eval/run_benchmark.py` | the same, plus a rerank pass over the top 8 documents | as above, with the cost of reranking |
 | `python eval/run_benchmark.py --chunking` | the chunking ladder, with chunk counts and hit@1 by question type | RESULTS.md sections 1 and 7 |
-| `python eval/run_benchmark.py --chunking --embed-model nomic-embed-text` | the same ladder on the weak embedder — `tr_en` is 0.000 in every column | RESULTS.md section 3, and the "before" column of section 5 |
+| `python eval/run_benchmark.py --chunking --embed-model nomic-embed-text` | the same ladder on the weak embedder | RESULTS.md section 3, and the "before" column of section 5. The measured `nomic` `tr_en` score is 0.000 on structure-aware chunks and 0.000 at document level; the rest of that ladder was not re-run after the corpus rename |
 | `python eval/run_benchmark.py --fusion` | dense vs BM25 vs RRF over structure-aware chunks | the chunk-level table in RESULTS.md section 4 |
 | `python eval/run_benchmark.py --rerank-sweep` | one reranker over four retrieval setups, before and after | RESULTS.md section 5, the same four setups as the M9 exercise |
 
@@ -70,37 +70,43 @@ that cannot run a live model is in the notebooks — `USE_CACHED=1`, described i
 
 If a number printed by a fresh run disagrees with `RESULTS.md`, the run is right. The corpus is
 versioned and edited: a correction to `corpus/2026-Q3` moves the chunk counts, and the chunk
-counts move every row of the ladder. Re-run before quoting.
+counts move every row of the ladder — and a correction to `gold_questions.jsonl` moves every metric
+on the page at once, which is what produced the current numbers. Re-run before quoting. A
+disagreement of one question — 0.05 of hit@1 — is not a disagreement worth chasing: `bge-m3` served
+through Ollama is not bit-stable across runs, and `RESULTS.md` section 4 says what that looks like.
 
 Every run ends with what it cost — embed calls, chat calls and wall-clock seconds — because on
 this course the price of a technique is part of its result.
 
 Every command below was timed by running it, back to back with the others, on one M-series Mac
-with the models already resident in memory and other work running on the same machine. Four of
-them were run twice and carry both figures. The exercises are in the same table because they are
-what the room actually runs:
+with the models already resident in memory and other work running on the same machine. Four rows
+were not part of that re-run and say so rather than carrying an older figure; three more print
+per-rung timings and no total, and only what they print is quoted. The exercises are in the same
+table because they are what the room actually runs:
 
 | command | wall clock | model calls |
 |---|---|---|
-| `eval/run_benchmark.py --fusion` | 9–10 s | 21 embed |
-| `eval/run_benchmark.py --skip-rerank` | 11 s | 42 embed |
-| `exercises/m6_embedding_bakeoff.py` | 18 s | 42 embed, plus one local ONNX index for `all-MiniLM-L6-v2` |
-| `eval/run_benchmark.py --chunking --embed-model nomic-embed-text` | 26 s | 126 embed |
-| `eval/run_benchmark.py --chunking` | 93 s | 126 embed |
-| `exercises/m7_chunking_ladder.py` | 58–98 s | 126 embed |
-| `exercises/m9_rerank_trade.py --quick` | 65–80 s | 42 embed, 160 chat |
-| `eval/run_benchmark.py` (no flags) | 136 s | 42 embed, 160 chat |
-| `eval/run_benchmark.py --rerank-sweep` | 298 s | 84 embed, 640 chat |
-| `exercises/m9_rerank_trade.py` | 324 s | 84 embed, 640 chat |
+| `eval/run_benchmark.py --fusion` | 33.4 s | 21 embed |
+| `eval/run_benchmark.py --skip-rerank` | 31.5 s | 42 embed |
+| `exercises/m6_embedding_bakeoff.py` | no total printed; 6.1 + 16.0 + 18.5 s of index-and-query | 42 embed, plus one local ONNX index for `all-MiniLM-L6-v2` |
+| `eval/run_benchmark.py --chunking --embed-model nomic-embed-text` | not re-timed | 126 embed |
+| `eval/run_benchmark.py --chunking` | 70.1 s | 126 embed |
+| `exercises/m7_chunking_ladder.py` | no total printed; its five rungs printed 8, 11, 14, 16 and 26 s | 126 embed |
+| `exercises/m9_rerank_trade.py --quick` | not re-timed | 42 embed, 160 chat |
+| `eval/run_benchmark.py` (no flags) | not re-timed | 42 embed, 160 chat |
+| `eval/run_benchmark.py --rerank-sweep` | not re-timed | 84 embed, 640 chat |
+| `exercises/m9_rerank_trade.py` | no total printed; the four setups took 191, 127, 51 and 71 s | 84 embed, 640 chat |
 
 **The call counts are exact and do not vary. The seconds are one machine's on one afternoon and
-should be read as an order of magnitude.** Where a range is given, the command was run twice and
-both figures are real: the chunking ladder took 98 s and then 58 s for identical work. The two
-640-call rows are the same measurement through two entry points and differ by 26 seconds; inside
-them the four setups took between 47 and 113 seconds each across the two runs, in no consistent
-order. The first call after a pull loads the
-model into RAM, a CPU-only laptop is several times slower throughout, and anything else running
-on the machine shows up here. Time your own before you promise the room a number.
+should be read as an order of magnitude.** They are one pass of each command, not an average, and
+this pass measured how loose that is: the identical structure-aware rung — same 154 chunks, same 20
+questions, same embedder — took **9.4 s** under `run_benchmark.py --chunking` and **26 s** under
+`m7_chunking_ladder.py`, back to back on the same machine. Nearly three times, for the same work.
+Where a row says *not re-timed*, the command still works and still prints the same call count — it
+was simply not in the last measurement pass, and `RESULTS.md` lists it under "Not re-measured". The
+first call after a pull loads the model into RAM, a CPU-only laptop is several times slower
+throughout, and anything else running on the machine shows up here. Time your own before you
+promise the room a number.
 
 ## Options
 
@@ -125,5 +131,5 @@ lists all of them.
   were down, which sent people to restart a server that was already running.
 - **the request failed or timed out** — the message quotes what Ollama said.
 
-Helios Air is a fictional airline. The corpus and the gold questions are synthetic training
+Kraken Air is a fictional airline. The corpus and the gold questions are synthetic training
 material; no Amadeus system, customer or production data appears in them.

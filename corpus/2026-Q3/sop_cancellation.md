@@ -1,4 +1,4 @@
-# HELIOS AIR — STANDARD OPERATING PROCEDURE
+# KRAKEN AIR — STANDARD OPERATING PROCEDURE
 ## SOP-CANCELLATION — Flight Cancellation and Passenger Reaccommodation
 
 Document ID: OPS-SOP-CXL
@@ -8,7 +8,7 @@ Issued by: Operations Control Centre (OCC), Istanbul (IST)
 Applies to: All stations, Duty Managers, Hub Control, Call Centre Tier 2
 
 ### 1. PURPOSE
-This procedure governs the handling of passengers on a Helios service cancelled by the
+This procedure governs the handling of passengers on a Kraken service cancelled by the
 carrier, for any reason, including cancellations decided within 14 days of departure and
 those decided on the day of operation.
 
@@ -22,9 +22,9 @@ those decided on the day of operation.
     handled here. See Section 6.
 
 ### 3. REBOOKING PRIORITY
-3.1 Next available Helios service to the ticketed destination, same day where possible.
-3.2 Helios service to an alternative airport in the same city or catchment, with surface
-    transfer at Helios cost.
+3.1 Next available Kraken service to the ticketed destination, same day where possible.
+3.2 Kraken service to an alternative airport in the same city or catchment, with surface
+    transfer at Kraken cost.
 3.3 Interline or codeshare partner service, where an agreement is in force for the sector.
 3.4 Within each option, protect connecting passengers before point-to-point passengers,
     then order by original check-in status.
@@ -68,8 +68,8 @@ Page 6 of 7
 | 3.0 | 2025-11-04 | OCC Standards  | Quarterly reissue; rebooking priority clarified |
 | 4.0 | 2026-06-30 | OCC Standards  | Quarterly reissue; penalties referred to fare rule sheets |
 
-DOCUMENT CONTROL — HELIOS AIR OPERATIONS CONTROL CENTRE · Uncontrolled when printed ·
+DOCUMENT CONTROL — KRAKEN AIR OPERATIONS CONTROL CENTRE · Uncontrolled when printed ·
 Retain in Station Binder, Section 4 · Review cycle: quarterly ·
 Owner: Manager, Irregular Operations · Distribution: A (all stations)
 
-> Helios Air is a fictional carrier. This document is synthetic training material.
+> Kraken Air is a fictional carrier. This document is synthetic training material.

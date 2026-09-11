@@ -1,4 +1,4 @@
-# HELIOS AIR — STANDARD OPERATING PROCEDURE
+# KRAKEN AIR — STANDARD OPERATING PROCEDURE
 ## SOP-DENIED-BOARDING — Oversale and Boarding Refusal
 
 Document ID: OPS-SOP-DB
@@ -64,8 +64,8 @@ Page 5 of 7
 | 3.0 | 2025-11-04 | OCC Standards  | Quarterly reissue; boarding priority clarified |
 | 4.0 | 2026-06-30 | OCC Standards  | Quarterly reissue; downgrade referred to Customer Relations |
 
-DOCUMENT CONTROL — HELIOS AIR OPERATIONS CONTROL CENTRE · Uncontrolled when printed ·
+DOCUMENT CONTROL — KRAKEN AIR OPERATIONS CONTROL CENTRE · Uncontrolled when printed ·
 Retain in Station Binder, Section 4 · Review cycle: quarterly ·
 Owner: Manager, Irregular Operations · Distribution: A (all stations)
 
-> Helios Air is a fictional carrier. This document is synthetic training material.
+> Kraken Air is a fictional carrier. This document is synthetic training material.

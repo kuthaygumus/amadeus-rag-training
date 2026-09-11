@@ -11,11 +11,11 @@ crossed with bad chunking and good chunking.
 
 Guess before you look: does it help all four, none, or some?
 
-Every call is local. Measured: 324 s for the full run and 65-80 s for --quick, on an M-series Mac
-with the model already resident. A CPU-only laptop is considerably slower, which is why --quick
-exists and why the cost is part of the lesson rather than a footnote to it.
-
-Helios Air is a fictional airline; the corpus is synthetic training material.
+Every call is local, and the cost is the lesson rather than a footnote to it. What is fixed is the
+call count: 640 model calls for the full run, 160 for --quick. What is not fixed is the clock. Two
+runs on the same M-series Mac with the model already resident gave 51/87/49/66 s and 191/127/51/71 s
+for the four setups — the second while other work was competing for the GPU. Read your own run's
+timings; a CPU-only laptop is slower again, which is why --quick exists.
 """
 
 from __future__ import annotations
@@ -77,6 +77,7 @@ def main() -> int:
 
     documents = {p.stem: p.read_text(encoding="utf-8") for p in sorted(CORPUS.glob("*.md"))}
     questions = metrics.load_gold(GOLD)
+    metrics.warn_if_gold_drifted(questions, documents)
     total_calls = len(setups) * len(questions) * depth
 
     if args.quick:
@@ -156,6 +157,11 @@ def main() -> int:
             f"{k.split(':')[-1].strip()} {v:+.3f}" for k, v in deltas.items()) + ".")
         print("A reranker levels a ranking toward its own ceiling, so which way it moves depends "
               "on which side of that ceiling the retriever was already on.")
+
+    print(f"\nAnd the size of all this: the hit@1 columns above move in steps of "
+          f"{1 / len(questions):.3f} — one question of {len(questions)}. MRR moves in finer "
+          f"increments than that, which is why the verdict column is read off MRR and not off "
+          f"hit@1, and why a single question changing places cannot decide the argument.")
     return 0
 
 

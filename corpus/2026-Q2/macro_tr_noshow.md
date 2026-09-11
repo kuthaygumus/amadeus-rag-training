@@ -19,4 +19,4 @@ Doküman: CRM-MACRO-TR-024 | Sürüm: 4 | Yürürlük: 2026-Q2 | Kanal: Çağrı
 
 Page 2 of 4
 
-> Helios Air is a fictional carrier. This document is synthetic training material.
+> Kraken Air is a fictional carrier. This document is synthetic training material.

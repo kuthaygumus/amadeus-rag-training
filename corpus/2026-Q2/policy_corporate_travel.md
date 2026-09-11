@@ -1,4 +1,4 @@
-# HELIOS AIR — CORPORATE TRAVEL POLICY
+# KRAKEN AIR — CORPORATE TRAVEL POLICY
 ## People &amp; Workplace / Finance Shared Services
 
 Policy number: **HR-TRV-04**
@@ -6,15 +6,15 @@ Version: 6.1 — 2026-Q2 issue
 Effective: 2026-04-01
 Policy owner: Director, Total Rewards &amp; Mobility
 Co-owner: Head of Financial Control (travel spend)
-Applies to: all Helios Air employees, fixed-term staff, and contractors engaged through a
-Helios purchase order who travel at Helios expense
+Applies to: all Kraken Air employees, fixed-term staff, and contractors engaged through a
+Kraken purchase order who travel at Kraken expense
 Review cycle: quarterly, with the fare-family reissue
 
 ---
 
 ### 1. PURPOSE AND PRINCIPLE
 
-1.1 Helios Air funds travel that is necessary to deliver the business plan. The governing
+1.1 Kraken Air funds travel that is necessary to deliver the business plan. The governing
 principle is **lowest logical fare, booked as early as reasonably possible, through the
 approved channel**. This policy sets out what may be booked, in which class, and what the
 traveller may do to a booking after it is made.
@@ -25,7 +25,7 @@ does not create any entitlement for a fare-paying customer and must not be quote
 ### 2. APPROVED BOOKING CHANNEL
 
 2.1 All staff travel is booked through the **Corporate Travel Desk (CTD)**, reachable on
-extension 4400 or at ctd@heliosair.example, or through the self-booking tool where the
+extension 4400 or at ctd@krakenair.example, or through the self-booking tool where the
 traveller has been provisioned. Bookings made directly with a retail website, a third-party
 agency or an airport ticket office are **out of policy** and the Finance Shared Services
 Centre will decline the expense claim under HR-TRV-06.
@@ -47,18 +47,18 @@ under HR-TRV-05.
 
 3.2 The **LITE** fare family is not to be used for staff travel in any grade band. LITE fares
 do not permit change and are not refundable, which is incompatible with the operational
-flexibility this policy assumes. The CTD will not issue a LITE fare against a Helios cost
+flexibility this policy assumes. The CTD will not issue a LITE fare against a Kraken cost
 centre.
 
 3.3 Corporate CLASSIC fares are held in the standard CLASSIC booking classes — **O**, **T**,
-**Q**, **K** and **M** — under the Helios corporate account code. The class allocated by the
+**Q**, **K** and **M** — under the Kraken corporate account code. The class allocated by the
 CTD is the lowest available in that set at the moment of booking. Travellers must not request
 a specific booking class.
 
 ### 4. CHANGES TO A BOOKING
 
-4.1 **Same-day changes are free of charge.** An employee travelling on a Helios corporate
-fare may change to any earlier or later Helios service on the **same calendar day** as the
+4.1 **Same-day changes are free of charge.** An employee travelling on a Kraken corporate
+fare may change to any earlier or later Kraken service on the **same calendar day** as the
 originally ticketed departure at **no charge to the traveller and no charge to the cost
 centre**, in any of the CLASSIC booking classes O, T, Q, K or M, and irrespective of the
 reason for the change. The change is made by calling the CTD or, within four hours of
@@ -94,9 +94,9 @@ traveller is delayed more than four hours, in which case see HR-TRV-06 section 4
 
 ---
 
-*CONFIDENTIAL — HELIOS AIR INTERNAL. This policy is the property of Helios Air. It is issued
-for the use of Helios Air personnel only and may not be reproduced, forwarded outside the
+*CONFIDENTIAL — KRAKEN AIR INTERNAL. This policy is the property of Kraken Air. It is issued
+for the use of Kraken Air personnel only and may not be reproduced, forwarded outside the
 Company, or disclosed to any customer, agent or third party. Printed copies are uncontrolled.
 Page 2 of 5.*
 
-> Helios Air is a fictional carrier. This document is synthetic training material.
+> Kraken Air is a fictional carrier. This document is synthetic training material.

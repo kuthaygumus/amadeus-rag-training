@@ -1,4 +1,4 @@
-# HELIOS AIR — FARE RULE SHEET
+# KRAKEN AIR — FARE RULE SHEET
 Document id: FR-FX-LH-2026Q3-004
 Fare family: FLEX
 Route band: LONG-HAUL
@@ -37,11 +37,11 @@ routing within the same route band. Downward reissue to CLASSIC is permitted onl
 first coupon is flown; downward reissue into LITE is not permitted on long-haul.
 
 <div class="legal">
-LEGAL NOTICE — This document is the property of Helios Air (H9) and is issued for internal
+LEGAL NOTICE — This document is the property of Kraken Air (XX) and is issued for internal
 commercial and call-centre use only. Fare conditions are subject to the governing tariff filed
 with the applicable authority; where this sheet and the filed tariff differ, the filed tariff
 prevails. Reproduction, redistribution or disclosure to third parties without written
 authorisation from Revenue Management is prohibited.&nbsp;
 </div>
 
-> Helios Air is a fictional carrier. This document is synthetic training material.
+> Kraken Air is a fictional carrier. This document is synthetic training material.

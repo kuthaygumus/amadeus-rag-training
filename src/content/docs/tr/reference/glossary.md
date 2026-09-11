@@ -3,211 +3,216 @@ title: "Sözlük"
 description: "Günde geçen her terim, bir kez tanımlanmış, ölçtüğümüz yerde sayısıyla birlikte."
 ---
 
-> **Helios Air kurgusal bir havayoludur.** Bu eğitimdeki her doküman, ücret, uçuş numarası ve
-> kural sentetiktir ve öğretmek için yazılmıştır. Bu repoda hiçbir Amadeus sistemi, müşterisi
-> veya production verisi kullanılmamıştır.
-
 Terimler, onları ilk kullanan modüle göre gruplanmıştır. Bir şeyi ölçtüysek sayısı da burada —
-kontrol edemediğin tanımı yanlış hatırlarsın.
+kontrol edemediğin tanımı yanlış hatırlarsın. Bu sayfadaki her sayı `eval/RESULTS.md`'den geliyor.
 
 ## Model ve eğitim
 
-**Ağırlık (parametre)** — modelin yapıldığı sayılar. Modül 2'deki rakam sınıflandırıcısında
-101.770 tane var. Modelin bildiği her şey bu sayıların değerlerinin bir sonucu ve eğitim
-bittikten sonra bir daha değişmiyorlar. Fine-tune edilmiş bir modelin bayatlamasının sebebi bu:
-bir sayı yığınının içinde, dünyanın değiştiğini öğrenmeye yarayan bir mekanizma yok.
+**Ağırlık (parametre)** — modelin yapıldığı sayılar; modül 2'deki rakam sınıflandırıcısında
+101 770 tane var. Eğitim bittikten sonra bir daha değişmiyorlar; fine-tune edilmiş bir modelin
+bayatlamasının sebebi bu.
 
-**Training (eğitim)** — ağırlıkları ayarlayan döngü: girdiyi ileri çalıştır, çıktının ne kadar
-yanlış olduğunu ölç, her ağırlığın hangi yöne gitmesi gerektiğini hesapla, biraz oynat, tekrarla.
-Modül 2 bunu 60.000 görüntüyle beş kez, 0.85 saniyede yapıyor.
+**Training (eğitim)** — ağırlıkları ayarlayan döngü: girdiyi ileri çalıştır, ne kadar yanlış
+olduğunu ölç, her ağırlığı işe yarayan yönde biraz oynat, tekrarla. Modül 2 bunu 60 000
+görüntüyle beş kez, 0.92 saniyede yapıyor.
 
 **Loss** — modelin şu anda ne kadar yanlış olduğunu söyleyen tek sayı. Eğitim, onu küçültme
 sürecinin adı. Bizimki ilk batch'te 2.35'ten son batch'te 0.03'e düşüyor.
 
 **Epoch** — eğitim verisinin tamamı üzerinden bir geçiş. Öğrenmenin çoğu ilkinde oluyor:
-doğruluğumuz %9.87'den bir epoch sonra %95.35'e fırlıyor, kalan dört epoch'ta %97.47'ye sürünüyor.
+doğruluk %9.9'dan %95.35'e fırlıyor, kalan dört epoch'ta %97.47'ye sürünüyor ve tepesi epoch 4.
 
-**Fine-tuning** — halihazırda eğitilmiş bir modeli kendi verinle daha ileri eğitmek. Çalışıyor,
-ve sonuç yine donmuş oluyor: modül 3'teki adapter 2026-Q2 kural kitabıyla eğitiliyor ve orada
-CLASSIC K iptal cezası EUR 120. 2026-Q3 kitabı aynı satırı EUR 90 fiyatlıyor; eğitilmiş
-ağırlıkların içinde o satırın değiştiğini fark edebilecek hiçbir mekanizma yok.
+**Fine-tuning** — halihazırda eğitilmiş bir modeli kendi verinle daha ileri eğitmek. Çalışıyor
+ama sonuç yine donmuş oluyor: modül 3'ün adapter'ı 2026-Q2 kitabının EUR 120'lik CLASSIC K
+cezasını öğreniyor ve 2026-Q3'ün aynı satırı EUR 90 fiyatladığını fark edemiyor.
 
-**LoRA** — Low-Rank Adaptation. Büyük bir ağırlık matrisini güncellemek yerine onu donduruyorsun
-ve çarpımları o matrise eklenen çok daha küçük iki matris — *adapter* — öğreniyorsun. **Rank**
-(`r`) kapasite: güncellemenin kaç bağımsız yönde hareket edebileceği. **Alpha** ölçek: adapter'ın
-çıktısı `alpha/r` ile çarpılıyor, yani rank'i yükseltirken güncellemenin şiddetini yükseltmek
-zorunda kalmıyorsun. Modül 3, Qwen2.5-1.5B üzerinde `r = 32, alpha = 64` eğitiyor; bu modelin
-`q_proj`'ü 1536×1536. Yani 2 × 1536 × 32 = 98.304 eğitilebilir sayı, tam güncellemenin
-2.359.296'sına karşı — **%4.17** — ve modelin 1.580.643.840 parametresinin 36.929.536'sı, **%2.34**.
-Fine-tune'un tek GPU'ya sığmasının ve birkaç megabyte olarak dağıtılmasının sebebi bu.
+**LoRA** — Low-Rank Adaptation. Büyük ağırlık matrisini dondur ve çarpımı ona eklenen çok daha
+küçük iki matrisi — *adapter*'ı — öğren. **Rank** kapasite, **alpha** ölçek. Modül 3 modelin
+parametrelerinin %2.34'ünü eğitiyor; sonucun birkaç megabyte olmasının sebebi bu.
 
 **QLoRA** — dondurulmuş base modelin 4 bit'e quantize edildiği LoRA. Base sadece okunuyor, hiç
 yazılmıyor; bu yüzden hassasiyet kaybı beklediğinden ucuza geliyor ve 7B'lik bir model tüketici
 donanımında eğitilebilir hâle geliyor.
 
-**RLHF / DPO** — cevaplar üzerinden değil, karşılaştırmalar üzerinden eğitim: iki cevap ve insanın
-hangisini tercih ettiği. RLHF ayrı bir ödül modeli fit edip ona karşı optimize ediyor; DPO
-karşılaştırmayı doğrudan optimize edip ödül modelini atlıyor — çoğu ekibin önce ona uzanmasının
-sebebi bu.
+**RLHF / DPO** — cevaplar üzerinden değil karşılaştırmalar üzerinden eğitim: iki cevap ve insanın
+hangisini tercih ettiği. RLHF ayrı bir ödül modeli fit ediyor; DPO karşılaştırmayı doğrudan
+optimize edip onu atlıyor — çoğu ekibin önce DPO'ya uzanmasının sebebi bu.
 
-**Quantization** — ağırlıkları daha düşük hassasiyette (16, 8, 4 bit) saklamak; az bir kaliteyi
-çok bellek karşılığında takas etmek. Buradaki chat modelleri 4 bit — `ollama show qwen2.5:3b`
-`Q4_K_M` yazıyor. İki embedder değil: `bge-m3` de `nomic-embed-text` de `F16` geliyor.
+**Quantization** — biraz kaliteden vazgeçip çok bellek kazanmak için ağırlıkları daha düşük
+hassasiyette (16, 8, 4 bit) saklamak. Modül 3, fine-tune ettiği GGUF'u Ollama servis etmeden önce
+`Q4_K_M`'e quantize ediyor.
 
 **GGUF** — Ollama'nın model servis ettiği dosya formatı. Fine-tune edilmiş bir modeli GGUF'a
-çevirmek, katılımcıların onu GPU'suz ve HuggingFace'ten hiçbir şey indirmeden koşturmasını sağlayan
-şey.
+çevirmek, katılımcıların onu GPU'suz ve HuggingFace'ten hiçbir şey indirmeden koşturmasını
+sağlayan şey.
 
-**Modelfile** — bir GGUF dosyasını Ollama'ya bir adla kaydeden ve varsayılanlarını sabitleyen birkaç
-satır. Modül 3'ünki `temperature 0` sabitliyor; kurulan modele aynı soruyu on kez sorup on aynı
-cevaptan başka bir şey almak, fine-tune'un tutmadığı anlamına geliyor.
+**Modelfile** — bir GGUF dosyasını Ollama'ya bir adla kaydeden ve varsayılanlarını sabitleyen
+birkaç satır. Modül 3'ünki `temperature 0` sabitliyor; tek bir soruya on aynı cevap almak,
+fine-tune'un tuttuğunu böyle anlıyorsun.
 
-**Context window** — modelin tek seferde okuyabildiği token sayısı. `qwen2.5:3b`'de 32.768. Bizim
-28 dokümanlık korpusumuz 78.310 karakter, kabaca 26.000 token — tüm korpusu prompt'a doldurmanın
-burada çalışmasının ve on katı boyutta çalışmamasının sebebi bu.
+**Context window** — modelin tek seferde okuyabildiği token sayısı; `qwen2.5:3b`'de 32 768. Bizim
+28 dokümanlık corpus'umuz 78 310 karakter, tek prompt'a doldurulduğunda kabaca 26 436 token.
+Burada sığıyor, on katı boyutta sığmıyor.
 
 **Token** — modelin metni okuduğu birim; karışık İngilizce/Türkçe metinde kabaca üç karakter.
 Kelime değil, karakter de değil.
 
 **Temperature** — modelin bir sonraki token'ı seçerken ne kadar rastgelelik kullanabildiği. Bu
-eğitimdeki her üretim `temperature=0.0` ile koşuyor, yani aynı prompt iki kez aynı cevabı veriyor.
-Sampling gürültüsünü kaldırıyor. Yanlış bir cevabı doğru yapmıyor.
+eğitimdeki her üretim `temperature=0.0` ile koşuyor. Koşudan koşuya değişkenliği kaldırıyor.
+Yanlış bir cevabı doğru yapmıyor.
 
-**Halüsinasyon** — hiçbir şeye dayanmayan, akıcı ve kendinden emin cevap. Modül 1 aynı soruyu dört
-farklı şekilde soruyor ve temperature 0'da tek bir kayıtlı koşuda 1.500 TL, 100-200 euro, %10-20
-ve bir ret alıyor. Gerçek cevap EUR 90. İşaret, cevabın yanlış olması
-değil — **sayının oynaması**.
+**Halüsinasyon** — hiçbir şeye dayanmayan, akıcı ve kendinden emin cevap. Modül 1 aynı soruyu
+temperature 0'da dört farklı şekilde soruyor ve gerçek cevap EUR 90 iken `1.500 TL`,
+`100-200 euro`, `%10-20` ve bir ret alıyor. İşaret, cevabın yanlış olması değil; sayının oynaması.
 
 ## Retrieval
 
 **Embedding** — bir metnin, anlamı yakın olanlar birbirine yakın düşecek şekilde konumlanmış sayı
-listesine çevrilmesi. `bge-m3` metin başına 1024 sayı üretiyor, `nomic-embed-text` 768,
+listesine çevrilmesi. `bge-m3` metin başına 1024 sayı üretiyor, ChromaDB'nin varsayılanı
 `all-MiniLM-L6-v2` 384. Daha çok sayı otomatik olarak daha iyi demek değil.
 
 **Cosine similarity** — iki embedding vektörü arasındaki açının kosinüsü: aynı yöne bakıyorlarsa
-1.0, ilgisizlerse 0. "Bunlar ne kadar ilgili" sorusunun vekili. Semantic search denen her şey bu
-ölçüm artı bir sıralama.
+1.0, ilgisizlerse 0. Semantic search denen her şey bu ölçüm artı bir sıralama.
 
 **Multilingual embedder** — farklı dillerde aynı anlamı taşıyan metinlerin aynı bölgeye düşmesi
-için eğitilmiş model. Günü belirleyen fark bu: cevabı İngilizce dokümanda olan Türkçe sorularda
-`nomic-embed-text` **0.000**, `bge-m3` **0.667** alıyor.
+için eğitilmiş model. Günü belirleyen fark bu: altı `tr_en` sorusunda `nomic-embed-text` 0.000,
+`bge-m3` 0.667 alıyor.
 
-**Chunk** — dokümanın gerçekten indekslediğin dilimi. Retrieval hiçbir zaman dokümanı görmez;
-senin kestiğin şeyi görür. Tüm dokümandan structure-aware chunk'a geçmek hit@1'i 0.550'den
-0.800'e taşıyor. Aynı chunk'lar üzerinde embedder daha da fazlasını değiştiriyor —
-`nomic-embed-text` 0.350, `bge-m3` 0.800 — günün ikisini de ölçmesinin sebebi bu.
+**Chunk** — dokümanın gerçekten indekslediğin dilimi. Retrieval hiçbir zaman dokümanı görmez,
+senin kestiğin şeyi görür. Tam dokümandan structure-aware chunk'a geçmek hit@1'i 0.600 → 0.750
+taşıyor — yirmide üç soru, yani rakamı değil yönü oku.
 
-**Fixed-size chunking** — içeriğe bakmadan her N karakterde kes. Ortalamayı yükseltiyor
-(hit@1 0.550 → 0.700), tam-token retrieval'ı düşürüyor (1.000 → 0.750), ve bir tablonun kolon
+**Soru tipleri** — ölçülmüş her tablonun kesildiği beş etiket: `tr_tr` (4 soru), `tr_en` (6),
+`en_en` (4), `exact_token` (4), `multi_hop` (2). Yükselen bir ortalama, gerileyen bir tipi hâlâ
+gizleyebilir.
+
+**Fixed-size chunking** — içeriğe bakmadan her N karakterde kes. Fixed-280 ortalamayı yükseltiyor
+(hit@1 0.600 → 0.700) ama `exact_token`'ı düşürüyor (1.000 → 0.750), çünkü bir tablonun kolon
 başlığını satırlarından ayırıyor.
 
 **Overlap** — her chunk'ın bir öncekinin kuyruğunu taşıması. Bir cümleyi ortadan bölmeye karşı
-sigorta. 612 karakter öteye yapılan bir referansı düzeltmiyor — ceza tablomuzun kolon başlığı ile
-`K` satırı arasındaki mesafe bu: sınırı kaldırmıyor, kaydırıyor.
+sigorta ve merdivendeki tek geri adım: hit@1 0.700 → 0.550 düşerken recall@5 de düşüyor,
+0.917 → 0.883. Sınırı kaldırmıyor, kaydırıyor.
 
-**Recursive chunking** — önce paragraflardan, sonra satırlardan, sonra cümlelerden böl. Herkesin
-varsayılanı, ve bizim ceza tablomuzu hâlâ başlığından koparıyor — çünkü o aralık 612 karakter,
-bölme boyutu ise 600.
+**Recursive chunking** — önce paragraflardan, sonra satırlardan, sonra cümlelerden böl. Alışıldık
+varsayılan ve bizim ceza tablomuzu hâlâ başlığından koparıyor: 600 karakterlik bir pencere dokuz
+kolonluk başlığı artı yedi satırı taşıyamıyor. recall@5'i 0.900, fixed-280'in 0.917'sinin
+ardından ikinci sırada.
 
-**Structure-aware chunking** — dokümanın kendi başlıklarından ve numaralı kurallarından böl, ve
-her chunk'a nereden geldiğini önek olarak yaz. Başlığı satırla birlikte tutan tek strateji.
-Başka yerlerde *contextual retrieval* adıyla satılıyor.
+**Structure-aware chunking** — dokümanın kendi başlıklarından ve numaralı kurallarından böl, her
+chunk'ın başına nereden geldiğini yaz. Başlığı satırıyla birlikte tutan tek strateji:
+hit@1 0.750, MRR 0.817.
 
-**Boilerplate temizliği** — dokümanlar arasında tekrarlanan legal footer'ları, sayfa artıklarını
-ve artık markup'ı silmek. Korpusumuzun %4.2'sini siliyor ve hit@1'i 0.800'den 0.850'ye taşıyor.
+**Contextual retrieval** — o öneğin sektördeki adı: her parçaya, tek başına anlaşılmasına yetecek
+kadar çevre bilgisi ver. Modül 7 onu adını koymadan yapıyor; modül 9 kazancı cepte buluyor.
+
+**Boilerplate temizliği** — dokümanlar arasında tekrarlanan legal footer'ları ve sayfa artıklarını
+silmek. Corpus'un %4.2'sini siliyor ve hit@1'i 0.750 → 0.800 taşıyor; kazancın tamamı `en_en`'de.
+
+**Parent id / chunk id** — her chunk, kesildiği dokümanın id'sini taşıyor. Buradaki her skor,
+chunk sıralamasını önce parent dokümanlara indiriyor; böylece tek bir doküman beş sırayı birden
+kapatamıyor.
 
 **BM25** — terim frekansı, ters doküman frekansı ve doküman uzunluğuna göre keyword sıralaması.
-Model yok, eğitim yok. Tüm dokümanlar üzerinde dense retrieval'a yakın ama hiçbir yerde onun
-önünde değil: hit@1 0.400'e karşı 0.550, tam tanımlayıcılarda 0.750'ye karşı 1.000. Onu kıran şey
-chunking: nasıl kesersen kes 0.300, çünkü kısa chunk'lar uzunluk normalizasyonuna çalışacak bir şey
-bırakmıyor. Altı Türkçe soruda ise, kessen de kesmesen de 0.000 alıyor.
+Model yok, eğitim yok. Tam dokümanlarda hit@1 0.400, dense retrieval'ın 0.600'üne karşı;
+structure-aware chunk'larda 0.300. `tr_en`'de iki granülerlikte de 0.000.
 
 **Sparse vs dense retrieval** — sparse, BM25 ve akrabaları: kelime eşliyor. Dense, embedding:
-anlam eşliyor. Farklı şeylerde başarısız oluyorlar; bunları birleştirme fikrinin tüm dayanağı bu,
-ve birleştirmeyi varsaymak yerine ölçmenin sebebi de bu.
+anlam eşliyor. Farklı şeylerde başarısız oluyorlar; bunları birleştirme fikrinin ve birleşimi
+ölçme zorunluluğunun tüm dayanağı bu.
 
-**RRF (Reciprocal Rank Fusion)** — birkaç sıralamayı 1/(k + sıra) toplayarak birleştirmek. Bütün
-girdi sıralamalarının hemfikir olduğu dokümanı ödüllendiriyor, ki bu ancak her girdi sağlamsa
-işe yarar. BM25'i dense retrieval'ımıza kattığımızda hit@1 0.800'den 0.450'ye düştü.
+**Hybrid search** — sparse ile dense'i birlikte koşturup iki sıralamayı birleştirmek. Modül 9'un
+ilk başlık kelimesi ve burada kaybeden taraf: chunk'larımız üzerinde hit@1'i 0.750 → 0.450
+götürdü.
 
-**Rerank** — ilk birkaç sonucu ikinci ve daha yavaş bir modelle yeniden sıralamak. Burada bir
-yükseltme değil **takas** olarak ölçüldü: dört retrieval kurulumu üzerinde zayıf ikisini yukarı
-çekti (hit@1 0.350 → 0.450 ve 0.350 → 0.400), güçlü ikisini aşağı indirdi (0.700 → 0.550 ve
-0.800 → 0.600). Düzlüyor, ve **kendi tavanına** düzlüyor.
+**RRF (Reciprocal Rank Fusion)** — alışıldık birleştirme: sıralamalar boyunca 1/(k + sıra)
+topla. Bütün girdi sıralamalarının hemfikir olduğu dokümanı ödüllendiriyor, ki bu ancak her girdi
+sağlamsa işe yarar.
 
-**Bi-encoder** — sorgu ve pasaj ayrı ayrı embed ediliyor, her birine bir vektör, karşılaştırma
-cosine ile. Pasaj vektörleri bir kez hesaplanıp saklanabiliyor; `bge-m3` ile dense retrieval'ı
-sorgu anında ucuz yapan şey bu. Bu sayfada "embedder" dendiğinde kastedilen şey.
+**Reranking** — ilk birkaç sonucu ikinci ve daha yavaş bir modelle yeniden sıralamak. Yükseltme
+değil takas: zayıf iki kurulumu yukarı çekti (hit@1 0.350 → 0.450, 0.350 → 0.400), güçlü ikisini
+aşağı indirdi (0.700 → 0.500, 0.750 → 0.600). Kendi tavanına düzlüyor.
 
-**Cross-encoder** — sorgu ve pasaj tek bir forward pass'te **birlikte** okunuyor ve doğrudan bir
-ilgililik skoru çıkıyor; prompt'la göreve ikna edilmiş değil, ilgililik etiketleriyle eğitilmiş.
-Hiçbir şey önceden hesaplanamıyor, bu yüzden ancak kısa bir aday listesi üzerinde koşuyor. Çok
-dilli olanı `bge-reranker-v2-m3`. Modül 9'da ölçülen reranker pasaj puanlayan bir chat modeli,
-cross-encoder değil — cross-encoder'ı ölçmedik, dolayısıyla bu sayfadaki hiçbir sayı ona ait
-değil.
+**Bi-encoder vs cross-encoder** — bi-encoder sorguyu ve pasajı ayrı ayrı embed ediyor, pasaj
+vektörleri bir kez saklanıyor; cross-encoder ikisini birlikte okuyup doğrudan ilgililik skoru
+veriyor, yani hiçbir şey önceden hesaplanamıyor. Modül 9'un reranker'ı ikisi de değil, dolayısıyla
+buradaki hiçbir sayı cross-encoder'a ait değil.
 
-**Pointwise vs listwise rerank** — her adayı tek tek puanlamak mı, tüm listeyi sıraya dizmesini
-istemek mi. Aynı model, aynı adaylar, zıt sonuçlar: emekliye ayrılan 10 dokümanlık prob korpusunda
-listwise 2/5, pointwise 5/5, MRR 0.600'e karşı 1.000. Bu `n = 5`: yönü gerçek, büyüklüğü
-kanıtlanmamış kabul et. Nasıl sorduğun, sorup sormadığından daha önemli.
+**Pointwise vs listwise reranking** — her adayı tek tek puanlamak mı, tüm listeyi sıraya dizmesini
+istemek mi. Altı pasaj verildiğinde `qwen2.5:3b` dört indeks döndürdü; tek tek sorulduğunda altı
+kullanılabilir skor döndürdü. Bu, reranking'in çalışıp çalışmadığını belirliyor — işe yarayıp
+yaramadığını değil.
 
-**RAG** — retrieval-augmented generation. İlgili metni soru anında bul, prompt'a koy, ondan
-cevapla. Amaç tüm korpusu doldurmaktan daha iyi cevaplamak değil — burada ölçüldü, öyle değil —
-korpus yüz kat büyüdüğünde de çalışması ve cevabın okuduğu dosyayı gösterebilmesi.
+**RAG** — retrieval-augmented generation: ilgili metni soru anında bul, prompt'a koy, ondan
+cevapla. Amaç doğruluk değil — burada tüm corpus'u doldurmak onu geçiyor — corpus yüz kat
+büyüdüğünde de çalışması ve cevabın kaynağını gösterebilmesi.
 
-**Agentic RAG** — retrieval'ın, modelden önce koşan bir adım değil, modelin **çağırdığı bir araç**
-olması. Model soruyu parçalıyor, arıyor, yeterli mi diye bakıyor ve tekrar arıyor. En zor multi-hop
-sorumuzda gereken 3 dokümanın 0'ından 3'üne çıkardı; diğer multi-hop soruda hiçbir şey değişmedi,
-iki durumda da 3'te 2. Bedeli, naive RAG'in bir çağrı yaptığı yerde altı model çağrısı — döngünün
-şeklinden çıkan aritmetik, ölçülmüş bir süre değil — ve determinizmin tamamen kaybı.
+**Agentic RAG** — retrieval'ın, modelden önce koşan bir adım değil modelin çağırdığı bir araç
+olması. Model soruyu parçalıyor, arıyor, yeterli mi diye bakıyor, tekrar arıyor. Bedeli naive
+RAG'in tek çağrısına karşı altı ilâ on çağrı — üçü ucuz embedding — artı determinizm.
+
+**Query decomposition** — o döngünün ilk çağrısı, notebook'ta `decompose`: bir soruyu, en fazla
+dört tane olacak şekilde tek başına cevaplanabilir alt sorulara böl. Bütçesi olan query
+rewriting.
+
+**Yeterlilik kontrolü** — ikinci çağrı: topladığının soruyu cevaplayıp cevaplamadığını modele sor
+— `YES` ya da `NO` artı tek bir sorgu daha. Döngünün durma koşulu ve en zayıf parçası.
 
 **Multi-hop** — cevabı, tek bir aramanın getiremeyeceği kadar çok dokümana yayılmış soru. Bizimki
-aynı anda misconnect SOP'unu, interline anlaşmasını ve ücret kurallarını istiyor.
+aynı anda misconnect SOP'unu, interline anlaşmasını ve ücret kurallarını istiyor. Chunklamadan
+önce 0.000, chunklanmış her basamakta 0.500 okuyor — onu sıfırdan çıkaran tek şey chunklama, ve
+0.500 bir başarı değil.
 
 ## Ölçüm
 
-**Gold set** — her biri için hangi dokümanın gelmesi gerektiği yazılı, sabit soru listesi. Bizimki
-20 soru ve modüller arasında **değişmiyor**; böylece aynı üç sayı günün üç noktasında
-karşılaştırılabilir oluyor.
+**Gold set** — her biri için hangi dokümanın gelmesi gerektiği yazılı, sabit soru listesi.
+Bizimki 20 soru ve modüller arasında değişmiyor; böylece aynı üç sayı gün boyunca
+karşılaştırılabilir kalıyor. Unutma: **yirmi soru bir benchmark değildir**; bir soru 0.05 ediyor,
+hit@1 yalnızca 0.05'lik adımlarla oynayabiliyor ve merdivendeki neredeyse her fark tam olarak bir
+soru kadar. Farkı değil yönü aktar — iki tasarım arasında seçim yapmaya yeter, yayımlamaya hiç
+yetmez.
 
 **hit@1** — en üstteki doküman doğru olanlardan biri miydi? En katı ve en dürüst tek sayı.
 
 **Top-k** — bir aşamanın kaç sonucu bir sonrakine aktardığı. `hit@1` k = 1'de, `recall@5` k = 5'te
-ölçülüyor; reranker ise ilk 8 adayı puanlıyor — sorgu başına 8 model çağrısı buradan geliyor.
-k'sı yazılmadan aktarılan bir metrik sayı değildir.
+ölçülüyor; reranker ilk 8 adayı puanlıyor — sorgu başına 8 model çağrısı buradan geliyor. k'sı
+yazılmadan aktarılan bir metrik sayı değildir.
 
-**recall@5** — doğru kümenin ne kadarı ilk beşte göründü. Dikkat: en **kötü** chunking
-stratejimizde en yüksek çıkıyor — fixed-280'de 0.950, structure-aware'de 0.833 — çünkü 294 chunk,
-gold dokümana bir yerlerde görünmek için 154'ten daha çok şans veriyor.
+**recall@5** — doğru kümenin ne kadarı ilk beşte göründü. Dikkat: daha kötü sıralayan
+stratejilerde *en yüksek* çıkıyor — fixed-280'de 0.917, structure-aware'de 0.833 — çünkü 294
+chunk, gold dokümana bir yerlerde görünmek için 154'ten daha çok şans veriyor.
 
 **MRR (Mean Reciprocal Rank)** — ilk doğru dokümanın sırasının tersi, sorular üzerinden ortalaması
-alınmış. Kısmi puanı gösteren sayı: tek bir sorunun gold dokümanını 6. sıradan 2. sıraya taşımak
-hit@1'i hiç değiştirmez, o sorunun katkısını 0.17'den 0.50'ye çıkarır.
+alınmış. Kısmi puanı gösteren sayı: bir gold dokümanı 6. sıradan 2. sıraya taşımak hit@1'i hiç
+değiştirmiyor, o sorunun katkısını 0.17'den 0.50'ye çıkarıyor.
 
-**LLM-as-judge** — cevapları başka bir modelle puanlamak. Yaygın, ve bu eğitimin sayıları
-için **bilerek** kullanılmadı: kota yiyor, yavaş, ve skor koşular arasında oynuyor. Burada
-raporlanan her şey deterministik.
+**LLM-as-judge** — cevapları başka bir modelle puanlamak; yaygın ama bu eğitimdeki hiçbir sayı
+için bilerek kullanılmadı, çünkü skor koşular arasında oynuyor.
 
 ## Altyapı
 
-**Vector database** — embedding'leri en yakın komşu araması için indeksleyen depo. Burada ChromaDB.
-Bilinmesi gereken: ChromaDB'nin varsayılan embedder'ı sessizce indirilen `all-MiniLM-L6-v2` ve
-sadece İngilizce — Türkçe korpusta hata vermiyor, yanlış doküman döndürüyor.
+**Vector database** — embedding'leri en yakın komşu araması için indeksleyen depo; burada
+ChromaDB. Varsayılan embedder'ı sessizce indirilen ve yalnızca İngilizce olan
+`all-MiniLM-L6-v2`: Türkçe bir soruda hata vermiyor, yanlış doküman döndürüyor.
 
-**Collection** — ChromaDB'nin depolama birimi: id'ler, dokümanlar, embedding'ler ve item başına bir
-metadata sözlüğü. `where={"kind": "fare"}` vektör aramasından önce bu metadata üzerinde filtreliyor;
-geçersiz kılınmış bir SOP'u cevabın dışında tutmanın yolu bu.
+**Collection** — ChromaDB'nin depolama birimi: id'ler, dokümanlar, embedding'ler ve item başına
+bir metadata sözlüğü. `where={"kind": "fare"}` vektör aramasından önce bu metadata üzerinde
+filtreliyor; yürürlükten kalkmış bir SOP'u cevabın dışında tutmanın yolu bu.
 
-**ANN / HNSW** — yaklaşık en yakın komşu araması. Milyonlarca vektörde tam arama çok yavaş; bunlar
-az bir recall'u çok hız karşılığında takas ediyor. Buradaki "yaklaşık" bir özür değil, bir ayar
-düğmesi.
+**ANN / HNSW** — yaklaşık en yakın komşu araması; tam arama yavaşladığında biraz recall'dan
+vazgeçip çok hız kazanıyor. Buradaki recall, aynı vektörler üzerinde brute-force aramayla
+uyuşmak demek — gold set'e karşı ölçülen `recall@5` değil.
 
-**Embedded vs server modu** — ChromaDB'nin kendi process'inin içinde kütüphane olarak çalışması mı,
-HTTP üzerinden konuştuğun bir servis olması mı. Aynı API, farklı operasyonel sahiplik. Server'ın
-yolu `/api/v2/`, v1 değil.
+**Embedded vs server modu** — ChromaDB'nin kendi process'inin içinde kütüphane olarak çalışması
+mı, HTTP üzerinden konuştuğun bir servis olması mı. Aynı API, farklı operasyonel sahiplik.
+Server'ın yolu `/api/v2/`, v1 değil.
+
+**pgvector** — vektörleri, zaten yedeklediğin ve yanındaki iş kolonlarına join edebildiğin bir
+Postgres tablosunda saklayan eklenti. Modül 8'in yüz bin vektörün ötesindeki ilk sorusu: Postgres
+zaten koşuyor mu?
 
 **Ollama** — modelleri lokal koşturup `localhost:11434` üzerinden servis ediyor. Bu eğitim her şey
 için onu kullanıyor; günün API key'siz, cloud hesapsız ve girişsiz çalışmasını sağlayan şey bu.
 
 **Podman** — rootless ve daemon'suz container runtime. ChromaDB server'ı için Docker yerine bu
-kullanılıyor: ayrıcalıklı bir daemon istemiyor ve kurumsal ortamda lisans sorusu doğurmuyor.
+kullanılıyor: ayrıcalıklı bir daemon yok, kurumsal ortamda lisans sorusu yok.

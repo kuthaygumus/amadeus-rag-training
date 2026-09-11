@@ -37,6 +37,35 @@ def load_gold(path: str | Path) -> list[dict]:
     return questions
 
 
+def check_gold_against(questions: list[dict], doc_ids) -> list[str]:
+    """Warn loudly when the gold set names a document the corpus does not contain.
+
+    This is the one way every metric here can be wrong while every command still exits 0. A
+    `gold_doc_ids` entry that no longer matches a filename — after a rename, a split, a
+    deletion — can never be retrieved, so that question scores zero for every retriever and the
+    whole table drops by a question or more without anything printing an error.
+
+    Returns a list of human-readable "<question id> -> <missing document id>" strings, empty when
+    the gold set and the corpus agree. Callers print it; nothing here exits, because on the day a
+    stale gold entry should cost a warning rather than the rest of the session.
+    """
+    known = set(doc_ids)
+    return [f"{q['id']} -> {d}" for q in questions for d in q["gold_doc_ids"] if d not in known]
+
+
+def warn_if_gold_drifted(questions: list[dict], doc_ids) -> bool:
+    """Print the banner for `check_gold_against`. True when something is wrong."""
+    missing = check_gold_against(questions, doc_ids)
+    if not missing:
+        return False
+    plural = "entry names" if len(missing) == 1 else "entries name"
+    print(f"*** WARNING: {len(missing)} gold_doc_ids {plural} a document that is not in the "
+          f"corpus: {', '.join(missing)}")
+    print("*** Those questions cannot be answered by any retriever and score zero. Every number "
+          "below is depressed and must NOT be compared with eval/RESULTS.md.\n")
+    return True
+
+
 def hit_at_k(ranking: list[str], gold: list[str], k: int = 1) -> float:
     return 1.0 if set(ranking[:k]) & set(gold) else 0.0
 

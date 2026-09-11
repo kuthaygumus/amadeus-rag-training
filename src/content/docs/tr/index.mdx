@@ -16,21 +16,29 @@ hero:
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-> **Helios Air kurgusal bir havayoludur.** Bu eğitimdeki her doküman, ücret, uçuş numarası ve
-> kural sentetiktir ve öğretmek için yazılmıştır. Bu repoda hiçbir Amadeus sistemi, müşterisi
-> veya production verisi kullanılmamıştır.
+> **Kraken Air (XX) ve Wyvern Overseas Airways (YY) kurgusal havayollarıdır**; kodları da gerçek
+> hiçbir taşıyıcıya ait değil. Corpus'taki her doküman, ücret, ceza, uçuş numarası ve kural
+> sentetiktir, öğretmek için yazılmıştır. Bu repoda hiçbir Amadeus sistemi, müşterisi veya
+> production verisi kullanılmamıştır. Sitenin tam metni budur; diğer her sayfa kısa hatırlatmayı
+> footer'ında taşır.
 
 ## Bu eğitimin kurulu olduğu kural
 
-Hiçbir kavram, **onu gerektiren başarısızlık görülmeden** tanıtılmaz. Her modül, bir öncekinin
-duvara tosladığı yerde açılır:
+Hiçbir kavram, **onu gerektiren başarısızlık görülmeden** tanıtılmaz. On bir modülün onu, bir
+öncekinin ölçülmüş duvarında açılır; modül 2 tek ilan edilmiş istisna ve bunu kendi sayfasında
+söylüyor — sonraki üç gate'in harcadığı tek bir cümleyi kazanmak için var.
 
-**çıplak LLM** → *cevabı uyduruyor* → **fine-tuning** → *ağırlıklar donmuş ve kaynak gösteremiyor*
-→ **prompt'a doldur** → *sığıyor, ama her sorguda tüm korpusun bedelini ödüyorsun* → **keyword
-arama** → *parafrazı kaçırıyor* → **naive RAG** → *retrieval çöp getiriyor* → **doğru embedder** →
-*ortalama yükseldi ama bir kategori çöktü* → **structure-aware chunking** → **ChromaDB** → *şimdi
-blog yazılarının önerdiğini ekle* → **hybrid + rerank** → *fusion kaybediyor, reranker düzlüyor,
-multi-hop hâlâ düşüyor* → **agentic RAG**.
+**çıplak LLM** → *bir ceza uyduruyor, sonra aynı sesle cevaptan kaçınıyor* → **ağırlık nedir** →
+*ağırlık, donmuş bir fotoğraftır* → **fine-tuning** → *fotoğraf geçen çeyreğin ve hiçbir kaynak
+gösteremiyor* → **prompt'a doldur** → *sığıyor, ama her soruda tüm kitabın bedelini ödüyorsun* →
+**keyword arama** → *İngilizce dokümanlara sorulan altı Türkçe soruda hit@1 0.000* → **naive RAG**
+→ *28 bütün doküman üzerinde hit@1 0.600* → **doğru embedder** → *ChromaDB'nin varsayılanı o
+altıdan hiçbirini bulamıyor, `bge-m3` ikisini buluyor, bütün dokümanlar hâlâ 0.600'de* →
+**structure-aware chunking** → *hit@1 0.700, ama process'le birlikte ölen bir Python listesinin
+içinde* → **ChromaDB** → *depolama çözüldü, 0.700 çözülmedi* → **hybrid + rerank** → *fusion
+kaybediyor, reranker sadece düzlüyor ve `multi_hop` hâlâ 0.000* → **agentic RAG**.
+
+Oradaki her fark 0.05 ya da katı — yirmi soruda bir soru. Rakamı değil, yönü oku.
 
 <CardGrid>
   <Card title="Çevrimdışı çalışır" icon="laptop">
@@ -38,37 +46,45 @@ multi-hop hâlâ düşüyor* → **agentic RAG**.
     Ollama üzerinden lokal koşar.
   </Card>
   <Card title="İddia değil, ölçüm" icon="approve-check">
-    Aynı 20 gold soru, aynı üç metrikle — `hit@1`, `recall@5`, `MRR` — gün içinde üç ayrı kez
-    ölçülür. Sayının kıpırdadığını kendi gözünle görürsün.
+    Aynı 20 gold soru gün içinde dört kez geri geliyor — modül 5, 6, 7 ve 9'da — ve `hit@1`,
+    `recall@5`, `MRR` ile ölçülüyor. Sayının kıpırdadığını kendi gözünle görürsün.
   </Card>
   <Card title="Çalışmayanı da gösterir" icon="warning">
-    Blog yazılarını yalanlayan sonuçlar dahil. İki retriever'ı birleştirmek her zaman tek
-    başına olandan iyi değildir — bu eğitim, iyi olmadığı koşuyu gösterir.
+    Blog yazılarını yalanlayan sonuçlar dahil: iki retriever'ı birleştirmek her zaman tek
+    başına olandan iyi değil ve iyi olmadığı koşuyu kendin görüyorsun.
   </Card>
   <Card title="Çalışır hâlde ayrılırsın" icon="rocket">
-    Her notebook ve her exercise makinende kalır ve pazartesi sabahı, aynı laptopta, internetsiz
-    hâlâ çalışır.
+    Her notebook ve her exercise makinende kalır ve pazartesi sabahı, internetsiz hâlâ çalışır.
   </Card>
 </CardGrid>
 
 ## Gün nasıl işliyor
 
-Notebook sunucusu yok. Dokuz notebook, `notebooks/` altında percent-format `.py` dosyaları hâlinde
-duruyor; ilki `notebooks/00_bare_llm_fails.py`. Birini VS Code'da Microsoft Python eklentisiyle
-açıyorsun ve blokları `Shift+Enter` ile tek tek koşuyorsun. Bağımlılıklar `numpy` ve `chromadb`,
-başka bir şey yok.
+Tam olarak iki yüzey var ve ikisinin de çıpası repo kökü. **Repo kökündeki bir terminal** —
+`corpus/`, `notebooks/`, `eval/` ve `exercises/` klasörlerini barındıran dizin — her `ollama …`
+komutunu ve `python scripts/…`, `python exercises/…`, `python eval/…` diye yazılmış her şeyi
+koşturur. **Açık klasörü aynı repo kökü olan VS Code** ise dokuz notebook'u koşturur: `notebooks/`
+altındaki percent-format `.py` dosyaları, imleci bir `# %%` bloğuna koyup `Shift+Enter`'a
+basıyorsun. Jupyter sunucusu yok, tarayıcıda notebook yok, cloud konsolu yok.
+[Kurulum](/tr/modules/00-setup/) ikisini de baştan sona anlatıyor; tek bağımlılık `numpy` ve
+`chromadb`.
+
+Kurulum, akşamdan evde yapılan ön hazırlık. Salonda gün 09:10'da, herkesin aynı anda
+`verify_setup.py` koştuğu on dakikayla açılıyor; modül 1 ise soğuk bir modelle başlıyor.
+
+`UNVERIFIED: plan günü 09:00'da bitmiş agent'ın on dakikalık demosuyla açıyor. Bu sitedeki hiçbir sayfa o materyali taşımıyor, dolayısıyla yazılı hâliyle gün 09:10'da başlıyor.`
 
 Günün üç sonucu inşa edilen değil **koşulan** şeyler; bu yüzden `exercises/` altında, her biri tek
-komut olarak duruyorlar:
+bir terminal komutu olarak duruyorlar:
 
 | Modül | Komut | Yaklaşık |
 |---|---|---|
-| 6 — varsayılan embedder senin dilin için doğru mu? | `python exercises/m6_embedding_bakeoff.py` | 20 sn |
-| 7 — retrieval neden çöp getirdi? | `python exercises/m7_chunking_ladder.py` | 2–3 dk |
-| 9 — reranker ne zaman kendini ödüyor? | `python exercises/m9_rerank_trade.py` | ~5 dk |
+| 6 — varsayılan embedder senin dilin için doğru mu? | `python exercises/m6_embedding_bakeoff.py` | ~18 sn |
+| 7 — retrieval neden çöp getirdi? | `python exercises/m7_chunking_ladder.py` | ~50 sn |
+| 9 — reranker ne zaman kendini ödüyor? | `python exercises/m9_rerank_trade.py` | ~4 dk |
 
-Yavaş laptoplar için `m9_rerank_trade.py --quick` var; koşunun kısaltıldığını ekrana kendisi yazıyor.
-Bu ayrımın arkasındaki kural, ve formatla ilgili akılda kalması gereken tek cümle:
+M-serisi Mac, modeller zaten bellekte; yalnızca CPU'lu bir laptopta belirgin biçimde uzuyor. Bu
+ayrımın arkasındaki kural:
 
 > **Ölçümse** tek bir komut koşarsın ve sayıları karşılaştırırız.
 > **Mekanizmaysa** hücre hücre birlikte kurarız.

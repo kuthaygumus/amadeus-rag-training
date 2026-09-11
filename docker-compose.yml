@@ -8,12 +8,15 @@
 # rather than being told about. The API is identical either way; what changes is who owns it,
 # who restarts it, and what happens when it is not there.
 #
-# Note the path: /api/v2/. The v1 path is all over the internet and returns 404 on this version.
+# Note the path: /api/v2/. The v1 path is all over the internet, and against a current server it
+# returns 410 Gone with a body that says why:
+# {"error":"Unimplemented","message":"The v1 API is deprecated. Please use /v2 apis"}
 
 services:
   chroma:
+    # Unpinned: the image size and the API surface are whatever `latest` resolves to on the day.
     image: docker.io/chromadb/chroma:latest
-    container_name: helios-chroma
+    container_name: kraken-chroma
     ports:
       - "8000:8000"
     volumes:

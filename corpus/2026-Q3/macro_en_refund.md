@@ -7,9 +7,9 @@ Related: Fare Rules CLASSIC / LITE / FLEX
 
 **Q: The passenger wants their money back. What do I do?**
 
-A: Establish whether the refund is **involuntary** (caused by Helios Air) or **voluntary** (passenger request). The two paths are not the same and must never be mixed on one PNR.
+A: Establish whether the refund is **involuntary** (caused by Kraken Air) or **voluntary** (passenger request). The two paths are not the same and must never be mixed on one PNR.
 
-**Involuntary.** Where Helios Air cancels the flight, the passenger may be moved free of charge to the next Helios service the same day, or refunded in full. No change penalty is collected on an airline-caused cancellation for CLASSIC tickets.&nbsp;
+**Involuntary.** Where Kraken Air cancels the flight, the passenger may be moved free of charge to the next Kraken service the same day, or refunded in full. No change penalty is collected on an airline-caused cancellation for CLASSIC tickets.&nbsp;
 
 **Voluntary.** Where the passenger simply changes their mind, the penalty schedule in the applicable fare rule applies per passenger and per direction. Do not quote amounts from memory — open the fare rule document for the fare family and booking class shown on the coupon and read the **cancellation** column, not the change column.
 
@@ -21,4 +21,4 @@ A: Establish whether the refund is **involuntary** (caused by Helios Air) or **v
 
 </div>
 
-> Helios Air is a fictional carrier. This document is synthetic training material.
+> Kraken Air is a fictional carrier. This document is synthetic training material.

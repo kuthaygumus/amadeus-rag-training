@@ -17,4 +17,4 @@ Ilgili birim: Bagaj Servisi (IST) | Eskale: BAGSVC-IST
 
 &nbsp;
 
-> Helios Air is a fictional carrier. This document is synthetic training material.
+> Kraken Air is a fictional carrier. This document is synthetic training material.

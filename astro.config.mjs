@@ -135,6 +135,9 @@ export default defineConfig({
       },
       customCss: ['./src/styles/custom.css'],
       head: [{ tag: 'script', content: presenterModeScript }],
+      // The fictional-airline notice sits once at the bottom of every page instead of once at
+      // the top of all 26 of them. src/components/Footer.astro wraps Starlight's own footer.
+      components: { Footer: './src/components/Footer.astro' },
       // The 404 response is served by public/404.html, which covers both locales.
       disable404Route: true,
       social: [

@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 """Run this before the training day. It prints one line telling you if you are ready.
 
+    cd <the folder that contains corpus/, notebooks/, eval/ and exercises/>
     python scripts/verify_setup.py
+
+That folder is the repository root, and it is where every command on the day is typed. The
+script itself resolves its files from the repository rather than from your current directory,
+so it works from anywhere — but it says so on screen, because a terminal opened somewhere else
+is what breaks the `python scripts/...`, `python exercises/...` and `python eval/...` commands
+on the module pages.
 
 Everything it checks runs on your own machine. Nothing here talks to the internet, so it
 works the same on the office network, at home, or on a plane. If it prints READY you can
@@ -24,6 +31,12 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent.parent
+# The folders the module pages address commands at. `python exercises/m7_chunking_ladder.py`
+# resolves against the repository root and against nothing else, so a missing folder here is a
+# broken clone, not a preference.
+COURSE_DIRS = ["corpus", "notebooks", "eval", "exercises", "scripts"]
+
 OLLAMA = "http://localhost:11434"
 REQUIRED = {
     "qwen2.5:3b": "answers questions and reranks passages",
@@ -33,7 +46,7 @@ REQUIRED = {
 FALLBACK = "qwen2.5:1.5b"
 # Not on any registry: it is a fine-tune the trainer builds and hands out. Module 3 uses it and
 # nothing else does, so its absence is a warning rather than a failure.
-FINETUNED = "helios-q2"
+FINETUNED = "kraken-q2"
 
 # What the pre-work puts on disk. Every term is a measured size, and the sum is the figure the
 # setup page, the handout and the pre-work email all print, so the four cannot drift apart.
@@ -98,7 +111,26 @@ def api(endpoint: str, body: dict | None = None, timeout: int = 240) -> dict:
 print(f"\n{DIM}RAG Training Day — setup check{RESET}")
 print(f"{DIM}{platform.system()} {platform.machine()} · Python {platform.python_version()}{RESET}\n")
 
-# 1. Python -----------------------------------------------------------------
+# 1. The repository, and the terminal it is meant to be typed in ------------
+missing_dirs = [d for d in COURSE_DIRS if not (ROOT / d).is_dir()]
+check(
+    "the repository is complete",
+    not missing_dirs,
+    f"{ROOT}" if not missing_dirs else f"missing: {', '.join(missing_dirs)}",
+    f"{', '.join(missing_dirs)} is not in {ROOT}. Extract or clone the repository again and run "
+    f"this from the folder that contains corpus/, notebooks/, eval/ and exercises/.",
+)
+
+warn_check(
+    "this terminal is at the repository root",
+    Path.cwd() == ROOT,
+    "yes" if Path.cwd() == ROOT else f"you are in {Path.cwd()}",
+    f"Everything on the day is typed in one terminal, at the repository root. This one is "
+    f"somewhere else, and from there `python scripts/...`, `python exercises/...` and "
+    f"`python eval/...` cannot find their files. Run:  cd {ROOT}",
+)
+
+# 2. Python -----------------------------------------------------------------
 check(
     "Python 3.10 or newer",
     sys.version_info >= (3, 10),
@@ -106,14 +138,14 @@ check(
     "Install Python 3.10+ from python.org, then run this script again.",
 )
 
-# 2. Python packages --------------------------------------------------------
+# 3. Python packages --------------------------------------------------------
 import importlib.util
 for package, purpose in [("numpy", "trains the network in module 2"),
                          ("chromadb", "the vector database, module 8")]:
     check(f"package {package}", importlib.util.find_spec(package) is not None, purpose,
           "Run: python -m pip install -r requirements.txt   (or: py -m pip install -r requirements.txt)")
 
-# 3. The two assets that are not models and not packages ---------------------
+# 4. The two assets that are not models and not packages ---------------------
 # Notebook 01 reads MNIST off disk (measured: 11.6 MB across four archives). The all-MiniLM-L6-v2
 # ONNX archive (measured: 83 MB) is fetched by chromadb the first time a collection embeds text,
 # which is module 6's bake-off first and module 8's notebook after lunch. Both are downloads
@@ -121,7 +153,7 @@ for package, purpose in [("numpy", "trains the network in module 2"),
 # this only reports whether it has been run.
 SEED = "Run it at home:  python scripts/seed_offline_assets.py"
 
-mnist_dir = Path(__file__).resolve().parent.parent / "notebooks" / "mnist_data"
+mnist_dir = ROOT / "notebooks" / "mnist_data"
 mnist_files = ["train-images-idx3-ubyte.gz", "train-labels-idx1-ubyte.gz",
                "t10k-images-idx3-ubyte.gz", "t10k-labels-idx1-ubyte.gz"]
 mnist_have = [f for f in mnist_files if (mnist_dir / f).exists() and (mnist_dir / f).stat().st_size]
@@ -145,7 +177,7 @@ check(
     SEED,
 )
 
-# 4. Something to open the notebooks with -----------------------------------
+# 5. Something to open the notebooks with -----------------------------------
 # The notebooks are percent-format .py files, run block by block in VS Code. This is a best-effort
 # look in the usual places, so it warns rather than fails: if you have VS Code and this line says
 # warn, ignore it.
@@ -165,7 +197,7 @@ warn_check(
     "Python extension by Microsoft. If you already have both, ignore this line.",
 )
 
-# 5. Ollama is running ------------------------------------------------------
+# 6. Ollama is running ------------------------------------------------------
 running = False
 try:
     version = api("version", timeout=10).get("version", "?")
@@ -183,7 +215,7 @@ if not running:
         print(f"  → {p}")
     sys.exit(1)
 
-# 6. Models are present -----------------------------------------------------
+# 7. Models are present -----------------------------------------------------
 # Match on the full tag. `qwen2.5:1.5b` and `qwen2.5:3b` share a stem, and treating them as
 # the same model would tell someone they are ready when they have the weaker one.
 installed = {m["name"]: m for m in api("tags", timeout=30).get("models", [])}
@@ -212,7 +244,7 @@ warn_check(
     else "not installed — module 3's two probes will be skipped, the corpus diff still runs",
     f"{FINETUNED} is not on any registry, so `ollama pull` will not find it. The trainer hands "
     "it out on a USB stick before the day; ask for it if you want module 3's two probe cells to "
-    "run live. Without it they print (skipped — helios-q2 not installed) and the rest of the "
+    "run live. Without it they print (skipped — kraken-q2 not installed) and the rest of the "
     "module, which reads the two fare sheets off disk, runs exactly as it would otherwise.",
 )
 
@@ -227,7 +259,7 @@ if problems:
           f"Do it on a network you are not sharing with twenty other people.{RESET}\n")
     sys.exit(1)
 
-# 7. Embeddings actually work ----------------------------------------------
+# 8. Embeddings actually work ----------------------------------------------
 start = time.time()
 vectors = api("embed", {"model": "bge-m3", "input": ["merhaba dünya", "hello world"]})["embeddings"]
 embed_seconds = time.time() - start
@@ -235,7 +267,7 @@ check("embeddings work", len(vectors) == 2 and len(vectors[0]) > 100,
       f"{len(vectors[0])} dimensions · {embed_seconds:.1f}s for 2 texts",
       "The embedder returned the wrong shape. Re-pull it: ollama pull bge-m3")
 
-# 8. Generation works, and gets the answer right ---------------------------
+# 9. Generation works, and gets the answer right ---------------------------
 # The model has to read the right column of a table. A model that answers 70 here will make
 # the chunking exercise look broken when it is not, so this is a correctness check, not a smoke test.
 table = (
@@ -265,7 +297,7 @@ check("the model reads a table correctly", correct,
       "The model gave the wrong figure. Check you are on qwen2.5:3b and not a substitute — "
       "`ollama list` — and if you are, tell the trainer with this output rather than re-pulling.")
 
-# 9. How fast is this machine? ---------------------------------------------
+# 10. How fast is this machine? ---------------------------------------------
 if generate_seconds < 3:
     speed, colour = "comfortable", GREEN
 elif generate_seconds < 8:

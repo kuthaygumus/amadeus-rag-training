@@ -6,18 +6,50 @@ that do come from the internet are downloaded at home by `scripts/seed_offline_a
 
 ## How to run one
 
-Open the `.py` file in VS Code and run it cell by cell with the Python extension. A line reading
-`# %%` starts a cell; VS Code shows a **Run Cell** link above each one. There is no Jupyter to
-install, which is the point — nothing beyond `requirements.txt` has to go on the machine.
+There are two surfaces in this course, and the **repository root** — the folder holding `corpus/`,
+`notebooks/`, `eval/` and `exercises/` — is the anchor of both.
+
+**VS Code, with the repository root as the open folder.** Open the `.py` file and run it cell by
+cell with the Python extension. A line reading `# %%` starts a cell; VS Code shows a **Run Cell**
+link above each one. There is no Jupyter to install, which is the point — nothing beyond
+`requirements.txt` has to go on the machine.
+
+**A terminal, at the repository root.** Every `ollama …` command and everything written as
+`python scripts/…`, `python exercises/…` or `python eval/…` runs there, and so does a notebook if
+you want it end to end:
+
+    python notebooks/05_chunking_and_noise.py
+
+Every notebook reads `../corpus` and `../eval`, and its first cell moves the working directory to
+`notebooks/` whichever of the two you started from, so both forms work.
 
 The `.ipynb` files next to them are generated from the `.py` by `python scripts/build_notebooks.py`
 and are there for anyone who does have a notebook environment. **Edit the `.py`, never the
-`.ipynb`.** The `.ipynb` carry no saved output; the recorded run lives in `cached_runs.json`.
+`.ipynb`.** The `.ipynb` carry no saved output; the recorded run lives in `cached_runs.json`. If
+VS Code offers to install Jupyter when you open one, say no, close it, and open the `.py` of the
+same name.
 
-Run from this directory. Every notebook reads `../corpus` and `../eval`, and the first cell moves
-the working directory here if your editor started somewhere else.
+## Which notebook belongs to which module
+
+The numbering stops matching the module order at module 8, so this table is the map rather than
+the filenames.
+
+| module | what you open | surface |
+|---|---|---|
+| 1 — the bare LLM | `00_bare_llm_fails.py` | VS Code |
+| 2 — what a weight is | `01_mnist_tiny_net.py` | VS Code — no model, no network |
+| 3 — fine-tuning | `02_finetune_qwen_lora.py` | VS Code |
+| 4 — stuff the prompt | `03_stuff_the_prompt.py` | VS Code |
+| 5 — naive RAG | `04_naive_rag.py` | VS Code |
+| 6 — the embedder | *no notebook* — `python exercises/m6_embedding_bakeoff.py` | terminal, repo root |
+| 7 — chunking | `05_chunking_and_noise.py`, then `python exercises/m7_chunking_ladder.py` | both |
+| 8 — ChromaDB | `08_chromadb.py` | VS Code |
+| 9 — hybrid and rerank | `06_hybrid_rerank_contextual.py`, then `python exercises/m9_rerank_trade.py` | both |
+| 10 — agentic RAG | `07_agentic_rag.py` | VS Code |
 
 ## Before the day
+
+From the repository root:
 
     python -m pip install -r requirements.txt
     python scripts/seed_offline_assets.py     # MNIST, 11.6 MB · Chroma's default embedder, 83 MB
@@ -56,6 +88,13 @@ sends you to `m9`. Neither notebook contains a cell that runs for minutes withou
 Every replayed cell prints a `[CACHED]` banner with the date the run was recorded, the machine,
 and whether it was a full or reduced run, so nobody can mistake a recording for a live result.
 
+All three are read once, when the notebook first imports its helpers, so they have to be set before
+the first block runs. In a repo-root terminal that is `USE_CACHED=1 python notebooks/03_….py`. In
+VS Code, put this in a new block **above** the notebook's first block and run it before anything
+else — and restart the Python terminal first if a block has already executed:
+
+    import os; os.environ["USE_CACHED"] = "1"        # or "QUICK"
+
 How far it gets you depends on the notebook, and the first line the notebook prints says which
 case it is. **03, 05 and 06 replay end to end with Ollama switched off** — every model call in
 them goes through the cache. In 04, 07 and 08 the measurements replay but the short narrative
@@ -67,10 +106,9 @@ the table below says so.
 context table. The exercises have their own `--quick`, which labels its output `REDUCED`; a
 reduced run is not comparable with `eval/RESULTS.md`.
 
-**`RECORD_CACHED=1`** is for the trainer, at home, before the day:
+**`RECORD_CACHED=1`** is for the trainer, at home, before the day. From the repository root:
 
-    cd notebooks
-    for n in 03 04 05 06 07 08; do RECORD_CACHED=1 python ${n}_*.py; done
+    for n in 03 04 05 06 07 08; do RECORD_CACHED=1 python notebooks/${n}_*.py; done
 
 Record without `QUICK=1`. Restart Ollama first if you want notebook 03's recording to show what a
 cold first query really costs — with the corpus already in the server's prefix cache it records
@@ -103,12 +141,12 @@ name starts with an underscore. Their docstrings are the reference for what they
 
 ## The two files that are not notebooks either
 
-`helios_qa_q2.jsonl` and `helios-q2.Modelfile` are the build inputs for module 3's fine-tune.
+`kraken_qa_q2.jsonl` and `kraken-q2.Modelfile` are the build inputs for module 3's fine-tune.
 The dataset is written by `python scripts/make_finetune_dataset.py`, which walks it out of
 `corpus/2026-Q2` so it can never drift from the documents it claims to teach. The Modelfile is
 the last step of the chain — LoRA-train, merge, convert to GGUF, quantise, then
-`ollama create helios-q2 -f helios-q2.Modelfile` — and it pins greedy decoding, because the
+`ollama create kraken-q2 -f kraken-q2.Modelfile` — and it pins greedy decoding, because the
 module rests on the answer being identical on every run. The whole chain is summarised in the
-repository README under *Building `helios-q2`*.
+repository README under *Building `kraken-q2`*.
 
-Helios Air is a fictional airline. The corpus is synthetic training material.
+Kraken Air is a fictional airline. The corpus is synthetic training material.

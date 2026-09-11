@@ -1,4 +1,4 @@
-# HELIOS AIR — FARE RULE SHEET
+# KRAKEN AIR — FARE RULE SHEET
 Document id: FR-LT-SH-2026Q2-005
 Fare family: LITE
 Route band: SHORT-HAUL (Europe)
@@ -21,7 +21,7 @@ taxes. Where a cancellation is requested, only unused government taxes are retur
 
 Page 1 of 4
 
-RULE 3. Involuntary cases. Where Helios Air cancels the flight, the LITE restriction is lifted
+RULE 3. Involuntary cases. Where Kraken Air cancels the flight, the LITE restriction is lifted
 for that transaction and the passenger is reaccommodated free of charge.
 
 RULE 4. No-show. On no-show the ticket is closed, the single change entitlement is forfeited and
@@ -35,11 +35,11 @@ RULE 6. Upgrade and reissue. Upward reissue to CLASSIC or FLEX is permitted at a
 the fare difference; the LITE change penalty is still collected on the reissue.
 
 <div class="legal">
-LEGAL NOTICE — This document is the property of Helios Air (H9) and is issued for internal
+LEGAL NOTICE — This document is the property of Kraken Air (XX) and is issued for internal
 commercial and call-centre use only. Fare conditions are subject to the governing tariff filed
 with the applicable authority; where this sheet and the filed tariff differ, the filed tariff
 prevails. Reproduction, redistribution or disclosure to third parties without written
 authorisation from Revenue Management is prohibited.&nbsp;
 </div>
 
-> Helios Air is a fictional carrier. This document is synthetic training material.
+> Kraken Air is a fictional carrier. This document is synthetic training material.

@@ -1,10 +1,13 @@
 # %% [markdown]
 # # 06 · Hybrid search and reranking — when do they actually pay?
 #
-# > **Helios Air is a fictional airline.** Everything here is synthetic training material.
+# We are at hit@1 0.700 with structure-aware chunking and a multilingual embedder — that is the
+# recorded number, in `eval/RESULTS.md`. Six questions out of twenty still miss.
 #
-# We are at hit@1 0.800 with structure-aware chunking and a multilingual embedder. Four questions
-# out of twenty still miss.
+# Read the figure your own run prints rather than that one. `bge-m3`'s output is not bit-identical
+# across Ollama builds and machines, so a single question can land the other way and move hit@1 by
+# 0.05. That is the same 0.05 this notebook calls noise at the bottom of the page; it is not a
+# broken setup.
 #
 # The standard advice for that gap is: add keyword search alongside the embeddings, fuse the two
 # rankings, then rerank the survivors with a second model. Three techniques, every RAG blog post,
@@ -67,19 +70,21 @@ print(metrics.compare(results, questions))
 # %% [markdown]
 # ## Fusion made it worse
 #
-# Dense alone: 0.800. Fusing in BM25: 0.450.
+# Dense alone: 0.700 on the recorded run. Fusing in BM25: 0.450. Five questions of hit@1, and 0.210
+# of MRR, paid for nothing — this is the one comparison today whose margin is far wider than the
+# one-question noise floor, so it is the one you can lean on whatever your own dense column says.
 #
 # Reciprocal rank fusion has no way to know which of its inputs is trustworthy. It rewards
 # documents that both rankings agree on, which is a good rule when both rankings are reasonable.
-# BM25 over these chunks is not reasonable — look at its `tr_en` row. It scores zero, because a
-# Turkish query and an English chunk share no tokens to count. Blending a systematically wrong
-# ranking into a good one drags the good one down.
+# BM25 over these chunks is not reasonable — look at its `tr_en` row. It scores 0.000, because a
+# Turkish query and an English chunk share no tokens to count, and RRF inherits that 0.000 exactly.
+# Blending a systematically wrong ranking into a good one drags the good one down.
 #
 # Worth noting what changed. Over **whole documents** in notebook 04, BM25 scored 0.750 on the
 # exact-token questions — not a win over dense retrieval, which was at 1.000 there, but close
 # enough to be useful, and it put the bulletin id `SCB-2026-0914` first where dense buried it at
-# rank 6. The chunking we did in notebook 05 is what destroyed that: short chunks give BM25 too
-# little text for its length normalisation to mean anything. Two improvements that each helped
+# rank 6. The chunking we did in notebook 05 is what cost it: over these chunks BM25's exact-token
+# row is 0.500 and its overall hit@1 falls from 0.400 to 0.300. Two improvements that each helped
 # alone, interfering with each other.
 
 # %% [markdown]
@@ -170,10 +175,23 @@ print("listwise says:", listwise)
 print(f"we gave it {len(candidates)} passages")
 
 # %% [markdown]
-# Count the numbers it returned against the number of passages we gave it. On an earlier
-# five-question probe this model dropped passages from the list more often than it ordered them
-# correctly, which is why the pointwise loop is what the rest of the course uses. Treat that as a
-# direction, not a measurement: five questions is not a result.
+# Count the numbers it returned against the number of passages we gave it. On the recorded run it
+# came back with four indices for six passages — there is no ranking there to use, and two
+# passages have silently vanished. Ask the same model about one passage at a time and it returns
+# six integers in six calls, which is what the cell above did. That is why the pointwise loop is
+# what the rest of the course uses.
+#
+# **Be fair to the listwise version before retiring it.** The two paths do not have the same
+# robustness, and that is our code, not the model's judgement. `R.pointwise_rerank` extracts digits
+# with a fallback to 0 and breaks ties on the retriever's original position, so at worst it
+# degrades to doing nothing. The listwise cell above has no parser and no fallback at all, so a
+# reply that drops passages is scored as a ranking failure rather than a format failure. What this
+# comparison measures is the shape of the question *and* the robustness of the code around it, and
+# we have not separated the two.
+#
+# `UNVERIFIED: the older listwise-vs-pointwise head-to-head (2/5 against 5/5) — it was measured on
+# a retired 10-document, 5-question probe corpus and no command in this repository reproduces it.`
+# The mechanism above is live and reproducible; those two figures are not, so do not quote them.
 #
 # The mechanism is now on the table. The question is whether it is worth paying for.
 
@@ -197,8 +215,9 @@ print(f"we gave it {len(candidates)} passages")
 #
 # Twenty questions at eight candidates is 160 calls per setup, and there are four setups. It
 # prints each setup's own cost in calls and seconds as it finishes, so the price of the
-# technique is on the same line as its benefit: 52.4 s, 87.6 s, 49.3 s and 65.2 s on the machine
-# this was recorded on, a little over four minutes of model time inside a five-minute run.
+# technique is on the same line as its benefit: 51, 87, 49 and 66 seconds on the machine this was
+# recorded on — 253 s of model time, and considerably longer on a CPU-only laptop. The call count
+# is fixed; only the clock moves with the hardware.
 #
 # It needs `nomic-embed-text` as well as `bge-m3` — that is the weak embedder, and it is on the
 # pre-work pull list for this reason.
@@ -207,8 +226,9 @@ print(f"we gave it {len(candidates)} passages")
 # ## A reranker is a trade, not an upgrade
 #
 # The split in that table is clean, and it is not about the chunking. It is the embedder. The
-# reranker **helped** both setups built on the weak embedder — hit@1 0.350 to 0.450 and 0.350 to
-# 0.400 — and **hurt** both setups built on the good one: 0.700 to 0.550, and 0.800 to 0.600.
+# reranker **helped** both setups built on the weak embedder — hit@1 0.300 to 0.400 and 0.350 to
+# 0.400 — and **hurt** both setups built on the good one: 0.650 to 0.450, and 0.700 to 0.550. MRR
+# moved the same way in all four, without a single exception.
 #
 # The mechanism is the one you just watched: a 3B model scoring passages from 0 to 10 produces a
 # coarse judgement. Where your retriever was already right, imposing that judgement is noise, and
@@ -216,18 +236,18 @@ print(f"we gave it {len(candidates)} passages")
 # still better than what you had.
 #
 # **The reranker levels.** Look at the spread rather than the individual rows. Before reranking
-# the four setups ran from 0.350 to 0.800 — a range of 0.450. After, they run from 0.400 to
-# 0.600, a range of 0.200. The same model pulled the bottom up and the top down, toward whatever
+# the four setups ran from 0.300 to 0.700 — a range of 0.400. After, they run from 0.400 to
+# 0.550, a range of 0.150. The same model pulled the bottom up and the top down, toward whatever
 # its own opinion happens to be worth.
 #
 # So the rule is not "add a reranker". It is: **a reranker pays when your retriever is worse than
 # your reranker.** Fix the embedder first, then measure whether you still need one.
 #
 # The per-question view the exercise prints at the end is the honest version of the same thing.
-# On the strongest setup, sixteen of the twenty questions already had the gold document at rank 1
-# and reranking pushed five of them down. Of the four that did not have it first, it improved
-# two. That is the whole trade, question by question: you buy a couple of repairs by breaking
-# more things that were not broken.
+# On the strongest setup, fourteen of the twenty questions already had the gold document at rank 1
+# and reranking pushed four of them down — q06, q10, q16, q18. Six did not start at rank 1, and it
+# pulled two of those up, q14 and q20. That is the whole trade, question by question: you buy a
+# couple of repairs by breaking things that were not broken.
 
 # %% [markdown]
 # ## Before you take this away as a general result
@@ -247,7 +267,7 @@ print(f"we gave it {len(candidates)} passages")
 # three documents a question needs to rank 1 scores as a hit, and the answer still needs all
 # three. Two questions in this set are shaped that way, and nothing we have tried moves them.
 #
-# > *"H9 1487 is delayed, my CLASSIC class K passenger misconnects onto AU 88 at CDG — can I
+# > *"XX 1487 is delayed, my CLASSIC class K passenger misconnects onto YY 88 at CDG — can I
 # > rebook, and what do they get?"*
 #
 # The procedure is in one document, whether the partner segment is protected at all is in a

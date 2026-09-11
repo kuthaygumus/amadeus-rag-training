@@ -1,19 +1,19 @@
-# HELIOS AIR — INTERLINE TRAFFIC AGREEMENT
-## H9 / AU — HELIOS AIR AND AURORA ATLANTIC AIRWAYS
+# KRAKEN AIR — INTERLINE TRAFFIC AGREEMENT
+## XX / YY — KRAKEN AIR AND WYVERN OVERSEAS AIRWAYS
 
-Document id: **IATA-INT-H9-AU-2026-Q3**
-Edition: 2026-Q3 (reissued quarterly)
-Supersedes: IATA-INT-H9-AU-2026-Q2
-Effective: 2026-07-01 until superseded
-Custodian: Alliances &amp; Interline Affairs, Helios Air, IST
+Document id: **IATA-INT-XX-YY-2026-Q2**
+Edition: 2026-Q2 (reissued quarterly)
+Supersedes: IATA-INT-XX-YY-2026-Q1
+Effective: 2026-04-01 until superseded
+Custodian: Alliances &amp; Interline Affairs, Kraken Air, IST
 Classification: Internal — Commercial Agreements Binder, Tab 11
 
 ---
 
 ### RECITALS
 
-WHEREAS Helios Air ("H9", the "First Party") operates a scheduled network from its hub at
-Istanbul (IST) and Aurora Atlantic Airways ("AU", the "Second Party") operates a scheduled
+WHEREAS Kraken Air ("XX", the "First Party") operates a scheduled network from its hub at
+Istanbul (IST) and Wyvern Overseas Airways ("YY", the "Second Party") operates a scheduled
 network from its gateways at Paris Charles de Gaulle (CDG), Amsterdam (AMS) and New York
 John F. Kennedy (JFK); and WHEREAS the Parties wish to accept each other's traffic documents
 on an interline basis pursuant to the Multilateral Interline Traffic Agreement — Passenger
@@ -79,20 +79,20 @@ traffic document.
 ### CLAUSE 4 — PROTECTION ON IRREGULAR OPERATIONS
 
 4.1 Where a delay, cancellation, diversion, equipment substitution or other irregularity in
-the operation of a Helios Air service causes a passenger to misconnect onto an onward Aurora
-Atlantic segment held on the same itinerary, **the Aurora Atlantic segment is protected**.
-The Aurora Atlantic coupon shall not be treated as a no-show, shall not be cancelled by
+the operation of a Kraken Air service causes a passenger to misconnect onto an onward Wyvern
+Overseas segment held on the same itinerary, **the Wyvern Overseas segment is protected**.
+The Wyvern Overseas coupon shall not be treated as a no-show, shall not be cancelled by
 schedule-driven queue action, and shall retain its OPEN FOR USE status pending
 reaccommodation.
 
-4.2 In the circumstances described in sub-clause 4.1, **Helios Air may reaccommodate the
-passenger on the next available Aurora Atlantic service without repricing**. No fare
+4.2 In the circumstances described in sub-clause 4.1, **Kraken Air may reaccommodate the
+passenger on the next available Wyvern Overseas service without repricing**. No fare
 recalculation, no collection of a difference in fare, no reissue fee and no change penalty
 shall arise from a reaccommodation effected under this clause, and the original fare basis
 shall be carried forward to the replacement coupon.
 
 4.3 The protection conferred by this clause runs in the reciprocal direction on identical
-terms where an Aurora Atlantic irregularity causes a misconnect onto a Helios Air segment.
+terms where an Wyvern Overseas irregularity causes a misconnect onto a Kraken Air segment.
 
 4.4 This clause establishes the entitlement to reaccommodation and the pricing treatment of
 that reaccommodation. It does not establish, and shall not be read as establishing, the
@@ -154,11 +154,11 @@ jurisdiction.
 
 ---
 
-*Page 4 of 9 — IATA-INT-H9-AU-2026-Q3 — Internal. Not for distribution outside the
+*Page 4 of 9 — IATA-INT-XX-YY-2026-Q2 — Internal. Not for distribution outside the
 Commercial Agreements Binder.*
 
 *This document is a controlled copy. Uncontrolled printing is at the holder's own risk.*
-*Page 4 of 9 — IATA-INT-H9-AU-2026-Q3 — Internal. Not for distribution outside the
+*Page 4 of 9 — IATA-INT-XX-YY-2026-Q2 — Internal. Not for distribution outside the
 Commercial Agreements Binder.*
 
-> Helios Air is a fictional carrier. This document is synthetic training material.
+> Kraken Air is a fictional carrier. This document is synthetic training material.

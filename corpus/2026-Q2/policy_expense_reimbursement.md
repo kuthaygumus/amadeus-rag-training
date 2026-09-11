@@ -1,4 +1,4 @@
-# HELIOS AIR — TRAVEL EXPENSE REIMBURSEMENT POLICY
+# KRAKEN AIR — TRAVEL EXPENSE REIMBURSEMENT POLICY
 ## Finance Shared Services Centre / Accounts Payable
 
 Policy number: **HR-TRV-06**
@@ -55,7 +55,7 @@ requires the journey's start and end points on the claim.
 
 ### 4. EXPENDITURE DURING A DISRUPTION
 
-4.1 An employee whose Helios or partner service is delayed, cancelled or misconnected while
+4.1 An employee whose Kraken or partner service is delayed, cancelled or misconnected while
 travelling on Company business may claim **actual reasonable expenditure** incurred during the
 disruption, against receipts, as follows:
 
@@ -108,9 +108,9 @@ irregularity appears deliberate, to Internal Audit and to People &amp; Workplace
 
 ---
 
-*CONFIDENTIAL — HELIOS AIR INTERNAL. This policy is the property of Helios Air. It is issued
-for the use of Helios Air personnel only and may not be reproduced, forwarded outside the
+*CONFIDENTIAL — KRAKEN AIR INTERNAL. This policy is the property of Kraken Air. It is issued
+for the use of Kraken Air personnel only and may not be reproduced, forwarded outside the
 Company, or disclosed to any customer, agent or third party. Printed copies are uncontrolled.
 Page 4 of 6.*
 
-> Helios Air is a fictional carrier. This document is synthetic training material.
+> Kraken Air is a fictional carrier. This document is synthetic training material.

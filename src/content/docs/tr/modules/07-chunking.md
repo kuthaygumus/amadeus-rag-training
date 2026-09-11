@@ -3,16 +3,17 @@ title: "7. Chunking, Gürültü ve Ölçüm"
 description: "Retrieval neden çöp getirdi?"
 ---
 
-> **Helios Air kurgusal bir havayoludur.** Bu eğitimdeki her doküman, ücret, uçuş numarası ve kural sentetiktir ve öğretmek için yazılmıştır. Bu repoda hiçbir Amadeus sistemi, müşterisi veya production verisi kullanılmamıştır.
-
 ## Gate sorusu
 
 > **Retrieval neden çöp getirdi?**
 
-Modül 5'ten çalışan bir pipeline ve çalışmayan cevaplarla çıktık. Retriever konu olarak doğru,
-işe yaramaz metinler getirdi: bir legal footer, yarım bir revizyon geçmişi, hangi sütunun ne
-olduğunu söylemeyen bir euro tutarları tablosu. Embedder'a, modele, prompt'a kimse dokunmamıştı.
-Corpus ile retriever arasında duran tek şey, kimsenin tartışmadığı kod parçasıydı: splitter.
+Embedder konusu kapandı ve sayı yerinden kıpırdamadı: 28 tam doküman üzerinde `bge-m3` hâlâ hit@1
+**0.600**. Yani sorun embedder değildi. Modül 5'ten çalışan bir pipeline ve çalışmayan cevaplarla
+çıkmıştık — retrieval `fare_classic_shorthaul` dosyasını birinci sıraya koydu, yani isabet aldı;
+model yine de yanlış booking class için cevap verdi, çünkü prompt'a 3 923 karakterlik dokümanın ilk
+1 500 karakteri girmişti ve cevabı taşıyan satır o kesiğin ötesinde kalıyordu. Bir kez, körlemesine
+kestik ve cevabı kaybettik. Corpus ile prompt arasında duran tek şey, kimsenin tartışmadığı kod
+parçası: kesik.
 
 <div class="presenter-note">
 Hiçbir şeyi çalıştırmadan önce K sınıfı sorusunu tekrar ekrana al ve salondan "sence ne bozuk?"
@@ -24,19 +25,26 @@ tablosunu henüz gösterme.
 ## Merdiven
 
 Aynı 28 doküman, aynı `bge-m3` embedding'leri, aynı 20 soru, doküman seviyesinde skorlanıyor.
-Tek değişken metnin nasıl kesildiği. Bütün dokümanlar: hit@1 **0.550**. Körlemesine 280
-karakterlik chunk'lar: 0.700. 60 karakter overlap ekle: 0.700. Herkesin ilk uzandığı recursive
-splitter: 0.700. Dokümanın kendi başlıklarından böl: **0.800**, MRR 0.654 → **0.844**.
+Tek değişken metnin nasıl kesildiği. Tam dokümanlar: hit@1 **0.600**. Körlemesine 280 karakterlik
+chunk'lar: 0.700. 60 karakter overlap ekle: **0.550**. Herkesin ilk uzandığı recursive splitter:
+0.700. Dokümanın kendi başlıklarından böl: **0.750**. Önce boilerplate'i temizle, aynı bölme
+**0.800**'e çıkıyor.
 
-Merdivenin ortasına bir daha bak. Üç ayrı naive strateji — sabit boyut, overlap'li sabit boyut ve
-recursive splitter — tam olarak 0.700'de duruyor. Daha akıllı bir naive splitter aramanın burada
-getirisi yok. Bu barajı yalnızca dokümanın kendi yapısından kesmek aşıyor.
+Üçüncü basamağa bir daha bak. Overlap, bu merdivende geriye giden tek hamle, ve her şeyde geriye
+gidiyor: hit@1 0.700 → 0.550, MRR 0.817 → 0.720, recall@5 de düşüyor, 0.917 → 0.883. Üstüne 74
+chunk daha ve onları embed etme süresi. hit@1'i, hiç chunk'lamadığın basamağın bile altında.
+Overlap güvenli default diye satılır — emin olmadığında yaptığın hamle, çünkü biraz fazlalık nasıl
+zarar versin. Bu corpus'ta ise her eksende aynı anda kaybettiren tek değişiklik o.
 
-Merdivenin altından üstüne hit@1'de %45 göreli kazanç: hiçbir modele dokunmadan, sorgu anında
-hiçbir maliyet eklemeden, `eval/chunking.py` içindeki üç splitter ile. Günün en büyük kaldıracı bu
-değil — aynı structure-aware chunk'larda modül 6'daki embedder değişimi 0.450 değerindeydi
-(`nomic-embed-text` 0.350'ye karşı `bge-m3` 0.800), chunking ise 0.250. Ama insanların default'ta
-bıraktığı ayar bu.
+Buradaki hiçbir farkı sonuç diye okumadan önce: 20 soruda hit@1 yalnızca 0.05'lik adımlarla
+hareket eder, çünkü 0.05 *bir sorudur*. Bu merdivendeki her fark bir soru genişliğinde; tek
+istisna, üç soruluk overlap düşüşü. Yani ders yön, rakam değil — bu, sonuca sonradan iliştirilmiş
+bir çekince değil, sonucu üreten aletin çözünürlüğü.
+
+Merdivenin altından üstüne yirmi sorunun üçü: hiçbir modele dokunmadan, sorgu anında hiçbir maliyet
+eklemeden, `eval/chunking.py` içindeki splitter'larla. Günün en büyük kaldıracı bu değil — aynı
+structure-aware chunk'larda modül 6'daki embedder seçimi 0.400 değerindeydi (`nomic-embed-text`
+0.350'ye karşı `bge-m3` 0.750). Ama insanların default'ta bıraktığı ayar bu.
 
 ## Hata satırda değil, header'da
 
@@ -59,32 +67,33 @@ satır: `| Booking class | Fare basis | ... | Change penalty | Cancellation pena
 iki chunk öncesine, **4. chunk'a** düşmüş ve hiç getirilmiyor.
 
 Model bir euro tutarları ızgarası okuyup tahmin ediyor. CLASSIC K iptal cezası soruldu — doğrusu
-**EUR 90** — cevabı **EUR 65** veriyor. Notebook'un cache'indeki değer bu, üç tekrar çalıştırmada
-da aynısı çıktı. EUR 65, bir üstteki satırın değişim cezası; o satır da W sınıfı ve sınıf adıyla
-fare basis kodu chunk sınırında kesilmiş durumda. Yanlış sütun, yanlış satır. Çekinmiyor da,
-çünkü oturduğu yerden ortada hiçbir belirsizlik yok: bir sayı ızgarası var ve içlerinden biri
-cevap.
+**EUR 90** — kayda geçen çalıştırmada cevap **EUR 65** geldi. EUR 65, bir üstteki satırın değişim
+cezası; o satır da W sınıfı ve sınıf adıyla fare basis kodu chunk sınırında kesilmiş durumda.
+Yanlış sütun, yanlış satır. Generation seed'li değil, yani hangi yanlış hücrenin geleceği
+çalıştırmadan çalıştırmaya değişebilir; kendinden emin şekilde yanlış olması ve hiçbir zaman
+çekince koymaması değişmiyor.
 
 <div class="presenter-note">
 Sınırı göstermeden önce yüksek sesle sor: "satır bozulmamış — o zaman cevap neden yanlış?"
 On beş saniye bekle. Biri bulacak ve katılımcıdan gelince on kat daha sert oturuyor. Ağzında
-dolanmaması gereken cümle: <strong>satır kurtuldu, header onunla birlikte gelmedi.</strong>
+gevelenmemesi gereken cümle: <strong>satır kurtuldu, header onunla birlikte gelmedi.</strong>
 Model EUR 65 dışında bir şey derse üstüne gitme — hangi yanlış sayı gelirse gelsin nokta aynı
 noktada duruyor: hiçbir zaman "ayırt edemiyorum" demiyor.
 </div>
 
-**Overlap bunu düzeltmiyor.** 60 karakterlik overlap corpus genelinde 74 chunk ekliyor
-(294 → 368) ve sınırı kaydırıyor. Ücret sayfasında header satırının tamamı artık 5. chunk'ta, ilk
-iki sütun adı 4. chunk'ın kuyruğuna kopyalanmış durumda, K satırı ise 7. chunk'ta. Hâlâ iki chunk
-arayla. Overlap bir cümleyi ortadan bölmeye karşı sigortadır; 612 karakter öteye yapılan bir
-referansa karşı hiçbir şey yapmaz.
+**Overlap bunu düzeltmiyor ve denemenin bedelini kesiyor.** 60 karakterlik overlap corpus genelinde
+74 chunk ekliyor (294 → 368) ve sınırı kaydırıyor. Ücret sayfasında header satırının tamamı artık
+5. chunk'ta, ilk iki sütun adı 4. chunk'ın kuyruğuna kopyalanmış durumda, K satırı ise 7. chunk'ta.
+Hâlâ iki chunk arayla. Overlap bir cümleyi ortadan bölmeye karşı sigortadır; 612 karakter öteye
+yapılan bir referansa karşı hiçbir şey yapmaz — ve o 368 birbirine benzer parça, hit@1'i merdivenin
+en kötü sıralaması olan 0.550'ye indiren şeydir.
 
-**Recursive splitting de düzeltmiyor.** Rahatsız edici olan bu, çünkü her framework'ün
-default'u ve salondaki çoğu kişinin production'da kullandığı şey. Önce paragraflardan, sonra
-satırlardan, sonra cümlelerden bölüyor ve düz metni gerçekten güzel koruyor — ama header 4.
-chunk'ta, K satırı 5. chunk'ta. Yan yana, yine de ayrı. Sebebi ayarla kapatılamaz: tablo split
-boyutundan geniş. 600 karakterlik bir pencere dokuz sütunluk header'ı artı yedi satırı
-alamıyor; separator mantığı ne derse desin kesik tablonun içine düşüyor.
+**Recursive splitting de düzeltmiyor.** Rahatsız edici olan bu, çünkü her framework'ün default'u ve
+salondaki çoğu kişinin production'da kullandığı şey. Önce paragraflardan, sonra satırlardan, sonra
+cümlelerden bölüyor ve düz metni bozmadan koruyor — ama header 4. chunk'ta, K satırı 5. chunk'ta.
+Yan yana, yine de ayrı. Sebebi ayarla kapatılamaz: tablo split boyutundan geniş. 600 karakterlik
+bir pencere dokuz sütunluk header'ı artı yedi satırı alamıyor; separator mantığı ne derse desin
+kesik tablonun içine düşüyor. Bu basamağı aklında tut: recall@5'i 0.900, yalnızca düz fixed-280'in 0.917'sinin gerisinde.
 
 **Structure-aware bölme düzeltiyor.** Dokümanın kendi sınırlarından kes — `##` başlıkları,
 `RULE n.`, `SECTION n` — tablo kendisini tanıtan kuralla birlikte kalıyor: header da K satırı da
@@ -97,105 +106,109 @@ alamıyor; separator mantığı ne derse desin kesik tablonun içine düşüyor.
 ```
 
 Prefix bir yol değil, başlık satırının kendisi: `structure_aware()` doküman adına yalnızca ilk
-başlıktan önceki metin için düşüyor, doküman adını her chunk'ta tekrarlamıyor. "Contextual
-retrieval" diye satılan şeyin tamamı bu: her parçaya nereden geldiğini söylemek. Maliyeti bir
-string birleştirme.
+başlıktan önceki metin için düşüyor. "Contextual retrieval" diye satılan şeyin tamamı bu — her
+parçaya nereden geldiğini söylemek — ve maliyeti bir string birleştirme. İki sıralama sütununun
+ikisinde de önde gidiyor: hit@1 0.750, MRR 0.817; üstelik chunk'lanan stratejilerin en düşük
+recall@5'iyle, 0.833.
 
 ## Tek sayı raporlamamak için iki sebep
 
-**Fixed-280 ortalamayı yükseltirken bir kategoriyi geriletiyor.** Exact-token sorguları — uçuş
-kodları, bülten id'leri — bütün dokümanlarda **1.000**, fixed-280'de **0.750**, overlap eklendiğinde
-de 0.750'de kalıyor. Recursive-600 ve structure-aware ikisi de 1.000'e geri getiriyor. Manşet
-hit@1 0.550 → 0.700 çıkarken altında dört exact-token sorusundan biri ters yöne gitti. Bir soru
-kaybetmek küçük bir şey. Asıl mesele şu: manşet sayıda bunun olduğunu söyleyen hiçbir şey yok;
-sadece tip kırılımı gösteriyor.
+**Yükselen bir ortalama, geriye giden bir kategoriyi saklayabilir.** Dört `exact_token` sorusu —
+literal bir uçuş numarası ya da bülten id'si, artı bir ücret tablosu sorgusu — tam dokümanlarda
+**1.000** alıyor. Fixed-280 bunu 0.750'ye düşürüyor, overlap eklendiğinde **0.500**'e iniyor: dördün
+ikisi gitti. Recursive-600 ile structure-aware ikisi de 1.000'e dönüyor. Yani fixed-280 manşet
+ortalamayı yükseltti — 0.600 → 0.700 — ve bunun bedelini tam da salonun ilk soracağı kategoriden
+ödedi; overlap basamağı ise iki kez ödedi, hem ortalamada hem kategoride. Manşet sayıda bunların
+olduğunu söyleyen hiçbir şey yok. Sadece tip kırılımı gösteriyor.
 
-**Recall@5 en kötü stratejide en yüksek.** Fixed-280 **0.950**, structure-aware 0.833. Tesadüf
-değil, aritmetik: 294 küçük parça, gold dokümanın ilk beşte bir yerde görünmesi için daha çok
-şans verir, ama birinci sıraya koymayı zorlaştırır. recall@5'i seçersen kör chunking kazanır;
-hit@1'i seçersen 0.100 farkla kaybeder. İkisi de dürüst. Aralarındaki seçim, ölçüm mü yoksa
+**En iyi recall@5, en iyi sıralayıcıya ait değil.** Fixed-280 o sütunun tepesinde, **0.917**,
+ama hit@1'i 0.700 — ve üç naive kesim de recall@5'te structure-aware'i geçiyor: 0.917, 0.883 ve
+0.900'e karşı 0.833. Tesadüf değil, aritmetik: daha çok küçük parça, gold dokümana ilk beşte
+görünmek için daha çok şans verir, birinci sıraya koymayı ise zorlaştırır. recall@5'i seçersen kör
+chunking kazanır; hit@1'i seçersen kaybeder. İkisi de dürüst. Aralarındaki seçim, ölçüm mü yoksa
 reklam mı yaptığına karar verdiğin yerdir.
 
 ## Gürültü kozmetik değil, ölçülebilir
 
-Corpus, gerçek bir export'un taşıdığı pisliği bilerek taşıyor. 28 dokümanın **23**'ünde
-`Page 3 of 7` türünden bir sayfa numarası artığı var — bunların **18**'i tablo ortasında kendi
-satırında duruyor, ki `strip_boilerplate()` tam olarak bu biçimi yakalıyor. **16**'sında artık
-HTML var (`<br>`, `&nbsp;`, `<div class="legal">`), ve altı ücret kuralı sayfası aynı 431
-karakterlik legal footer'la, bayt bayt aynı şekilde kapanıyor. Kendi içinde bir gövde paragrafını
-tekrarlayan tam olarak bir doküman var: `macro_en_refund.md`, üstelik tekrarlanan cümle "iptal
-sütununu oku, değişim sütununu değil" talimatının ta kendisi. İki doküman daha bir sayfa
-footer'ını tekrarlıyor; onlar yukarıdaki artıklar arasında zaten sayıldı.
+Corpus, gerçek bir export'un taşıdığı dağınıklığı bilerek taşıyor ve notebook bunu 28 doküman
+üzerinde sayıyor: **6** doküman aynı legal footer'la, bayt bayt aynı şekilde kapanıyor; metinde
+`Page 3 of 7` türünden **25** sayfa numarası artığı var — bir kısmı tablo ortasında kendi satırında
+duruyor, ki `strip_boilerplate()` tam olarak bu biçimi yakalıyor; ve **42** parça artık HTML
+(`<br>`, `&nbsp;`, `<div class="legal">`). Bir doküman kendi içinde bir gövde paragrafını
+tekrarlıyor: `macro_en_refund.md`; tekrarlanan cümle tam da "the **cancellation** column, not the
+change column" talimatının kendisi.
 
 `eval/chunking.py` içindeki `strip_boilerplate()` legal blokları, sayfa artıklarını ve artık
-markup'ı siliyor; corpus karakterlerinin **%4.2**'sini kaybediyor — 78,310'dan 75,037'ye. Küçük
-bir kesinti, ama metriği oynatıyor:
+markup'ı siliyor ve corpus karakterlerinin **%4.2**'si gidiyor — 78 310'dan 75 037'ye. Küçük bir
+kesinti, ama metriği oynatıyor:
 
 | | chunk | hit@1 | recall@5 | MRR |
 |---|---|---|---|---|
-| structure-aware, ham | 154 | 0.800 | 0.833 | 0.844 |
-| structure-aware, temizlenmiş | 153 | **0.850** | 0.833 | **0.869** |
+| structure-aware, ham | 154 | 0.750 | 0.833 | 0.817 |
+| structure-aware, temizlenmiş | 153 | **0.800** | 0.833 | **0.841** |
 
-Structure-aware index'ten bir chunk siliniyor. Kör stratejiden on dört tane (294 → 280 — model
-gerektirmeyen bir string sayımı), çünkü structure-aware boilerplate'i zaten kendi bölümüne
-ayırmıştı, her chunk'a bulaştırmak yerine. Temizlenmiş corpus'u yalnızca structure-aware ile
-skorladık, o yüzden bu sayfada temizlenmiş fixed-280 satırı yok.
-
-Bu fark ölçüldü ve tek değişken temizlikti: hit@1'de **+0.050** — yirmi sorudan biri — MRR'de
-**+0.025**, recall@5 değişmedi. Yirmi soru 0.050'yi gürültüden ayıramaz; yönü makul, büyüklüğü
-kanıtlanmamış olarak oku. Bunu neyin çözeceği belli: 0.05'in anlam taşıyacağı büyüklükte bir gold
-set üzerinde, tek değişken temizlik olacak şekilde aynı benchmark.
+Structure-aware index'ten yalnızca bir chunk siliniyor, çünkü structure-aware bölme boilerplate'i
+zaten kendi bölümlerine ayırmıştı, her chunk'a bulaştırmak yerine. Temizlenmiş corpus'u yalnızca
+structure-aware ile skorladık, o yüzden temizlenmiş fixed-280 satırı yok. Fark ölçüldü ve tek
+değişken temizlikti: hit@1'de **+0.050**, MRR'de **+0.024**, recall@5 değişmedi — yirmi sorudan
+biri, yani büyüklüğü değil yönü oku. Kazancın tamamı da tek bir yere düşüyor: `en_en` 0.500 →
+0.750 çıkıyor, başka hiçbir şey kıpırdamıyor.
 
 ## Ne çalıştırıyorsun
 
 Bu modülde mekanizma ile ölçüm iki ayrı artefakt.
 
-**Mekanizma.** `notebooks/05_chunking_and_noise.py` dosyasını VS Code'da Microsoft Python
-eklentisiyle aç ve blokları Shift+Enter ile çalıştır. İki model çağrısı dışında her şey string
-kesme işlemi, yani yavaş bir laptopta takılmaz. En çok işe yarayan hücre hiç model istemiyor: her
-strateji için hangi chunk'ta sütun header'ı, hangi chunk'ta K satırı var, yazdır.
+**VS Code — `notebooks/05_chunking_and_noise.py`, ilk markdown hücresinden sonraki `# %%` bloğu:**
+blokları Shift+Enter ile çalıştır. İki model çağrısı dışında her şey string kesme işlemi, yani yavaş
+bir laptopta takılmaz. En çok işe yarayan hücre hiç model istemiyor: her strateji için hangi
+chunk'ta sütun header'ı, hangi chunk'ta K satırı var, yazdır. `sheet` ve `C` notebook'un ilk
+bloğundan geliyor — bu, dosyanın içindeki bir hücre, yazman gereken bir şey değil.
 
 ```python
-import chunking as C
-
 pieces = C.fixed(sheet, size=280, overlap=0)
+print(f"{len(pieces)} chunks\n")
 for n, piece in enumerate(pieces):
-    if "| K |" in piece and "EUR 90" in piece:
-        print(f"chunk {n}: THE K ROW")
-    if "Booking class" in piece and "Cancellation penalty" in piece:
-        print(f"chunk {n}: THE COLUMN HEADER")
+    has_row = "| K |" in piece and "EUR 90" in piece
+    has_header = "Booking class" in piece and "Cancellation penalty" in piece
+    if has_row or has_header:
+        print(f"chunk {n}: {'THE K ROW' if has_row else ''}{'THE COLUMN HEADER' if has_header else ''}")
 ```
 
-*Görmen gereken:* `chunk 4: THE COLUMN HEADER` ve `chunk 6: THE K ROW`. İki chunk arayla; ve
+**Ne görmen gerekiyor.** `chunk 4: THE COLUMN HEADER` ve `chunk 6: THE K ROW`. İki chunk arayla; ve
 yalnızca K satırı chunk'ından üretilen cevap EUR 65 çıkıyor, oysa doğru cevap EUR 90.
-*Yaklaşık süre:* notebook'un yazıldığı tempoda on iki dakika.
+**Kabaca ne kadar sürüyor.** Notebook'un yazıldığı tempoda on iki dakika.
 
-**Ölçüm.** Tek komut, tek tablo:
+**Terminal (repo kökü):** tek komut, tek tablo.
 
 ```bash
-python exercises/m7_chunking_ladder.py
+python exercises/m7_chunking_ladder.py   # notebook'ta çalışırken bunu arkada çalışır bırak
 ```
 
-*Görmen gereken:* beş merdiven satırı, artı temizlenmiş corpus için altıncı bir satır; her birinde
-chunk sayısı, hit@1, recall@5, MRR ve beş soru tipi. Sonunda
+**Ne görmen gerekiyor.** Beş merdiven satırı, artı temizlenmiş corpus için altıncı bir satır; her
+birinde chunk sayısı, hit@1, recall@5, MRR ve beş soru tipi. Sonunda
 `Stripping the legal footer removed 4.2% of the characters.` satırı. Durup bakılacak satır şu:
-`exact_token went 1.000 -> 0.750 while hit@1 went 0.550 -> 0.700`. *Yaklaşık süre:* iki-üç dakika,
-neredeyse tamamı embedding çağrısı.
+`The column to argue about: cutting into fixed 280-character pieces moved hit@1 0.600 -> 0.700 while exact_token went 1.000 -> 0.750.`
+**Kabaca ne kadar sürüyor.** İki-üç dakika, neredeyse tamamı embedding çağrısı.
 
-Corpus genelindeki chunk sayılarını notebook'ta da istersen:
+**VS Code — `05_chunking_and_noise.py` dosyasının sonuna yeni bir `# %%` bloğu,** corpus genelindeki
+chunk sayılarını orada da istersen:
 
 ```python
 for strategy in ["fixed-280", "fixed-280+overlap60", "recursive-600", "structure-aware"]:
-    ids, texts, parents = C.chunk_corpus(documents, strategy)
+    ids, texts, parents = C.chunk_corpus(docs, strategy)
     print(strategy, len(texts))       # 294 · 368 · 197 · 154
 ```
 
 <div class="presenter-note">
 35 dakika: merdiven 6, header demo 12, overlap ve recursive 6, metrik uyuşmazlığı 6, gürültü 5.
-Merdiven komutunu header demosuna başlamadan önce çalıştırmaya bırak — iki-üç dakika sürüyor ve
-demo o süreyi kapatıyor. Birinin laptopunda patlarsa sayıları bu sayfadan oku ve sınır hücresini
-canlı çalıştır: string kesme işlemi, patlaması mümkün değil. Sınır hücresi demo, merdiven kanıt.
-Gün sarktığında kesilecek ölçüm bu değil.
+Merdiven komutunu notebook'u açmadan önce repo kökündeki terminalde çalıştırmaya bırak — iki-üç
+dakika sürüyor ve demo o süreyi kapatıyor. Birinin laptopunda patlarsa sayıları bu sayfadan oku ve
+sınır hücresini canlı çalıştır: string kesme işlemi, patlaması mümkün değil. Script'in kendi kapanış
+paragraflarını az önce yaptığı koşumdan türetiyor, o yüzden onları hazırlamak yerine ekrandan oku:
+overlap basamağını kendisiyle çelişen basamak diye adlandıracak, ve fixed 280'i yalnızca 0.700
+sıralayan recall@5 galibi olarak gösterecek. Bu modülün üstünde döndüğü iki argüman da bunlar ve
+senin ağzından değil script'in ağzından çıkıyorlar — asıl mesele de bu. Sınır hücresi demo,
+merdiven kanıt. Gün sarktığında kesilecek ölçüm bu değil.
 </div>
 
 ## Sayılar ne dedi
@@ -204,27 +217,34 @@ Gün sarktığında kesilecek ölçüm bu değil.
 
 | strateji | chunk | hit@1 | recall@5 | MRR |
 |---|---|---|---|---|
-| bütün dokümanlar | 28 | 0.550 | 0.717 | 0.654 |
-| fixed 280 | 294 | 0.700 | **0.950** | 0.814 |
-| fixed 280 + overlap 60 | 368 | 0.700 | 0.883 | 0.799 |
-| recursive 600 | 197 | 0.700 | 0.900 | 0.816 |
-| **structure-aware 900** | 154 | **0.800** | 0.833 | **0.844** |
+| tam dokümanlar | 28 | 0.600 | 0.717 | 0.677 |
+| fixed 280 | 294 | 0.700 | **0.917** | 0.817 |
+| fixed 280 + overlap 60 | 368 | **0.550** | 0.883 | 0.720 |
+| recursive 600 | 197 | 0.700 | 0.900 | 0.806 |
+| structure-aware 900 | 154 | 0.750 | 0.833 | 0.817 |
+| **structure-aware + boilerplate temizlenmiş** | 153 | **0.800** | 0.833 | **0.841** |
 
 Aynı merdiven, soru tipine göre hit@1:
 
 | strateji | tr_tr | tr_en | en_en | exact_token | multi_hop |
 |---|---|---|---|---|---|
-| bütün dokümanlar | 1.000 | 0.333 | 0.250 | 1.000 | 0.000 |
-| fixed 280 | 0.750 | 0.667 | 0.750 | 0.750 | 0.500 |
-| fixed 280 + overlap 60 | 1.000 | 0.667 | 0.500 | 0.750 | 0.500 |
+| tam dokümanlar | 1.000 | 0.333 | 0.500 | 1.000 | **0.000** |
+| fixed 280 | 1.000 | 0.500 | 0.750 | 0.750 | 0.500 |
+| fixed 280 + overlap 60 | 0.750 | 0.500 | 0.500 | **0.500** | 0.500 |
 | recursive 600 | 1.000 | 0.500 | 0.500 | 1.000 | 0.500 |
-| structure-aware 900 | 1.000 | 0.667 | 0.750 | 1.000 | 0.500 |
+| structure-aware 900 | 1.000 | **0.667** | 0.500 | 1.000 | 0.500 |
+| + boilerplate temizlenmiş | 1.000 | **0.667** | **0.750** | 1.000 | 0.500 |
+
+`multi_hop` sütunu tek başına bir cümleyi hak ediyor. Tam dokümanlarda 0.000 — iki multi-hop
+sorusunun ikisinde de doğru doküman birinci sıraya gelmiyor. Chunk'lanan her strateji 0.500'e
+çıkıyor ve hiçbiri onu geçemiyor. Chunking sana ikisinden birini kazandırıyor, ikincisini hiçbir
+kesim kazandırmıyor — modül 10'un tırmanmak için kurulduğu duvar bu.
 
 `fare_classic_shorthaul.md` içinde header nereye düşüyor — 0-tabanlı, model gerekmeden ölçüldü:
 
 | strateji | o dosyadaki chunk | header | K satırı | birlikte mi? |
 |---|---|---|---|---|
-| bütün dokümanlar | 1 | — | — | evet — hiçbir şey kesilmedi |
+| tam dokümanlar | 1 | — | — | evet — hiçbir şey kesilmedi |
 | fixed 280 | 15 | 4 | 6 | hayır |
 | fixed 280 + overlap 60 | 18 | 5 | 7 | hayır — overlap sınırı kaydırıyor |
 | recursive 600 | 10 | 4 | 5 | hayır — tablo split boyutundan geniş |
@@ -232,57 +252,45 @@ Aynı merdiven, soru tipine göre hit@1:
 
 </div>
 
-Yirmi soru bir benchmark değildir. İki tasarım arasında seçim yapmaya yeter, yayınlamaya hiç
-yetmez; yaklaşık 0.05'in altındaki fark bu örneklemin gürültüsünün içindedir.
+`multi_hop` sütunu her satırda 0.000 — bu sayfadaki her değişiklikten önce de sonra da. Metni hiçbir
+kesme biçimi oraya ulaştıramıyor; modül 10 tam olarak bu başarısızlığın üstüne kuruluyor.
 
 ## Daha derine
 
 Retriever bir dokümanı hiç görmez. Chunk başına tek bir vektör görür — bütün bir bölüm için tek
 bir nokta. Dokuz sütunluk bir header'ı, yedi ücret satırını ve bir sayfa numarası artığını tek bir
-1024 boyutlu noktada ortalarsan, kısa mesafe ücretleri hakkında her şeye yakın ama hiçbir şey
-hakkında spesifik olmayan bir şey elde edersin. Yani chunk boyutu, model kalitesinden bağımsız
-olarak hassasiyetle takas edilir: uzun chunk generator'a daha çok bağlam, retriever'a daha bulanık
-bir vektör verir. Structure-aware bölme kazanıyor çünkü bu iki baskıyı aynı yöne çeviriyor — bir
+1024 boyutlu noktada ortalarsan, short-haul ücretleri hakkında her şeye yakın ama hiçbir şey
+hakkında spesifik olmayan bir şey elde edersin. Yani chunk boyutu hassasiyetle takas edilir: uzun
+chunk generator'a daha çok bağlam, retriever'a daha bulanık bir vektör verir. Structure-aware bölme kazanıyor çünkü bu iki baskıyı aynı yöne çeviriyor — bir
 bölüm hem anlamın hem embedding'in doğal birimi.
 
 Başlık prefix'i iki iş yapıyor. Vektör kayıyor, çünkü başlığın kendi kelimeleri — "Reading the
 schedule", "fare basis code", "change" — ne işe yaradığını söylemeyen bir sayı ızgarasına
 katılıyor. Ve generator'ın girdisi iyileşiyor, çünkü metin artık nereden geldiğini kendisi
-söylüyor. Yayınlanmış contextual-retrieval çalışmaları o bağlam cümlesini chunk başına bir LLM ile
+söylüyor. Yayımlanmış contextual-retrieval çalışmaları o bağlam cümlesini chunk başına bir LLM ile
 üretiyor; biz etkinin çoğunu dosyada zaten duran bir başlıktan alıyoruz. Dokümanlarında ödünç
 alınacak yapı yoksa üret — taranmış PDF'ler, chat log'ları, ticket dump'ları. Varsa ödünç al.
 
 Ölçek büyüdüğünde tabloları chunk'lamayı tamamen bırakırsın. Dosyalanmış bir tarife için kalıcı
 çözüm farklı bir temsildir: tabloyu bir kez parse et ve header'ı içine açılmış şekilde chunk başına
 bir satır üret — `CLASSIC short-haul, booking class K, fare basis KSHEU26, change penalty EUR 70,
-cancellation penalty EUR 90`. Yanlış cevabı üreten belirsizlik artık oluşamaz, çünkü sütun adı
-değerin yanında duruyor. Bu, doküman tipi başına yapılan bir iş ve demo ile sistemi ayıran şey de
-bu.
-
-10 milyon dokümanda kavramsal olarak hiçbir şey, operasyonel olarak her şey değişir. Chunking
-versiyonlanan bir offline batch işine dönüşür: splitter'ı değiştirdiğinde corpus'u yeniden embed
-edersin, yani hangi stratejinin hangi vektörü ürettiğini bilmen gerekir. Her chunk'ta parent id'yi
-tut ve sorgu anında komşuları getir — chunk'ı retrieve et, bölümü servis et — bu, küçük chunk'ların
-kaybettiğinin çoğunu bulanıklığı ödemeden geri kazandırır. Ve 20 soruya güvenmeyi bırak: log'lardan
-gerçek sorgu örnekle, birkaç yüz tanesini etiketle, sonucu sorgu tipine göre kırılımlı raporla —
-çünkü az önce ölçtüğümüz exact-token düşüşü herhangi bir ortalamanın içinde görünmez.
-
-Kendi sayılarımız için bir uyarı. Yirmi soru iki tasarım arasında karar verdirir; yayınlamaz.
-Recursive-600 ile overlap'li fixed-280 arasındaki fark hit@1'de 0.000, MRR'de 0.017 — tek bir
-sorunun kayması, anlamsız. Bütün dokümanlarla structure-aware arasındaki fark 0.250, beş soru,
-gerçek. Sıralamadan önce farkın büyüklüğüne bak.
+cancellation penalty EUR 90` — böylece yanlış cevabı üreten belirsizlik artık oluşamaz. Bu, doküman
+tipi başına yapılan bir iştir ve chunking'i versiyonlanan bir offline batch işine dönüştürür:
+splitter'ı değiştirdiğinde corpus'u yeniden embed edersin, yani hangi stratejinin hangi vektörü
+ürettiğini bilmen gerekir.
 
 <div class="presenter-note">
 Biri "biz RecursiveCharacterTextSplitter kullanıyoruz, gayet iyi" derse — katıl, sonra
-recursive-600 satırını göster: 0.700, bütün dokümanlardan iyi, structure-aware'den 0.100 kötü ve
-geçmesi gereken iki stratejiyle berabere. Header'ı K satırından hâlâ ayırıyor. İyi bir default,
-tablolar için çözüm değil. Bunun bir framework tartışmasına dönüşmesine izin verme; argüman ölçümün
-kendisi.
+recursive-600 satırını göster: hit@1 0.700, recall@5 0.900 ve header'ı K satırından hâlâ
+ayırıyor. İyi bir default, tablolar için çözüm değil. "Hangisi daha iyi" sorusunun dürüst cevabı
+şu: structure-aware'den onu ayıran şey tek bir soru; asıl kanıt, model de benchmark da istemeyen
+header demosu — yirmi soruya bağlı olmayan kısım orası. Bunun bir framework tartışmasına
+dönüşmesine izin verme; argüman ölçümün kendisi.
 </div>
 
 ## Çıkış cümlesi
 
-> hit@1 0.800, boilerplate temizlenince 0.850 — bu corpus'un gün boyunca ulaştığı en iyi değer; ve
-> exact-token soruları yalnızca körlemesine bölmeyi bıraktığımız için ayakta kaldı. Bu sonuç, tek
-> bir notebook process'inin içindeki bir Python listesinde duran 154 vektör. O process gittiğinde
-> bu vektörler nerede yaşıyor?
+> hit@1 0.750, boilerplate temizlenince 0.800 — arada tek bir soru var, o yüzden günün geri kalanı
+> 0.750 ile tartışıyor; ve bu, corpus'un gün boyunca ulaştığı en iyi değer. Bunu bir model değil,
+> bir splitter kazandırdı. Aynı zamanda bu sonuç, tek bir notebook process'inin içindeki bir Python
+> listesinde duran 154 vektör. O process gittiğinde bu vektörler nerede yaşıyor?

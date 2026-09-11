@@ -1,5 +1,8 @@
 # Windows bootstrap for the RAG training day.
 #
+# Open PowerShell, cd into the folder that contains corpus\, notebooks\, eval\ and exercises\ —
+# the repository root, and the folder every command on the day is typed in — then:
+#
 #   powershell -ExecutionPolicy Bypass -File scripts\verify_setup.ps1
 #
 # If that answers "running scripts is disabled on this system", the execution policy on this
@@ -20,7 +23,8 @@
 # the proxy handling differs between Windows PowerShell 5.1 and PowerShell 7 and both branches are
 # below; (3) that Ollama installed but missing from this window's PATH produces the "open a new
 # window" line rather than NOT READY; (4) that the Microsoft Store python.exe alias stub is skipped
-# and the py launcher is found.
+# and the py launcher is found; (5) that the repository-root lines below agree with the Python
+# script's when the file is run as a file and when it is piped in from the repository root.
 
 $ErrorActionPreference = "Continue"
 $problems = @()
@@ -61,6 +65,20 @@ Write-Host ""
 Write-Host "RAG Training Day - Windows setup check" -ForegroundColor DarkGray
 Write-Host "$([System.Environment]::OSVersion.VersionString)" -ForegroundColor DarkGray
 Write-Host ""
+
+# The repository, and the window it is meant to be typed in --------------------------
+# $PSScriptRoot is empty when this file is piped in rather than run as a file, and the piped
+# invocation is run from the repository root, so fall back to the current directory.
+$repoRoot = if ($PSScriptRoot) { Split-Path -Parent $PSScriptRoot } else { (Get-Location).Path }
+$courseDirs = @("corpus", "notebooks", "eval", "exercises", "scripts")
+$missingDirs = @($courseDirs | Where-Object { -not (Test-Path (Join-Path $repoRoot $_)) })
+Report "the repository is complete" ($missingDirs.Count -eq 0) `
+    $(if ($missingDirs.Count -eq 0) { $repoRoot } else { "missing: $($missingDirs -join ', ')" }) `
+    "$($missingDirs -join ', ') is not in $repoRoot. Extract or clone the repository again and run this from the folder that contains corpus\, notebooks\, eval\ and exercises\."
+
+ReportWarn "this window is at the repository root" ((Get-Location).Path -eq $repoRoot) `
+    $(if ((Get-Location).Path -eq $repoRoot) { "yes" } else { "you are in $((Get-Location).Path)" }) `
+    "Everything on the day is typed in one window, at the repository root. From anywhere else 'python scripts\...', 'python exercises\...' and 'python eval\...' cannot find their files. Run:  cd $repoRoot"
 
 # Python -----------------------------------------------------------------------------
 # The Microsoft Store ships an app-execution alias called python.exe that opens the Store and
@@ -131,14 +149,14 @@ if ($serverUp) {
         Report "model $wanted" ($null -ne $model) $size "Run: ollama pull $wanted"
     }
 
-    # helios-q2 is a fine-tune the trainer builds and hands out. It is on no registry, so
+    # kraken-q2 is a fine-tune the trainer builds and hands out. It is on no registry, so
     # 'ollama pull' cannot find it, and only module 3 uses it - a miss is a warning. Nothing is
     # replayed in its place: notebook 02 has no recorded run, so the two probe cells print that
     # they are skipped and the cells that read the Q2 and Q3 fare sheets off disk still run.
-    $finetune = $tags | Where-Object { $_.name -eq "helios-q2" -or $_.name -eq "helios-q2:latest" } | Select-Object -First 1
-    ReportWarn "model helios-q2" ($null -ne $finetune) `
+    $finetune = $tags | Where-Object { $_.name -eq "kraken-q2" -or $_.name -eq "kraken-q2:latest" } | Select-Object -First 1
+    ReportWarn "model kraken-q2" ($null -ne $finetune) `
         $(if ($finetune) { "{0:N1} GB" -f ($finetune.size / 1e9) } else { "not installed - module 3's two probes will be skipped, the corpus diff still runs" }) `
-        "helios-q2 is not on any registry, so 'ollama pull' will not find it. The trainer hands it out on a USB stick before the day; ask for it if you want module 3's two probe cells to run live. Without it they print (skipped - helios-q2 not installed) and the rest of the module, which reads the two fare sheets off disk, runs exactly as it would otherwise."
+        "kraken-q2 is not on any registry, so 'ollama pull' will not find it. The trainer hands it out on a USB stick before the day; ask for it if you want module 3's two probe cells to run live. Without it they print (skipped - kraken-q2 not installed) and the rest of the module, which reads the two fare sheets off disk, runs exactly as it would otherwise."
 }
 
 # Seeded offline assets ------------------------------------------------------------------
@@ -151,9 +169,6 @@ ReportWarn "all-MiniLM-L6-v2 is cached" (Test-Path $minilm) `
     $(if (Test-Path $minilm) { $minilm } else { "modules 6 and 8 would download 83 MB on the day" }) `
     "Once Python and the packages are in place, run 'python scripts\seed_offline_assets.py' at home. It fetches MNIST and chromadb's default embedder, and scripts\verify_setup.py checks both properly."
 
-# $PSScriptRoot is empty when this file is piped in rather than run as a file, and the piped
-# invocation is run from the repository root, so fall back to the current directory.
-$repoRoot = if ($PSScriptRoot) { Split-Path -Parent $PSScriptRoot } else { (Get-Location).Path }
 $mnist = Join-Path $repoRoot "notebooks\mnist_data\train-images-idx3-ubyte.gz"
 ReportWarn "MNIST is on disk" (Test-Path $mnist) `
     $(if (Test-Path $mnist) { "notebooks\mnist_data" } else { "module 2 would download 11.6 MB on the day" }) `

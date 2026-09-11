@@ -1,123 +1,105 @@
 ---
 title: "1. Çıplak LLM Duvarı"
-description: "Model, var olmayan bir havayolu için iptal cezası uyduruyor; sonra bir kalkış saatini tahmin etmeyi reddediyor — ve iki cevap da tıpatıp aynı sesle geliyor."
+description: "Model, var olmayan havayolu için cevap vermeyi reddediyor; sektörün geneli için bir ceza uyduruyor; sonra aynı soruya üç farklı tutar söylüyor — hepsi de tek bir sesle."
 ---
-
-> **Helios Air kurgusal bir havayoludur.** Bu eğitimdeki her doküman, ücret, uçuş numarası ve kural sentetiktir ve öğretmek için yazılmıştır. Bu repoda hiçbir Amadeus sistemi, müşterisi veya production verisi kullanılmamıştır.
 
 ## Gate sorusu
 
 > **Model benim verimi biliyor mu?**
 
 <div class="presenter-note">
-Hiçbir şey çalıştırmadan önce soruyu ekrana yansıt ve salondan tahminlerini kâğıda yazmalarını iste: 3B'lik bir model Helios ceza sorusuna cevap verir mi, yoksa bilmediğini mi söyler? Çoğu kişi "bilmediğini söyler" der. El kaldırt, sesli say — hücre çalışmadan önce herkesin bir tahmine bağlanmış olmasını istiyorsun, çünkü bu modülün tamamı o sürprizin üzerine kurulu. İki dakika, fazlası değil.
+Hiçbir şey çalıştırmadan önce soruyu ekrana yansıt ve salondan tahminlerini kâğıda yazıp bağlanmalarını iste: 3B'lik bir model Kraken Air'in iptal cezası sorusuna cevap verir mi, yoksa reddeder mi? El kaldırt, sesli say. Kayıtlı çalıştırma iki tarafı da yarı yarıya haklı çıkarıyor — ilk seferde reddediyor, ifade değişir değişmez bir lira tutarı söylüyor — ve modülün tamamı bu geri dönüşün üzerine kurulu. İki dakika, fazlası değil.
 </div>
 
-Laptopta bir model var. Retrieval yok, doküman yok, sadece ağırlıklar. Bir Helios temsilcisinin günde on kez aldığı soruyu soruyoruz.
+Laptopta bir model. Retrieval yok, doküman yok, sadece ağırlıklar. Bir Kraken Air temsilcisinin günde on kez aldığı soruyu soruyoruz.
 
-**Prompt:** `Helios CLASSIC K iptal cezası?`
-**qwen2.5:3b:** cezanın ücretin **"%20-30"**'u kadar olduğunu anlatan bir açıklama.
+**Aşağıdakilerin hepsi bir döküm — burada yazacağın bir şey yok.** Her prompt, `notebooks/00_bare_llm_fails.py` içindeki bir Python string'i; o dosyayı VS Code'da açıp blokları `Shift+Enter` ile tek tek çalıştırıyorsun ve `R.generate()` string'i yerel Ollama'ya gönderip dönen cevabı yazdırıyor. Şimdi kayıtlı çalıştırmayı okuyorsun; aşağıdaki *Ne çalıştırıyorsun* bölümünde kendin üreteceksin.
 
-Helios Air diye bir havayolu yok. Bu reponun dışında CLASSIC K diye bir ücret ailesi de yok. Model duraksamadı, kayıt düşmedi, hangi rota bandını sorduğumuzu sormadı. Bir cevabın tonuyla bir yüzde aralığı üretti.
+**`q1`:** `Kraken Air'in CLASSIC ucret ailesinde K sinifi bir bileti iptal edersem ne kadar ceza oderim?`
+**qwen2.5:3b:** `... belirtilmemiştir. Bu bilgi genellikle kargo veya hizmet koşullarına göre bulunan bir belge veya web sitesinden bulunabilir.`
 
-Gerçek rakam `corpus/2026-Q3/fare_classic_shorthaul.md` içinde, K satırında: **EUR 90**, yolcu ve yön başına sabit bir tutar; yüzde değil. Geçen çeyrekte aynı satırda EUR 120 yazıyordu. Yani model hem rakamda yanlış, hem rakamın *biçiminde* yanlış, hem de hangi çeyreği sorduğunu bilmesinin hiçbir yolu yok.
+Reddetti ve bu doğru karar gibi duruyor — gerekçesini okuyana kadar. Yolcu ücret kuralı *kargo veya hizmet koşulları* altında filing edilmez, üstelik bakılacak bir Kraken Air sitesi de yok. Hiçbir yere danışılmadı; model, sorumlu bir cevabın *biçiminde* metin üretti. Bu biçimi aklında tut, çünkü notebook'un son bloğu onu elinden alıyor.
+
+Gerçek rakam `corpus/2026-Q3/fare_classic_shorthaul.md` içinde, K satırında: **EUR 90**, yolcu ve yön başına sabit bir tutar; yüzde değil. Geçen çeyrekte aynı satırda EUR 120 yazıyordu.
 
 Şimdi daha keskin olan denemeyi yapalım. Kurgusal havayolunu çıkaralım, sektörün geneline soralım.
 
-**Prompt:** `K booking class typical penalty?`
-**qwen2.5:3b:** **"K (Business) sınıfı %10-20"**.
+**`q2`:** `Bir havayolunda K booking class bileti iptal edilirse tipik olarak ne kadar ceza alinir? Somut bir rakam ver.`
+**qwen2.5:3b:** `Tipik olarak, K (Business) koltuk sınıfı için 10-20% kadar ceza ödemek zorunludur.`
 
-Bu cevap iki ayrı yerden yanlış. Yüzde yine uydurma, ama parantez daha kötü: K bir business sınıfı değil. Havayollarının normal filing pratiğinde K indirimli bir economy booking class'tır — bizim corpus'ta da tam olarak öyle. Yani mesele "modelin bizim özel verimiz eksik" değil. Model, herkese açık kısımda da kendinden emin bir şekilde yanlış; dünyaya dair bir olguyu, tek bir çekince koymadan söylüyor.
+Bu cevap iki ayrı yerden yanlış. Yüzde uydurma, ama parantez daha kötü: K, havayollarının ezici çoğunluğunda indirimli bir economy booking class'tır; bizim corpus'ta da economy. J ve Y'nin altındaki harfleri her taşıyıcı kendi filing'inde belirler, yani bu bir standart değil güçlü bir teamül — hiç çekince koymadan söylenmiş bir `(Business)`'ın yanlış olmasının sebebi de tam olarak bu. Yani mesele "modelin bizim özel verimiz eksik" değil. Model, herkese açık kısımda da kendinden emin bir şekilde yanlış.
 
 <div class="presenter-note">
 Şu cümleyi yüksek sesle söyle ve bir saniye beklet: "Sadece bizim verimizi kaçırmadı. Sektörü de yanlış bildi." Salonda birisi zaten aynı soruyu daha büyük bir modele yazıyor olacak, "bakın o doğru yapıyor" demek için. Bırak yapsın — daha büyük model K'yi daha sık doğru bilir, ama bu çeyreğin rakamının 120 değil 90 olduğunu yine bilemez. Tartışmayı model boyutundan oraya taşı, 3B modeli savunmaya çalışma.
 </div>
 
-Şimdi hatayı netleştiren karşıtlık. Aynı model, aynı oturum, context yok.
+Şimdi kural yerine somut bir olgu soralım. Aynı model, aynı oturum, context yok.
 
-**Prompt:** `What time does H9 1487 depart?` → doğru şekilde bilmediğini söyledi.
-**Prompt:** `How much is the misconnect meal voucher?` → doğru şekilde bilmediğini söyledi.
+**`q3`:** `XX 1487 sefer numarali Kraken Air ucusu saat kacta kalkiyor?`
+**qwen2.5:3b:** `Bu bilgi ... resmi bir takipçi platformundan (örneğin Twitter) veya resmi web sitesinden alınamaz. Her seferde farklı saat olabilir.`
 
-Yani model rastgele metin üreten bir şey değil. Tam da bilmemenin doğru cevap olduğu iki soruda, temiz bir şekilde çekildi. Peki neden o ikisinde?
+Yine reddetti ve gerekçesi yine uydurma: tarife bilgisi Twitter'dan okunan bir şey değil ve numaralı bir uçuş her gün farklı saatte kalkmaz. İki ret, ikisi de bir bilgi kontrolü değil — orada hiçbir şey kontrol edilmedi.
 
-Cevap eğitim metninde. Bir dil modeli, öğrenilmiş ağırlıklar üzerinden bir sonraki token'ı tahmin eder — okuduğu her şeyin istatistiksel şeklini sıkıştıran milyarlarca parametre. İçeride bir lookup tablosu yok, kaynak doküman yok, hiçbir bilginin üstünde tarih yok. İptal cezası sorduğunda, *"havayolu iptal ücretleri ücretin bir yüzdesidir, tipik olarak şu aralıkta"* kalıbı eğitim verisinde on binlerce kez geçiyor; en olası devam da bu kalıbın makul bir örneği oluyor. Boşluğu dolduruyor, çünkü boşluğun hazır bir dolgusu var. H9 1487'nin kalkış saatini sorduğunda uzanacağı bir dolgu yok — ama *belirli bir tarife saatini söylemekten kaçınan metin* kalıbı bol bol var. Çıkan şey o.
+Bir dil modeli, öğrenilmiş ağırlıklar üzerinden bir sonraki token'ı tahmin eder: okuduğu her şeyin istatistiksel şeklini sıkıştıran milyarlarca parametre. İçeride lookup tablosu yok, kaynak doküman yok, hiçbir bilginin üstünde tarih yok. Cevaptan cevaba değişen tek şey, sorunun *biçiminin* hangi prior'ı tetiklediği. Sektöre genel bir şey sor: *"havayolu iptal ücretleri ücretin bir yüzdesidir, tipik olarak şu aralıkta"* kalıbı eğitim verisinde on binlerce kez geçiyor, o kalıbın bir örneği çıkıyor. Kalkış saati sor: bu kez *belirli bir tarife saatini söylemekten kaçınan metin* kalıbı kazanıyor. O ret prior'ı büyük ölçüde instruction tuning'den geliyor; *Daha derine* bölümü konuyu oradan sürdürüyor.
 
-Bu çekilme, modelin kendi bilgisini kontrol etmesi değil. Hiçbir yerde bir envanter sorgulanmadı. Dört cevabın dördü de aynı next-token makinesinden çıktı; birinde prior bir rakamı işaret etti, diğerinde bir reddi. Bu reddi "model kendi sınırlarını biliyor" diye okumak, yolcunun karşısına yanlış cezayı çıkaran hatanın ta kendisi.
+Yani prior, bilgiye değil ifadeye göre oturmuş. `q1`'deki kibar reddin hiçbir değeri olmamasının sebebi bu.
 
-Modülün bütün derdi de bu.
-
-**Tehlike modelin yanılması değil. Tehlike, yanılırken doğru bildiği zamankiyle tıpatıp aynı sesi kullanması.** Aynı akıcılık, aynı özgüven, aynı kaynaksızlık. Çıktının hiçbir yerinde yukarıdaki dört cevaptan hangisine baktığını söyleyen bir işaret yok. Üstelik EUR 400 civarı bir kısa menzil bileti düşün: "%20-30" demek EUR 80 ile EUR 120 arası demek — gerçek cevap olan EUR 90'ı, dalgın bir kontrolden geçecek kadar yakından kapsıyor ve her seferinde yanlış.
+**Tehlike modelin yanılması değil. Tehlike, yanılırken doğru bildiği zamankiyle tıpatıp aynı sesi kullanması.** Aynı akıcılık, aynı özgüven, aynı kaynaksızlık. Ret, uydurma yüzde ve aşağıdaki lira aralığı tek bir tonda yazılmış; çıktının hiçbir yerinde hangisini elinde tuttuğunu söyleyen bir işaret yok.
 
 Duvar bu. Bundan sonrası bu duvarı aşma denemesi: daha iyi sormak, modeli kendi kurallarımızla eğitmek, ya da kuralları cevap anında modelin önüne koymak. Bugün üçünü de bu sırayla deniyoruz ve corpus önümüzdeki çeyrekte yeniden yayımlandığında sadece biri ayakta kalıyor.
 
 ## Ne çalıştırıyorsun
 
-`notebooks/00_bare_llm_fails.py` dosyasını VS Code'da aç ve blokları `Shift+Enter` ile çalıştır. `# %%` işaretleri blok sınırları. Bu eğitimde Jupyter yok; bağımlılıklar `numpy` ve `chromadb`, başka bir şey değil.
+**Terminal (repo kökü)** — `corpus/`, `notebooks/`, `eval/` ve `exercises/` klasörlerini içeren dizin:
 
 ```bash
-ollama serve                       # ayrı bir terminalde, çalışmıyorsa
-ollama pull qwen2.5:3b
-python scripts/verify_setup.py     # başlamadan önce yeşil olmalı
+ollama serve                       # zaten çalışmıyorsa
+python scripts/verify_setup.py     # READY yazdırmalı
 ```
 
-İlk blok yardımcıyı bağlıyor ve modelin çekilmiş olduğunu kontrol ediyor. Framework yok, API key yok:
+**VS Code — `notebooks/00_bare_llm_fails.py`, ilk `# %%` bloğu.** İmleci bloğun içine koy ve `Shift+Enter`'a bas; çıktı Interactive penceresinde beliriyor.
 
 ```python
 import sys
-sys.path[:0] = [".", "notebooks"]               # the helpers sit next to this file
+sys.path[:0] = [".", "notebooks"]              # the helpers sit next to this file
 import _preflight; _preflight.ready(chat=True)  # stops with instructions if a model is missing
 import retrieval as R
 
 print("model:", R.CHAT_MODEL)
 ```
 
-`R.generate()` yerel Ollama'ya `localhost:11434` üzerinden `temperature=0.0` ile gidiyor.
+`R.generate()` yerel Ollama'ya `localhost:11434` üzerinden `temperature=0.0` ile gidiyor. `Shift+Enter`'a basarak dosyanın sonuna kadar ilerle.
 
-**Ne görmelisin.** Önce `model: qwen2.5:3b`, ardından modelden tek kelimelik bir cevap. Sonra context'siz sorulan üç soru: Helios ceza kuralı ve kurgusal ad çıkarılmış hâli uydurma bir yüzdeyle dönüyor, kalkış saati ise bir reddiyle. Sonra notebook ceza sorusunu dört kez daha, yalnızca ifadeyi değiştirerek soruyor ve dört cevabı alt alta yazdırıyor. Aşağıdaki tablodaki meal voucher denemesi notebook'ta yok — ikinci çekilmeyi canlı görmek istersen kendin yaz.
+**Ne göreceksin, yaklaşık iki dakikada.** Önce `model: qwen2.5:3b` ve tek kelimelik bir cevap, sonra `q1`, `q2` ve `q3` — ret, uydurma yüzde, ikinci ret. Ardından son blok ceza sorusunu dört kez daha, yalnızca ifadeyi değiştirerek soruyor ve dört cevabı alt alta yazdırıyor. Senin kurduğun cümleler yukarıdaki dökümlerden kayacak; önce-reddet-sonra-uydur kalıbı kaymayacak.
 
-**Ne kadar sürüyor.** Yaklaşık iki dakika, neredeyse tamamı modelin üretim süresi. Cümle kuruluşun bu sayfadaki dökümlerden kayacak; iki uydurma ve çekilme kaymıyor.
+**Ollama henüz cevap vermiyorsa.** Geri düşülecek kayıtlı çalıştırması olmayan tek notebook bu — her hücre canlı bir çağrı. Yukarıdaki dökümleri oku, yanındakiyle eşleş ve modül 2'de aramıza katıl; o modülün modele hiç ihtiyacı yok.
 
 <div class="presenter-note">
-Ollama kapalıysa veya pull hâlâ sürüyorsa sahnede debug etme. Dört dökümün de bu sayfada duruyor — oku, "bu sabah benim makinemde böyle çıktı, lab bloğunda kendiniz üreteceksiniz" de ve devam et. Modülün toplam süresi 12 dakika, canlı hücreler bunun 2 dakikası — kalanı anlatı ve el kaldırma. Biri farklı bir ifade aldığını söylerse bu beklenen bir şey ve tek cümlelik cevabı var: sampling değişir, kalıp değişmez.
+Ollama kapalıysa veya pull hâlâ sürüyorsa sahnede debug etme. Dökümlerin hepsi bu sayfada duruyor — oku, "bu sabah benim makinemde böyle çıktı, lab bloğunda kendiniz üreteceksiniz" de ve devam et. Modülün toplam süresi 12 dakika, canlı hücreler bunun 2 dakikası — kalanı anlatı ve el kaldırma. Biri farklı bir ifade aldığını söylerse bu beklenen bir şey ve tek cümlelik cevabı var: ifade değişir, kalıp değişmez.
 </div>
 
 ## Sayılar ne dedi
 
 <div class="measured">
 
-| prompt (context yok, `qwen2.5:3b`) | verdiği cevap | doğru mu? |
-|---|---|---|
-| `Helios CLASSIC K iptal cezası?` | uydurma "%20-30 ceza" | hayır — doğrusu EUR 90, sabit tutar |
-| `K booking class typical penalty?` | "K (Business) sınıfı %10-20" | hayır — uydurma, üstelik K business değil |
-| `What time does H9 1487 depart?` | bilmediğini söyledi | evet |
-| `How much is the misconnect meal voucher?` | bilmediğini söyledi | evet |
-
-İki hallucination, iki doğru çekilme, tek bir ses tonu.
-
-Sonra notebook'un bittiği kontrol. Aynı ceza sorusu, yalnızca ifade değiştirilerek dört kez soruldu:
+Notebook'un bittiği kontrol. Aynı ceza sorusu, yalnızca ifade değiştirilerek dört kez soruldu:
 
 | nasıl soruldu | ne döndü |
 |---|---|
-| `Helios Air CLASSIC K sinifi iptal cezasi ne kadar?` | `1.500 TL` — euro değil, Türk lirası |
-| `... CLASSIC ucret ailesi, K booking class. Iptal cezasi kac euro?` | `100-200 euro` |
-| `Musterim ... iptal etmek istiyor. Ne odeyecek?` | `%10-20` |
-| `Helios Air CLASSIC K cancellation penalty amount?` | bir ret |
+| `Kraken Air CLASSIC K sinifi iptal cezasi ne kadar?` | `Genellikle 100-250 TL arasında` — bir lira aralığı |
+| `Kraken Air'de CLASSIC ucret ailesi, K booking class. Iptal cezasi kac euro?` | `genellikle 100-200 TL arasında değişebilir` — euro soruldu, lira cevaplandı |
+| `Musterim Kraken Air CLASSIC K bileti aldi ve iptal etmek istiyor. Ne odeyecek?` | `genellikle 2-5 gün içinde ücret ödemek zorunda kalabilir` — bir süre, tutar değil |
+| `Kraken Air CLASSIC K cancellation penalty amount?` | `can vary and is subject to change ... contact Kraken Air directly` — İngilizce bir ret |
 
-Dört soruş, üç farklı tutar — biri lira, biri euro, biri yüzde — ve bir ret. Bilgiye gerçekten sahip olan bir model dört kez aynı şeyi söylerdi. Bu tek bir kayıtlı çalıştırma, `temperature=0.0`; sende çıkan tutarlar farklı olabilir, zaten birbirlerinden farklı olmaları asıl mesele.
+Dört soruş, dört farklı davranış: birbirini tutmayan iki lira aralığı, tutar bile olmayan bir cevap ve bir ret. Hiçbiri EUR 90 değil; üstelik ikinci soruş `kac euro?` diye açıkça yazdığı hâlde cevap lira olarak geldi. Bilgiye gerçekten sahip olan bir model dört kez EUR 90 derdi. Bu, tek bir makinede `temperature=0.0` ile alınmış tek bir kayıtlı çalıştırma; sende çıkan tutarlar farklı olabilir, zaten birbirlerinden farklı olmaları asıl mesele.
 
 </div>
 
 ## Daha derine
 
-Ağırlıkları depolama değil sıkıştırma olarak düşün. Eğitim, bir corpus'u sabit bir parametre bütçesine sıkıştırır; sık geçen ve genel olan yüksek doğrulukla hayatta kalır, spesifik ve nadir olan hatırlanmaz, yeniden üretilir. Hallucination dediğimiz şey, eğitim verisinin hiç kısıtlamadığı bir bölgeden gelen kendinden emin bir örnek. "İptal cezaları ücretin bir yüzdesidir" geneldir. "2026-Q3 kısa menzil CLASSIC sayfasında K booking class için EUR 90" ise bir bilginin olabileceği kadar spesifiktir. Ölçek büyütmek bizim corpus'u bu çizginin öbür tarafına geçirmiyor.
+Ağırlıkları depolama değil sıkıştırma olarak düşün. Eğitim, bir corpus'u sabit bir parametre bütçesine sıkıştırır; sık geçen ve genel olan yüksek doğrulukla hayatta kalır, spesifik ve nadir olan hatırlanmaz, yeniden üretilir. Hallucination, eğitim verisinin hiç kısıtlamadığı bir bölgeden çekilmiş kendinden emin bir tahmindir. "İptal cezaları ücretin bir yüzdesidir" geneldir. "2026-Q3 kısa menzil CLASSIC sayfasında K booking class için EUR 90" ise bir bilginin olabileceği kadar spesifiktir ve ölçeği ne kadar büyütürsen büyüt bu çizginin öbür tarafına geçmez — daha büyük bir model sorunun herkese açık kısmındaki olasılıkları değiştirir, özel kısmına hiç dokunmaz. [Kurulum sayfasındaki](/tr/modules/00-setup/) beş modelli karşılaştırma tam olarak bunu ölçüyor, üstelik önemli olduğu koşulda: context'te zaten bir doküman varken.
 
-Çekilmeler genelde hak ettiğinden az ilgi görüyor. Reddetme davranışı büyük ölçüde eğitilmiş bir davranış: instruction tuning, özel veya çabuk değişen bir bilginin sorgulanması *biçimindeki* sorularda "bilmiyorum" demeyi ödüllendiriyor. Yani elindeki sinyal sorunun *biçimiyle* ilişkili, modelin o bilgiye gerçekten sahip olup olmadığıyla değil. Uçuş saati sor, eğitilmiş ret devreye girer. Politika yüzdesi sor, girmez, çünkü o biçim cevaplanabilir görünüyor. Prompt ile çizgiyi oynatabilirsin — "sadece verilen context'ten cevapla" gibi sert bir talimat çekilme oranını gözle görülür artırır — ama yaptığın şey bir prior'ı ayarlamak, bir bilgi kontrolü kurmak değil.
-
-Güven sorusunun dürüst hali şu: token seviyesindeki log probability'ler ucuz ve zayıf ama sıfır olmayan bir sinyal — uydurulmuş bir rakam çoğu zaman ezberlenmiş bir rakamdan daha düşük token olasılığıyla çıkar. Yolcuya gidecek bir cevabı bu eşiğe bağlayacak kadar güvenilir değil ve en çok yakalamak istediğin akıcı uydurmalarda en çok başarısız oluyor. Self-consistency — aynı soruyu temperature 0.7 ile beş kez sor, rakam oynuyor mu bak — daha iyi yakalıyor ve beş katı maliyetli. Bugün ikisini de kullanmıyoruz, çünkü cevabı bulunmuş bir dokümana dayamak hem daha ucuz hem de denetlenebilir; bir havayolunun ihtiyacı olan da denetlenebilirlik.
-
-Model seçimi burada seni kurtarmıyor. Hangi yerel modelle üretim yaptığın ileride, context'te okunacak bir doküman olduğunda önem kazanmaya başlıyor — o karşılaştırmanın ölçüldüğü yer modül 4. Listedeki hiçbir modelin yapamayacağı şey ise şu: bu çeyrekte CLASSIC K cezasının EUR 90, geçen çeyrekte EUR 120 olduğunu bilmek. Çünkü o bilgi bir dosyada duruyor, kimsenin ağırlıklarında değil. Daha büyük bir modele uzanmak sorunun herkese açık kısmındaki olasılıkları değiştirir, özel kısmına hiç dokunmaz.
-
-On milyon dokümanda bunların hiçbiri değişmiyor; etrafındaki aritmetik değişiyor. O ölçekte çeyreklik bir kural değişikliğini ağırlıklara fine-tune ile işlemezsin, ilgili kuralları şansa bakıp prompt'a da sığdıramazsın. Ölçeklenen şey sıkıcı olan: hangi dokümandan ve hangi yürürlük tarihinden cevapladığını söyleyebilen bir retrieval katmanı, bir de bunun ne zaman bozulduğunu sana haber veren bir değerlendirme seti. Günün bir framework'ün değil 20 soruluk bir gold set'in etrafına kurulmasının sebebi bu.
+Retler genelde hak ettiğinden az ilgi görüyor. Reddetme, büyük ölçüde eğitimle kazandırılmış bir davranış: instruction tuning, özel veya çabuk değişen bir bilginin sorgulanması biçimindeki sorularda "bilmiyorum" demeyi ödüllendiriyor. Yani sinyal sorunun *biçimini* takip ediyor, modelin o bilgiye sahip olup olmadığını değil — `q1`'in reddedip, ifadesi değiştirilmiş `q1`'in lira aralığı üretmesinin sebebi de bu. Prompt ile çizgiyi oynatabilirsin, ama yaptığın şey bir prior'ı ayarlamak, bir bilgi kontrolü kurmak değil. Bunun yerine cevabı bulunmuş bir dokümana dayıyoruz: hem rakam oynuyor mu diye modele beş kez sormaktan ucuz, hem de denetlenebilir — bir havayolunun ihtiyacı olan da denetlenebilirlik.
 
 ## Çıkış cümlesi
 

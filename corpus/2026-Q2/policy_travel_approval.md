@@ -1,4 +1,4 @@
-# HELIOS AIR — TRAVEL AUTHORISATION AND APPROVAL POLICY
+# KRAKEN AIR — TRAVEL AUTHORISATION AND APPROVAL POLICY
 ## Finance Shared Services / Procurement Governance
 
 Policy number: **HR-TRV-05**
@@ -6,7 +6,7 @@ Version: 4.7 — 2026-Q2 issue
 Effective: 2026-04-01
 Policy owner: Head of Financial Control
 Delegated authority framework: DOA-2026 (Delegation of Authority Schedule, rev. 3)
-Applies to: all travel requests raised against a Helios Air cost centre
+Applies to: all travel requests raised against a Kraken Air cost centre
 Read with: HR-TRV-04 (Corporate Travel Policy), HR-TRV-06 (Expense Reimbursement)
 
 ---
@@ -60,7 +60,7 @@ TR number.
 
 4.2 A change to a different calendar day requires a TR amendment approved by the cost centre
 holder. Only the fare difference is charged; **no change penalty and no cancellation penalty
-is applied to a Helios corporate fare cancelled or amended through the Corporate Travel
+is applied to a Kraken corporate fare cancelled or amended through the Corporate Travel
 Desk**, in any booking class, on any route band.
 
 4.3 Where the change is caused by the Company — a meeting moved, an operational recall, a
@@ -69,7 +69,7 @@ rather than asked.
 
 ### 5. OPERATIONAL RECALL AND DISRUPTION RECOVERY
 
-5.1 Where a traveller is recalled to duty, or is caught in a disruption to the Helios network
+5.1 Where a traveller is recalled to duty, or is caught in a disruption to the Kraken network
 and must be recovered, the Duty Manager (Operations Control, IST) has standing authority to
 authorise travel to the value of EUR 5,000 without a prior TR. The TR is raised within
 three working days and is approved retrospectively under 1.2.
@@ -93,9 +93,9 @@ directly to Internal Audit.
 
 ---
 
-*CONFIDENTIAL — HELIOS AIR INTERNAL. This policy is the property of Helios Air. It is issued
-for the use of Helios Air personnel only and may not be reproduced, forwarded outside the
+*CONFIDENTIAL — KRAKEN AIR INTERNAL. This policy is the property of Kraken Air. It is issued
+for the use of Kraken Air personnel only and may not be reproduced, forwarded outside the
 Company, or disclosed to any customer, agent or third party. Printed copies are uncontrolled.
 Page 3 of 6.*
 
-> Helios Air is a fictional carrier. This document is synthetic training material.
+> Kraken Air is a fictional carrier. This document is synthetic training material.

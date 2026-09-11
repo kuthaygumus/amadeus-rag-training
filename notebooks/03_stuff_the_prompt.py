@@ -1,8 +1,6 @@
 # %% [markdown]
 # # 03 · Just put the whole thing in the prompt
 #
-# > **Helios Air is a fictional airline.** Everything here is synthetic training material.
-#
 # The fine-tuned model knew last quarter's rules and could not tell us where it got them. Fine.
 # Skip the training entirely: paste the rule book into the question.
 #
@@ -57,6 +55,13 @@ print(f"model context window : {context_length:,} tokens" if context_length else
 print(f"our corpus           : ~{rough_tokens:,} tokens")
 print(f"                       {'FITS' if context_length and rough_tokens < context_length else 'check'}")
 
+# Advertised is not effective. Ollama serves a call at its own default window unless you ask for
+# one, and a default of 4,096 would quietly drop most of this prompt and answer confidently off
+# whatever was left. So every whole-corpus call below is *served* at a window we asked for, sized
+# from the estimate above rather than at the model's maximum: big enough to hold the prompt, small
+# enough not to reserve 32k of KV cache on a laptop that has not got it to spare.
+STUFFED_CTX = min(context_length, rough_tokens + 1024) if context_length else None
+
 # %% [markdown]
 # It fits, comfortably. So the honest version of this module is not "you will hit a wall".
 #
@@ -78,7 +83,8 @@ def ask_the_whole_corpus() -> list[dict]:
         start = time.time()
         answer = R.generate(
             f"SOURCES:\n{everything}\n\nQUESTION: {question}",
-            system="Answer only from the sources. Cite the source filename. Be brief.")
+            system="Answer only from the sources. Cite the source filename. Be brief.",
+            num_ctx=STUFFED_CTX)
         out.append({"language": language, "question": question, "answer": answer,
                     "seconds": round(time.time() - start, 1)})
     return out
@@ -119,6 +125,18 @@ print("short-haul CLASSIC K cancels for EUR 90; long-haul CLASSIC K cancels for 
 # Everyone expects less. A model handed twenty thousand tokens of mostly irrelevant text has more
 # plausible-looking wrong material to pick from — that is the standard argument for retrieval, and
 # it is repeated everywhere.
+#
+# **One black box, declared.** To compare "the whole book" against "a few short passages" we need
+# something that picks the passages. We have not built one — that is the entire second half of the
+# day. So the next cell borrows one, and this module deliberately does not explain it: not how it
+# cuts the documents up, not how it decides which pieces look relevant, not why the pieces it picks
+# are often the wrong ones. Modules 5, 6 and 7 build that machinery one failure at a time, and each
+# of those modules is worth more if you meet it as a question rather than as a recap.
+#
+# For the next twenty minutes it is a function that takes a question and hands back one, three or
+# five short passages. **Do not read the passage columns as a verdict on retrieval.** They are here
+# to give the last column something to be compared against, and the last column is what this module
+# is arguing about.
 
 # %%
 CASES = [
@@ -129,19 +147,29 @@ CASES = [
     ("CLASSIC short-haul, booking class K: no-show penalty in EUR?",      "180", ["90", "70"]),
     ("Under the CURRENT misconnect SOP, meal voucher value in EUR?",      "15",  ["10"]),
     ("Under the CURRENT misconnect SOP, hotel is offered after how many hours?", "6", ["8"]),
-    ("Flight H9 1487 IST-CDG: what is the NEW departure time?",           "11:20", ["08:35"]),
+    ("Flight XX 1487 IST-CDG: what is the NEW departure time?",           "11:20", ["08:35"]),
 ]
 
 if _cached.QUICK:                       # QUICK=1 halves the question set; the table says so
     CASES = CASES[:4]
 
+# ---------------------------------------------------------------------------- the black box --
+# Everything between these two rules is machinery this module does not explain. It exists only to
+# produce a "few short passages" condition for the table below. If you want it opened now rather
+# than in modules 5-7, it is `eval/chunking.py` and `eval/retrieval.py`; nothing in it is hidden,
+# it is only being kept closed.
 import chunking as C
 chunk_ids, chunk_texts, _ = C.chunk_corpus(docs, "structure-aware")
 chunks = dict(zip(chunk_ids, chunk_texts))
-# Embedding the chunks is the only model call outside the measurement itself, so a replay
+# Embedding the passages is the only model call outside the measurement itself, so a replay
 # skips it rather than needing Ollama to print numbers it already has.
 dense = None if _cached.USE_CACHED else R.DenseRetriever(chunk_ids, chunk_texts)
-top = lambda q, k: "\n\n".join(f"[SOURCE: {c.split('#')[0]}.md]\n{chunks[c]}" for c in dense.rank(q)[:k])
+
+def passages(question: str, n: int) -> str:
+    """`n` short passages that this black box thinks are relevant to `question`."""
+    return "\n\n".join(f"[SOURCE: {c.split('#')[0]}.md]\n{chunks[c]}"
+                       for c in dense.rank(question)[:n])
+# -------------------------------------------------------------------------- end of the box --
 
 # The whole-corpus condition runs first, and all of its questions run back to back. Ollama keeps
 # the processed prefix of the previous request, so eight questions against the same 79,309
@@ -152,9 +180,13 @@ top = lambda q, k: "\n\n".join(f"[SOURCE: {c.split('#')[0]}.md]\n{chunks[c]}" fo
 # This cell still pays one full prefill even though the cell above already sent the same corpus,
 # because the cached prefix starts at the system message and this one asks for a bare number
 # rather than a citation. Change any byte near the front of a prompt and the cache is gone.
-conditions = [("whole corpus", lambda q: everything), ("top-1 chunk", lambda q: top(q, 1)),
-              ("top-3 chunks", lambda q: top(q, 3)), ("top-5 chunks", lambda q: top(q, 5))]
+conditions = [("whole corpus", lambda q: everything), ("top-1 chunk", lambda q: passages(q, 1)),
+              ("top-3 chunks", lambda q: passages(q, 3)), ("top-5 chunks", lambda q: passages(q, 5))]
 COLUMNS = ["top-1 chunk", "top-3 chunks", "top-5 chunks", "whole corpus"]
+# The keys above are what `cached_runs.json` was recorded under and must not change. What the room
+# reads is this, which names no machinery it has not met yet.
+LABEL = {"top-1 chunk": "one passage", "top-3 chunks": "three passages",
+         "top-5 chunks": "five passages", "whole corpus": "the whole book"}
 
 def measure_context_sizes() -> dict:
     grid, seconds, answers = {}, {}, {}
@@ -164,13 +196,14 @@ def measure_context_sizes() -> dict:
         for q, right, wrong in CASES:
             a = R.generate(f"SOURCES:\n{build(q)}\n\nQUESTION: {q}",
                            system="Answer ONLY from the sources. Give the number. Be brief.",
-                           max_tokens=80)
+                           max_tokens=80,
+                           num_ctx=STUFFED_CTX if name == "whole corpus" else None)
             grid[name].append(bool(right in a and not any(w in a for w in wrong)))
             # Keep the text, not only the verdict: a claim about what the model said should be
             # something the room can read off the run rather than take on trust.
             answers[name].append(" ".join(a.split()))
         seconds[name] = time.time() - start
-        print(f"  {name:<14} {sum(grid[name])}/{len(CASES)} correct   {seconds[name]:>6.1f}s"
+        print(f"  {LABEL[name]:<16} {sum(grid[name])}/{len(CASES)} correct   {seconds[name]:>6.1f}s"
               f"   {seconds[name] / len(CASES):>5.1f}s per question", flush=True)
     return {"grid": grid, "seconds": seconds, "answers": answers,
             "questions": [q for q, _, _ in CASES],
@@ -179,28 +212,29 @@ def measure_context_sizes() -> dict:
 measured = _cached.run("03-context-size-vs-accuracy", measure_context_sizes,
                   note=f"{len(CASES)} questions x {len(conditions)} context sizes")
 
-print(f"\n{'question':<50}" + "".join(f"{n:>14}" for n in COLUMNS))
-print("-" * 106)
+print(f"\n{'question':<50}" + "".join(f"{LABEL[n]:>16}" for n in COLUMNS))
+print("-" * 114)
 for row, q in enumerate(measured["questions"]):
-    print(f"{q[:48]:<50}" + "".join(f"{'OK' if measured['grid'][n][row] else 'X':>14}" for n in COLUMNS))
-print("-" * 106)
+    print(f"{q[:48]:<50}" + "".join(f"{'OK' if measured['grid'][n][row] else 'X':>16}" for n in COLUMNS))
+print("-" * 114)
 n_cases = len(measured["questions"])
-print(f"{'correct':<50}" + "".join(f"{str(sum(measured['grid'][n])) + '/' + str(n_cases):>14}" for n in COLUMNS))
-print(f"{'characters of context':<50}" + "".join(f"{measured['chars'][n]:>14,}" for n in COLUMNS))
+print(f"{'correct':<50}" + "".join(f"{str(sum(measured['grid'][n])) + '/' + str(n_cases):>16}" for n in COLUMNS))
+print(f"{'characters of context':<50}" + "".join(f"{measured['chars'][n]:>16,}" for n in COLUMNS))
 print(f"{'seconds for all ' + str(n_cases) + ' questions':<50}" +
-      "".join(f"{measured['seconds'][n]:>14.1f}" for n in COLUMNS))
+      "".join(f"{measured['seconds'][n]:>16.1f}" for n in COLUMNS))
 print(f"\n  {sum(measured['seconds'].values()):.0f} seconds of model time for this table, "
       f"{measured['seconds']['whole corpus']:.0f} of it in the whole-corpus column alone.")
 
 # %% [markdown]
 # ## More context answered better, not worse
 #
-# Monotonic, in the direction opposite to the folklore. On this corpus, with this model, there is
-# no distractor penalty to find.
+# Non-decreasing, in the direction opposite to the folklore. On this corpus, with this model, there
+# is no distractor penalty to find. Read the character counts on the same table: the passage columns
+# are two to three orders of magnitude smaller, and one of them is a single short passage that often
+# does not contain the answer at all, so part of the low end is a *recall* problem rather than a
+# reading problem. That is the black box's fault, and the black box is not on trial today.
 #
-# Part of the low end is a recall problem rather than a reading problem — a single 239-character
-# chunk often does not contain the answer at all. But the comparison that matters is top-5 against
-# everything, and everything still wins.
+# The comparison that matters is five passages against everything, and everything still wins.
 #
 # So be careful with the argument you make here. **Retrieval does not earn its place on this corpus
 # by making answers better.** If we told the room it did, someone would run this cell and catch us.
@@ -214,7 +248,7 @@ row = 1 if len(measured["questions"]) > 1 else 0
 print(measured["questions"][row], "  (correct: EUR 70)\n")
 for name in COLUMNS:
     verdict = "OK " if measured["grid"][name][row] else "X  "
-    print(f"  {verdict} {name:<14} {measured['answers'][name][row][:110]}")
+    print(f"  {verdict} {LABEL[name]:<16} {measured['answers'][name][row][:110]}")
 
 # %% [markdown]
 # The wrong answers are not noise. Every one of them is a real cell from this corpus. `EUR 155`
@@ -224,23 +258,14 @@ for name in COLUMNS:
 # does not invent numbers. It reads a real cell from the wrong row, the wrong column, or the
 # wrong document, and reports it in the same confident voice as a right one.
 #
-# Those three are not the same failure, and on this one question you can see two of them.
+# That is a **generation** failure whenever the right sheet was in front of it, and it is not one
+# a better search fixes. When the right sheet was never handed over at all, the same wrong number
+# has a different cause and better search does fix it. Two causes, one symptom — and telling them
+# apart needs the machinery we have kept in the box, so park the question here and pick it up in
+# module 7, which is built on exactly this failure.
 #
-# Reading a cell from the wrong *row* or the wrong *column* is a **generation** failure: the
-# right document was in front of the model and it took the wrong cell. Better search does not
-# fix that.
-#
-# Reading from the wrong *document* can be either, and which one it is depends on the condition.
-# For **top-3**, the structure-aware chunks retrieved are `fare_classic_shorthaul#1`,
-# `fare_lite_longhaul#2` and `fare_classic_longhaul#2` — the chunk holding the short-haul table
-# is not among them, so `EUR 155` there is a retrieval failure and better search fixes it. For
-# **top-5**, `fare_classic_shorthaul#4` *is* retrieved: that is the chunk carrying the column
-# header and the K row, the model had the right cell in front of it, and it still answered
-# `EUR 155` off the long-haul sheet. Same wrong number, different cause.
-#
-# So do not reach for one slogan here. Retrieval decides which documents are readable; it does
-# not decide which one gets read. And nothing measured in this course scores the second step —
-# every metric in the day is a retrieval metric.
+# One thing worth carrying out of this cell either way: nothing measured in this course scores
+# whether the answer was right. Every metric in the day is a retrieval metric.
 
 # %% [markdown]
 # ## So why not just stuff the prompt?
@@ -249,11 +274,14 @@ for name in COLUMNS:
 
 # %%
 top5_chars = measured["chars"]["top-5 chunks"]
-print(f"  whole corpus : {len(everything):>7,} chars  ~{len(everything)//3:>6,} tokens")
-print(f"  top-5 chunks : {top5_chars:>7,} chars  ~{top5_chars//3:>6,} tokens")
-print(f"  ratio        : {len(everything)/top5_chars:>7.0f}x")
+print(f"  the whole book : {len(everything):>7,} chars  ~{len(everything)//3:>6,} tokens")
+print(f"  five passages  : {top5_chars:>7,} chars  ~{top5_chars//3:>6,} tokens")
+print(f"  ratio          : {len(everything)/top5_chars:>7.0f}x")
 
 # %% [markdown]
+# Both character counts are measured on the **first** of the eight questions, not averaged across
+# them, so the ratio is one question's ratio rather than a constant of the corpus.
+#
 # **One — the tokens.** Thirty-seven times as many per question, on the question above. On a hosted
 # API that is the invoice, directly. Locally it is memory, and it is per concurrent user, which is
 # what a call centre is.

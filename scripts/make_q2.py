@@ -26,6 +26,10 @@ Two kinds of difference, kept apart on purpose:
 
 Reads  corpus/2026-Q3/
 Writes corpus/2026-Q2/  and  corpus/DELTA.md
+
+This one writes. `corpus/2026-Q2/` is deleted and rebuilt in full on every run, so anything
+hand-edited in there is gone. That is the point — the folder is output, not source — but it
+means the script is not the read-only check the other pre-work commands are.
 """
 
 from __future__ import annotations
@@ -98,7 +102,7 @@ SENTINEL = "\x00SUPERSEDES\x00"
 def previous_edition(identifier: str) -> str:
     """One edition back: the quarter drops by one, and so does the sequence number if there is one.
 
-    `FR-CL-SH-2026Q2-013` -> `FR-CL-SH-2026Q1-012`, `IATA-INT-H9-AU-2026-Q2` -> `...-2026-Q1`.
+    `FR-CL-SH-2026Q2-013` -> `FR-CL-SH-2026Q1-012`, `IATA-INT-XX-YY-2026-Q2` -> `...-2026-Q1`.
     """
     out = QUARTER.sub(lambda m: f"{m.group(1)}{int(m.group(2)) - 1}", identifier)
     match = SEQUENCE.search(out)
