@@ -12,7 +12,7 @@ Günün nerede durduğu konusunda dürüst ol. Modül 3, kural kitabını ağır
 Tek bir eksende kazanıyor ve o eksen zaman. **Fine-tune edilmiş bir model, dokümanların onu eğittiğin gün ne dediğini bilir. Bir RAG pipeline'ı şu an ne dediklerini bilir.** Bu modül o cümleyi dört request'e ve iki sayıya çeviriyor.
 
 <div class="presenter-note">
-On dört dakika; dört request yaklaşık dördü. Request 1'den önce el kaldırt: "Hâlâ fine-tuning daha basit tasarım olurdu diyen var mı?" — birkaç el kalkar ve "daha basit" konusunda haksız değiller; onları sondaki tablo için sakla. Ollama kapalıysa: bu sayfayı oku, iki sayı da üzerinde; DELTA diff'i de hiçbir model gerekmeden projektörde açabileceğin bir dosya.
+Yirmi beş dakika; dört request yaklaşık dördü, karşılaştırma tablosu gerisini alır. Request 1'den önce el kaldırt: "Hâlâ fine-tuning daha basit tasarım olurdu diyen var mı?" — birkaç el kalkar ve "daha basit" konusunda haksız değiller; onları sondaki tablo için sakla. Ollama kapalıysa: bu sayfayı oku, iki sayı da üzerinde; DELTA diff'i de hiçbir model gerekmeden projektörde açabileceğin bir dosya.
 </div>
 
 ## İki edition, tek satır

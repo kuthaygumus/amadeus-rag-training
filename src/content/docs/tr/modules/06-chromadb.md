@@ -160,7 +160,7 @@ pointer'ı geri getirir — 409 mesajının özür dilemek yerine Bruno klasör 
   `podman compose logs chroma`. İsteğe bağlı: 409 için `podman compose restart api`.
 - **Bruno — `02-ingest` › `peek-chunks`** — `GET /chunks?source=fare_classic_shorthaul&limit=20`.
   `collection`, `total`, `returned`'ı oku; sonra `chunks[].text` içinde `| K |` ile başlığı ara.
-- **Ne kadar sürüyor:** on iki dakika, hiçbiri model beklemek değil. Bu modüldeki tek yavaş çağrı
+- **Ne kadar sürüyor:** yirmi dakika, hiçbiri model beklemek değil. Bu modüldeki tek yavaş çağrı
   restart sonrası yeniden ingest ve o da isteğe bağlı.
 - **`curl` connection refused diyorsa:** container ayakta değil ya da 8000 dolu —
   `podman compose logs chroma`; macOS'te `podman machine`'in başlatıldığına bak. `410 Gone`
@@ -188,7 +188,7 @@ cevabı olmayı sürdürür; üstünde ilk soru hangi vector database olduğu de
 join).
 
 <div class="presenter-note">
-Zamanlama: on iki dakika — iki dakika liste-veritabanı tartışması, üç dakika Podman Desktop ve
+Zamanlama: yirmi dakika, on ikisi burada yazılı, kalanı salonun kendi tıklaması — iki dakika liste-veritabanı tartışması, üç dakika Podman Desktop ve
 Windows kontrolü, iki dakika terminal (iki kez söylenecek tek satır <code>v2</code>), dört dakika
 sessizlik dahil peek-chunks, bir dakika restart. Canlı request'lerin toplamı bir dakikanın altında.
 <br /><br />

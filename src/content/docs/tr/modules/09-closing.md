@@ -122,7 +122,7 @@ ekleyeceğinle birlikte [Daha İleri](/tr/reference/going-further/) sayfasında 
 soru artık senin sorun olmaktan çıktığında oku.
 
 <div class="presenter-note">
-Gün 15:00'te kapanıyor ve bu blok onun son on beş dakikası. EUR 90 cümlesiyle bitir, sonra çıkış
+Gün 15:00'te kapanıyor ve bu blok onun son yirmi dakikası, ardından beş dakikalık tampon. EUR 90 cümlesiyle bitir, sonra çıkış
 cümlesi, sonra konuşmayı kes — arkasına özet slaytı yok. Kesmeden önce tek bir el kaldırma:
 "Pazartesi <code>podman compose up</code> çalıştıracak olan?" Say ve sayıyı salona geri söyle;
 elindeki tek kalıcılık metriği bu. Repo linki ve daha-ileri sayfası toplanırlarken ekranda olsun,

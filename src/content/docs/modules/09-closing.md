@@ -121,7 +121,7 @@ would add to `src/pipeline.ts` to try each, in [Going Further](/reference/going-
 when the one-document question stops being the question you have.
 
 <div class="presenter-note">
-The day closes at 15:00 and this block is the last fifteen minutes of it. End on the EUR 90
+The day closes at 15:00 and this block is the last twenty minutes of it, before a five-minute buffer. End on the EUR 90
 sentence, then the exit line, then stop talking — no summary slide after it. Before you stop, one
 show of hands: "who will run <code>podman compose up</code> on Monday?" Count it and say the count
 back; it is the only retention metric you get. The repo link and the going-further page go on the

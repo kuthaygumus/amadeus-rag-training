@@ -14,7 +14,7 @@ When this course was first pitched, a Principal Engineer listened to the fine-tu
 Open `corpus/DELTA.md`. Q2 to Q3 is seven documents that did not exist last quarter, three routine policy reissues, one SOP flipped from Current to Superseded, and one changed table row. Twenty-one documents became twenty-eight. One number moved from 120 to 90, and the whole model is wrong about it.
 
 <div class="presenter-note">
-Twelve minutes, of which the live request is two — the rest is the wait, and the wait is the content. Open with the Principal Engineer's sentence on the projector and nothing else; let the room read it before you speak. Then a show of hands on two moves: "retrain every quarter, or put the whole book in every prompt?" Count both camps out loud. Most rooms split; a few say "both are obviously wrong", and those people should be asked to hold their answer until the end of the module, because they are right for a reason they cannot yet name.
+Fifteen minutes, of which the live request is two — the rest is the wait, and the wait is the content. Open with the Principal Engineer's sentence on the projector and nothing else; let the room read it before you speak. Then a show of hands on two moves: "retrain every quarter, or put the whole book in every prompt?" Count both camps out loud. Most rooms split; a few say "both are obviously wrong", and those people should be asked to hold their answer until the end of the module, because they are right for a reason they cannot yet name.
 </div>
 
 ## Move (a): retrain every quarter

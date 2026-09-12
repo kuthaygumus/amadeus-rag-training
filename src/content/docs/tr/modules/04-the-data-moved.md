@@ -14,7 +14,7 @@ Bu eğitim ilk anlatıldığında bir Principal Engineer fine-tuning planını d
 `corpus/DELTA.md`'yi aç. Q2'den Q3'e: geçen çeyrek var olmayan yedi doküman, üç rutin policy reissue'su, Current'tan Superseded'a çevrilmiş bir SOP ve değişen tek bir tablo satırı. Yirmi bir doküman yirmi sekiz oldu. Tek bir sayı 120'den 90'a kaydı ve model o konuda bütünüyle yanlış.
 
 <div class="presenter-note">
-On iki dakika, bunun iki dakikası canlı request — geri kalanı bekleme ve bekleme içeriğin kendisi. Projektöre yalnızca Principal Engineer'ın cümlesini koy, başka hiçbir şey koyma; konuşmadan önce salon okusun. Sonra iki hamle için el kaldırt: "her çeyrek retrain mi, her prompt'a kitabın tamamı mı?" İki tarafı da sesli say. Salonların çoğu bölünür; birkaç kişi "ikisi de bariz yanlış" der — onlara cevaplarını modülün sonuna kadar saklamalarını söyle, çünkü henüz adını koyamadıkları bir sebeple haklılar.
+On beş dakika, bunun iki dakikası canlı request — geri kalanı bekleme ve bekleme içeriğin kendisi. Projektöre yalnızca Principal Engineer'ın cümlesini koy, başka hiçbir şey koyma; konuşmadan önce salon okusun. Sonra iki hamle için el kaldırt: "her çeyrek retrain mi, her prompt'a kitabın tamamı mı?" İki tarafı da sesli say. Salonların çoğu bölünür; birkaç kişi "ikisi de bariz yanlış" der — onlara cevaplarını modülün sonuna kadar saklamalarını söyle, çünkü henüz adını koyamadıkları bir sebeple haklılar.
 </div>
 
 ## Hamle (a): her çeyrek retrain et

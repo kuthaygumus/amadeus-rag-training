@@ -18,7 +18,7 @@ generation — ve tamamı `amadeus-rag-lab` içinde `src/pipeline.ts` dosyasınd
 **bir RAG pipeline'ının ne yaptığını slayttan değil, bir HTTP response'undan okuyacaksın.**
 
 <div class="presenter-note">
-Yirmi beş dakika ayır; bunun yaklaşık dördü üç canlı request. Kimse tıklamadan önce: "Elinde 28
+Kırk dakika ayır; bunun yaklaşık dördü üç canlı request, geri kalanı salonun kendi laptopunda cevapları okuması. Kimse tıklamadan önce: "Elinde 28
 doküman ve bir soru var. Gönderilecek üç tanesini tek satırda nasıl seçersin?" İki cevap al. Biri
 "kelimeleri arayarak" diyecek — o kişi on dakika sonra çürüteceğin paragrafı yazmış oldu; bunu söyle.
 Laptoplar bu kısımda hâlâ kapalı, üç dakika.

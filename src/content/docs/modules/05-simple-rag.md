@@ -18,7 +18,7 @@ generation — and the whole thing is two functions in `src/pipeline.ts` of `ama
 **you are going to read what a RAG pipeline does off an HTTP response, not off a slide.**
 
 <div class="presenter-note">
-Budget twenty-five minutes, of which the three live requests are about four. Before anyone clicks:
+Budget forty minutes, of which the three live requests are about four and the rest is the room reading responses on its own laptops. Before anyone clicks:
 "You have 28 documents and a question. In one line, how would you pick the three to send?" Take two
 answers. Somebody says "search for the keywords" — that person wrote the paragraph you will contradict
 in ten minutes; say so. Laptops still closed for this, three minutes.

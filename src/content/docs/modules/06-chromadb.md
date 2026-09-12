@@ -164,7 +164,7 @@ about which one is *current* was. One `/ingest` call brings the pointer back —
   `podman compose logs chroma`. Optional: `podman compose restart api` for the 409.
 - **Bruno — `02-ingest` › `peek-chunks`** — `GET /chunks?source=fare_classic_shorthaul&limit=20`.
   Read `collection`, `total`, `returned`, then hunt for `| K |` and the header in `chunks[].text`.
-- **How long:** twelve minutes, none of it waiting on a model. The only slow call in this module is
+- **How long:** twenty minutes, none of it waiting on a model. The only slow call in this module is
   the re-ingest after a restart, and that is optional.
 - **If `curl` says connection refused:** the container is not up or 8000 is taken —
   `podman compose logs chroma`, and on macOS check `podman machine` is started. If it answers
@@ -192,7 +192,7 @@ above that, the first question is whether you already run Postgres (`pgvector`: 
 one transaction boundary, a join to the business columns) before it is which vector database.
 
 <div class="presenter-note">
-Timing: twelve minutes — two on the list-versus-database argument, three on Podman Desktop and the
+Timing: twenty minutes, twelve of them scripted here and the rest the room's own clicking — two on the list-versus-database argument, three on Podman Desktop and the
 Windows check, two on the terminal (the <code>v2</code> line is the only one to say twice), four on
 peek-chunks including the silence, one on the restart. The live requests total under a minute.
 <br /><br />

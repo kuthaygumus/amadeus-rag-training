@@ -12,7 +12,7 @@ Be honest about where the day stands. Module 3 showed a model that had the rule 
 It wins on one axis, and the axis is time. **A fine-tuned model knows what the documents said on the day you trained it. A RAG pipeline knows what they say now.** This module makes that sentence into four requests and two numbers.
 
 <div class="presenter-note">
-Fourteen minutes, of which the four requests are about four. Before request 1, ask for hands: "Who still thinks fine-tuning would have been the simpler design?" — a few will, and they are not wrong about simpler; keep them for the table at the end. Ollama down: read this page, the two numbers are on it, and the DELTA diff is a file you can open on the projector without any model.
+Twenty-five minutes, of which the four requests are about four; the comparison table takes the rest. Before request 1, ask for hands: "Who still thinks fine-tuning would have been the simpler design?" — a few will, and they are not wrong about simpler; keep them for the table at the end. Ollama down: read this page, the two numbers are on it, and the DELTA diff is a file you can open on the projector without any model.
 </div>
 
 ## Two editions, one row
