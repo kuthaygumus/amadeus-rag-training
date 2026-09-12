@@ -1,6 +1,6 @@
 ---
 title: RAG Eğitim Günü
-description: Kilitli bir kurumsal laptopta tamamen çevrimdışı çalışan, ölçüme dayalı bir günlük RAG eğitimi.
+description: Her kavramın onu gerektiren başarısızlıkla tanıtıldığı bir günlük RAG eğitimi. Tamamen yerel çalışır — Ollama, Podman, Bruno.
 template: splash
 hero:
   tagline: Her kavram, yerini bir öncekini kırarak hak eder.
@@ -8,8 +8,8 @@ hero:
     - text: Kurulum — buradan başla
       link: /tr/modules/00-setup/
       icon: right-arrow
-    - text: GitHub
-      link: https://github.com/kuthaygumus/amadeus-rag-training
+    - text: Lab reposu
+      link: https://github.com/kuthaygumus/amadeus-rag-lab
       icon: external
       variant: minimal
 ---
@@ -22,72 +22,73 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
 > production verisi kullanılmamıştır. Sitenin tam metni budur; diğer her sayfa kısa hatırlatmayı
 > footer'ında taşır.
 
+## Kurulacak üç şey — günden önce
+
+Pratik kısmın tamamı klonladığın küçük bir repo, başlattığın iki container ve tıklayarak
+ilerlediğin bir istek koleksiyonundan ibaret. Bu üçünü evde, yirmi kişiyle paylaşmadığın bir
+bağlantıda kur; oradayken iki modeli de indir:
+
+| | Neden | Nereden |
+|---|---|---|
+| **Ollama** | iki modeli laptopunda çalıştırır — makineden hiçbir şey çıkmaz | [ollama.com/download](https://ollama.com/download) |
+| **Podman Desktop** | ChromaDB'yi ve lab'ın API'sini container olarak çalıştırır | [podman-desktop.io](https://podman-desktop.io) |
+| **Bruno** | günün handout'u olan istek koleksiyonu | [usebruno.com/downloads](https://www.usebruno.com/downloads) |
+
+API key yok, bulut hesabı yok, giriş yok, Python yok. [Kurulum](/tr/modules/00-setup/) her adımı
+yürütür ve `ready` diyen tek bir istekle biter.
+
 ## Bu eğitimin kurulu olduğu kural
 
-Hiçbir kavram, **onu gerektiren başarısızlık görülmeden** tanıtılmaz. On bir modülün onu, bir
-öncekinin ölçülmüş duvarında açılır; modül 2 tek ilan edilmiş istisna ve bunu kendi sayfasında
-söylüyor — sonraki üç gate'in harcadığı tek bir cümleyi kazanmak için var.
+Hiçbir kavram, **onu gerektiren başarısızlık görülmeden** tanıtılmaz. Her modül bir öncekinin
+duvarında açılır; modül 2 tek ilan edilmiş istisna ve bunu kendi sayfasında söylüyor — sonraki üç
+gate'in harcadığı tek bir cümleyi kazanmak için var.
 
-**çıplak LLM** → *bir ceza uyduruyor, sonra aynı sesle cevaptan kaçınıyor* → **ağırlık nedir** →
-*ağırlık, donmuş bir fotoğraftır* → **fine-tuning** → *fotoğraf geçen çeyreğin ve hiçbir kaynak
-gösteremiyor* → **prompt'a doldur** → *sığıyor, ama her soruda tüm kitabın bedelini ödüyorsun* →
-**keyword arama** → *İngilizce dokümanlara sorulan altı Türkçe soruda hit@1 0.000* → **naive RAG**
-→ *28 bütün doküman üzerinde hit@1 0.600* → **doğru embedder** → *ChromaDB'nin varsayılanı o
-altıdan hiçbirini bulamıyor, `bge-m3` ikisini buluyor, bütün dokümanlar hâlâ 0.600'de* →
-**structure-aware chunking** → *hit@1 0.700, ama process'le birlikte ölen bir Python listesinin
-içinde* → **ChromaDB** → *depolama çözüldü, 0.700 çözülmedi* → **hybrid + rerank** → *fusion
-kaybediyor, reranker sadece düzlüyor ve `multi_hop` hâlâ 0.000* → **agentic RAG**.
-
-Oradaki her fark 0.05 ya da katı — yirmi soruda bir soru. Rakamı değil, yönü oku.
+**çıplak LLM** → *havayolumuz hakkında kendinden emin, kaynaksız cevap veriyor — ve yanlış* →
+**ağırlık nedir** → *ağırlık, eğitim verisinin donmuş bir fotoğrafıdır* → **fine-tuning** →
+*fotoğrafı kendi verimizle yeniden çekebiliriz — ama geçen çeyreğin fotoğrafı ve kaynak
+gösteremiyor* → **veri değişti** → *kural kitabının tamamını prompt'a koy: sığıyor, ve her
+soruda bütün kitabın bedelini token ve saniye olarak ödüyorsun* → **basit RAG** → *doğru parçayı
+ver: cevap artık temellendirilmiş — şimdi gerçekte ne getirildiğine bak* → **ChromaDB** →
+*chunk'lar görünür oldu ve rakamı taşıyan chunk başlığını kaybetmiş* → **chunking ve gürültü** →
+*dokümanın kendi yapısından kes: aynı model, aynı store, doğru cevap* → **güncellik** → *geçen
+çeyreğin ve bu çeyreğin edisyonunu yeniden ingest et: yeniden eğitim olmadan 120 → 90* →
+**kapanış**.
 
 <CardGrid>
-  <Card title="Çevrimdışı çalışır" icon="laptop">
-    API key yok, cloud hesabı yok, giriş yok. Generation da embedding de kendi makinende,
-    Ollama üzerinden lokal koşar.
+  <Card title="Yerel çalışır" icon="laptop">
+    Üretim ve embedding kendi makinende Ollama üzerinden çalışır; ChromaDB ve API yanında iki
+    container'da. Ofis ağı hiçbir zaman kritik yolda değil.
   </Card>
-  <Card title="İddia değil, ölçüm" icon="approve-check">
-    Aynı 20 gold soru gün içinde dört kez geri geliyor — modül 5, 6, 7 ve 9'da — ve `hit@1`,
-    `recall@5`, `MRR` ile ölçülüyor. Sayının kıpırdadığını kendi gözünle görürsün.
+  <Card title="Her aşamayı görürsün" icon="magnifier">
+    Her istek pipeline'ın ne yaptığını döner: aşama başına ingest süreleri, store'da duran
+    hâliyle chunk'lar, retrieval skorları ve modelin aldığı prompt'un kendisi.
   </Card>
-  <Card title="Çalışmayanı da gösterir" icon="warning">
-    Blog yazılarını yalanlayan sonuçlar dahil: iki retriever'ı birleştirmek her zaman tek
-    başına olandan iyi değil ve iyi olmadığı koşuyu kendin görüyorsun.
+  <Card title="Tek soru, bütün gün" icon="approve-check">
+    Aynı iptal cezası sorusu her gate'te soruluyor. Cevabın uydurmadan temellendirilmiş-ama-
+    yanlışa, doğruya, bu çeyrek için doğruya gidişini izliyorsun.
   </Card>
-  <Card title="Çalışır hâlde ayrılırsın" icon="rocket">
-    Her notebook ve her exercise makinende kalır ve pazartesi sabahı, internetsiz hâlâ çalışır.
+  <Card title="Çalışır hâlde götürüyorsun" icon="rocket">
+    Repo, container'lar ve Bruno koleksiyonu laptopunda kalır; pazartesi sabahı ağ olmadan da
+    çalışır.
   </Card>
 </CardGrid>
 
 ## Gün nasıl işliyor
 
-Tam olarak iki yüzey var ve ikisinin de çıpası repo kökü. **Repo kökündeki bir terminal** —
-`corpus/`, `notebooks/`, `eval/` ve `exercises/` klasörlerini barındıran dizin — her `ollama …`
-komutunu ve `python scripts/…`, `python exercises/…`, `python eval/…` diye yazılmış her şeyi
-koşturur. **Açık klasörü aynı repo kökü olan VS Code** ise dokuz notebook'u koşturur: `notebooks/`
-altındaki percent-format `.py` dosyaları, imleci bir `# %%` bloğuna koyup `Shift+Enter`'a
-basıyorsun. Jupyter sunucusu yok, tarayıcıda notebook yok, cloud konsolu yok.
-[Kurulum](/tr/modules/00-setup/) ikisini de baştan sona anlatıyor; tek bağımlılık `numpy` ve
-`chromadb`.
+Teori modülleri — sinir ağı nasıl öğrenir, model nasıl eğitilir ve fine-tune edilir — eğitmen
+tarafından projektörden sürülür; bunlar için laptopunda çalıştıracağın bir şey yok. Pratik
+modüller seni **Bruno**'ya gönderir: sayfa bir klasör ve bir istek adı verir, sen çalıştırırsın,
+cevap dersin kendisidir. Her isteğin *Docs* sekmesinde gate sorusu ve cevapta neye bakacağın yazar.
 
-Kurulum, akşamdan evde yapılan ön hazırlık. Salonda gün 09:10'da, herkesin aynı anda
-`verify_setup.py` koştuğu on dakikayla açılıyor; modül 1 ise soğuk bir modelle başlıyor.
+Tam olarak üç yüzey var ve bu sitedeki her komut bloğu hangisine ait olduğunu söyler: **Bruno**
+(`amadeus-rag-lab` koleksiyonunda bir klasör ve bir istek), **`amadeus-rag-lab` repo kökünde bir
+terminal** (`ollama …`, `podman …` ve `curl …` için) ve **Podman Desktop** (iki container'ı
+görmek için). Retrieval kalite rakamları — yirmi altın soru üzerinde `hit@1`, `recall@5`, `MRR` —
+eğitmen tarafından `npm run eval` ile ölçülür ve önemli olduğu sayfalarda alıntılanır; salonda
+kimse benchmark çalıştırmaz.
 
-`UNVERIFIED: plan günü 09:00'da bitmiş agent'ın on dakikalık demosuyla açıyor. Bu sitedeki hiçbir sayfa o materyali taşımıyor, dolayısıyla yazılı hâliyle gün 09:10'da başlıyor.`
+Gün 7 Ekim 2026, 09:00–15:00. Kurulum ön çalışmadır, bir gece önce evde yapılır.
 
-Günün üç sonucu inşa edilen değil **koşulan** şeyler; bu yüzden `exercises/` altında, her biri tek
-bir terminal komutu olarak duruyorlar:
-
-| Modül | Komut | Yaklaşık |
-|---|---|---|
-| 6 — varsayılan embedder senin dilin için doğru mu? | `python exercises/m6_embedding_bakeoff.py` | ~18 sn |
-| 7 — retrieval neden çöp getirdi? | `python exercises/m7_chunking_ladder.py` | ~50 sn |
-| 9 — reranker ne zaman kendini ödüyor? | `python exercises/m9_rerank_trade.py` | ~4 dk |
-
-M-serisi Mac, modeller zaten bellekte; yalnızca CPU'lu bir laptopta belirgin biçimde uzuyor. Bu
-ayrımın arkasındaki kural:
-
-> **Ölçümse** tek bir komut koşarsın ve sayıları karşılaştırırız.
-> **Mekanizmaysa** hücre hücre birlikte kurarız.
-
-[Kurulum](/tr/modules/00-setup/) ile başla; günde geçen her terim
-[sözlükte](/tr/reference/glossary/) bir kez tanımlı.
+[Kurulum](/tr/modules/00-setup/)'dan başla; günün kullandığı her terim
+[sözlük](/tr/reference/glossary/)'te bir kez tanımlı, günün bilinçli olarak dışarıda bıraktıkları
+— hybrid retrieval, reranking, agentic RAG — [Daha ileri](/tr/reference/going-further/)'de.

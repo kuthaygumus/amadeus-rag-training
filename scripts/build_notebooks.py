@@ -9,16 +9,12 @@ cells. Shipping both means the day never depends on a notebook environment being
 
     python scripts/build_notebooks.py
 
-Reads  notebooks/*.py   (files whose name starts with `_` are helper modules, not notebooks,
-                         and are skipped: `_preflight.py`, `_cached.py`)
+Reads  notebooks/*.py   (percent-format sources)
 Writes notebooks/*.ipynb
 
-Every generated code cell carries an empty `outputs` list, and that is deliberate rather than
-an oversight. A committed recording of a run cannot live here, because this script regenerates
-all of them from the .py sources every time it runs, and executing a notebook to capture
-outputs would need nbclient, which is not in requirements.txt and is not going to be. The
-recorded run that the module pages fall back to lives in `notebooks/cached_runs.json` instead;
-`notebooks/_cached.py` documents how to record it and how to replay it.
+Every generated code cell carries an empty `outputs` list, on purpose: this script regenerates
+all of them from the .py sources every time it runs. The two notebooks are trainer demos opened
+in Colab; edit the .py, never the .ipynb.
 """
 
 from __future__ import annotations

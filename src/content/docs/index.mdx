@@ -1,6 +1,6 @@
 ---
 title: RAG Training Day
-description: A one-day, measurement-driven RAG course that runs fully offline on a locked-down corporate laptop.
+description: A one-day RAG course where every concept is introduced by the failure that requires it. Runs fully local — Ollama, Podman, Bruno.
 template: splash
 hero:
   tagline: Every concept earns its place by breaking the one before it.
@@ -8,8 +8,8 @@ hero:
     - text: Setup — start here
       link: /modules/00-setup/
       icon: right-arrow
-    - text: GitHub
-      link: https://github.com/kuthaygumus/amadeus-rag-training
+    - text: The lab repository
+      link: https://github.com/kuthaygumus/amadeus-rag-lab
       icon: external
       variant: minimal
 ---
@@ -22,73 +22,72 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
 > anywhere in this repository. This is the site's full statement; every other page carries the
 > short reminder in its footer.
 
+## Three things to install — before the day
+
+The whole practical part runs from one small repository you clone, two containers you start, and
+a request collection you click through. Install these three at home, on a connection you are not
+sharing with twenty other people, and pull the two models while you are there:
+
+| | Why | Get it |
+|---|---|---|
+| **Ollama** | runs the two models on your laptop — nothing leaves the machine | [ollama.com/download](https://ollama.com/download) |
+| **Podman Desktop** | runs ChromaDB and the lab's API as containers | [podman-desktop.io](https://podman-desktop.io) |
+| **Bruno** | the request collection that is the day's handout | [usebruno.com/downloads](https://www.usebruno.com/downloads) |
+
+No API key, no cloud account, no sign-in, no Python. [Setup](/modules/00-setup/) walks every step
+and ends on one request that says `ready`.
+
 ## The rule this course is built on
 
-No concept is introduced before you have **seen the failure that requires it**. Ten of the eleven
-modules open on the previous one's measured wall; module 2 is the one declared exception, and says
-so on its own page — it exists to earn one sentence three later gates spend.
+No concept is introduced before you have **seen the failure that requires it**. Each module opens
+on the previous one's wall; module 2 is the one declared exception, and says so on its own page —
+it exists to earn one sentence that three later gates spend.
 
-**bare LLM** → *it invents a penalty, then abstains, in the same voice* → **what a weight is** →
-*a weight is a frozen photograph* → **fine-tuning** → *the photograph is of last quarter, and it
-can cite nothing* → **stuff the prompt** → *it fits, and you pay for the whole book on every
-question* → **keyword search** → *hit@1 0.000 on the six Turkish questions about English
-documents* → **naive RAG** → *hit@1 0.600 over 28 whole documents* → **the right embedder** →
-*ChromaDB's default gets none of those six, `bge-m3` gets two, and whole documents are still
-0.600* → **structure-aware chunking** → *hit@1 0.700, in a Python list that dies with the
-process* → **ChromaDB** → *storage is settled, 0.700 is not* → **hybrid + rerank** → *fusion
-loses, the reranker only levels, and `multi_hop` is still 0.000* → **agentic RAG**.
-
-Every gap there is 0.05 or a multiple of it — one question in twenty. Read the direction, not the
-digit.
+**bare LLM** → *it answers about our airline, confidently, with no source — and it is wrong* →
+**what a weight is** → *a weight is a frozen photograph of the training data* → **fine-tuning** →
+*we can re-take the photograph with our data — and it is of last quarter, and it cites nothing* →
+**the data moved** → *put the whole rule book in the prompt: it fits, and you pay for the whole
+book, in tokens and in seconds, on every question* → **simple RAG** → *hand it the right piece:
+the answer is grounded — now look at what was actually retrieved* → **ChromaDB** → *the chunks
+are visible, and the one with the number has lost its header* → **chunking and noise** → *cut at
+the document's own structure: same model, same store, right answer* → **freshness** → *re-ingest
+last quarter's edition and this quarter's: 120 → 90 with no retraining* → **closing**.
 
 <CardGrid>
-  <Card title="It runs offline" icon="laptop">
-    No API key, no cloud account, no sign-in. Generation and embeddings both run locally
-    through Ollama, on your own machine.
+  <Card title="It runs local" icon="laptop">
+    Generation and embeddings run through Ollama on your own machine; ChromaDB and the API run
+    in two containers next to it. The office network is never on the critical path.
   </Card>
-  <Card title="It is measured, not asserted" icon="approve-check">
-    The same 20 gold questions come back four times during the day — modules 5, 6, 7 and 9 —
-    scored on `hit@1`, `recall@5` and `MRR`. You watch the numbers move.
+  <Card title="You see every stage" icon="magnifier">
+    Every request returns what the pipeline did: ingest timings per stage, the chunks as they sit
+    in the store, retrieval scores, and the exact prompt the model received.
   </Card>
-  <Card title="It shows what does not work" icon="warning">
-    Including the results that contradict the blog posts: combining two retrievers does not
-    always beat either alone, and you see the run where it does not.
+  <Card title="One question, all day" icon="approve-check">
+    The same cancellation-penalty question is asked at every gate. You watch the answer go from
+    invented, to grounded-but-wrong, to right, to right-for-this-quarter.
   </Card>
   <Card title="You leave with it working" icon="rocket">
-    Every notebook and exercise stays on your machine and still runs on Monday morning, with no
-    network.
+    The repository, the containers and the Bruno collection stay on your laptop and still run on
+    Monday morning, with no network.
   </Card>
 </CardGrid>
 
 ## How the day runs
 
-There are exactly two surfaces, and the repository root anchors both. **A terminal at the
-repository root** — the folder holding `corpus/`, `notebooks/`, `eval/` and `exercises/` — runs
-every `ollama …` command and everything written as `python scripts/…`, `python exercises/…` or
-`python eval/…`. **VS Code, with that same repository root as the open folder**, runs the nine
-notebooks: percent-format `.py` files under `notebooks/`, where you put the cursor in a `# %%`
-block and press `Shift+Enter`. No Jupyter server, no browser notebook, no cloud console.
-[Setup](/modules/00-setup/) walks both in full; the only dependencies are `numpy` and `chromadb`.
+Theory modules — how a neural network learns, how a model is trained and fine-tuned — are driven
+by the trainer from the projector; there is nothing to run on your laptop for them. Practical
+modules send you to **Bruno**: the page names a folder and a request, you run it, and the
+response is the lesson. Each request has a *Docs* tab with the gate question and what to look for.
 
-Setup is pre-work, done at home the evening before. In the room the day opens at 09:10 with ten
-minutes of everyone running `verify_setup.py` at once; module 1 then starts on a cold model.
+There are exactly three surfaces, and every command fence on this site says which one it belongs
+to: **Bruno** (a folder and a request in the `amadeus-rag-lab` collection), a **terminal at the
+repository root of `amadeus-rag-lab`** (for `ollama …`, `podman …` and `curl …`), and **Podman
+Desktop** (to see the two containers). Retrieval quality numbers — `hit@1`, `recall@5`, `MRR` over
+the twenty gold questions — are measured by the trainer with `npm run eval` and quoted on the
+pages where they matter; nobody in the room runs a benchmark.
 
-`UNVERIFIED: the plan opens at 09:00 with a ten-minute demo of the finished agent. No page on this site carries that material, so the day as written begins at 09:10.`
-
-Three of the day's results are things you *run* rather than things you build, so they live in
-`exercises/` as one terminal command each:
-
-| Module | Command | Roughly |
-|---|---|---|
-| 6 — is the default embedder right for your language? | `python exercises/m6_embedding_bakeoff.py` | ~18 s |
-| 7 — why did retrieval bring back garbage? | `python exercises/m7_chunking_ladder.py` | ~50 s |
-| 9 — when does a reranker actually pay? | `python exercises/m9_rerank_trade.py` | ~4 min |
-
-M-series Mac, models already resident; considerably longer on a CPU-only laptop. The rule behind
-the split:
-
-> If it is a **measurement**, you run one command and we compare numbers.
-> If it is a **mechanism**, we build it together in cells.
+The day is 7 October 2026, 09:00–15:00. Setup is pre-work, done at home the evening before.
 
 Start at [Setup](/modules/00-setup/); every term the day uses is defined once in the
-[glossary](/reference/glossary/).
+[glossary](/reference/glossary/), and what the day deliberately leaves out — hybrid retrieval,
+reranking, agentic RAG — is in [Going further](/reference/going-further/).

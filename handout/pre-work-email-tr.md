@@ -2,160 +2,95 @@
 
 > Bu bir şablon. Göndermeden önce: linkleri tıkla, komutları temiz bir makinede kopyala-yapıştır
 > dene, ve kendi telefonundan maili aç — kod blokları düzgün görünüyor mu bak.
+> `UNVERIFIED` ile işaretli iki yer (Windows'ta admin'siz Podman, api imajının boyutu) 2–4 Ekim
+> provasında gerçek bir Windows laptopta doğrulanıp düzeltilmeli.
 
 ---
 
-**Konu:** RAG eğitimi 7 Ekim — hazırlık: 10 dakika iş, ~3.9 GB (lütfen ofiste değil evde)
+**Konu:** RAG eğitimi 7 Ekim — hazırlık: üç kurulum, ~5 GB indirme (lütfen ofiste değil evde)
 
 Merhaba,
 
-7 Ekim Çarşamba günkü RAG eğitimi tamamen **kendi laptopunuzda, çevrimdışı** çalışacak. API
-key yok, cloud hesabı yok, hiçbir yere giriş yok. Bunun tek bedeli: modelleri **önceden**
-indirmiş olmanız gerekiyor.
+7 Ekim Çarşamba günkü RAG eğitimi tamamen **kendi laptopunuzda** çalışacak. API key yok, cloud
+hesabı yok, hiçbir yere giriş yok, Python yok. Bunun tek bedeli: üç programı kurmuş ve iki modeli
+**önceden** indirmiş olmanız gerekiyor.
 
-**Lütfen bunu evde yapın, ofis ağında değil.** Hepsi bittiğinde diskte ~3.9 GB yer tutuyor:
-3.4 GB model, ~400 MB kurulmuş paket, 83 MB ONNX embedder, 11.6 MB MNIST. Yavaş makineler için
-yedek modeli de alırsanız ~4.9 GB. Komutları yazmak on dakika sürüyor; indirmelerin bitmesi
-bağlantınıza göre 25 dakikayı buluyor.
+**Lütfen bunu evde yapın, ofis ağında değil.** Hepsi bittiğinde diskte yaklaşık 5 GB yer tutuyor:
+4.5 GB model, ~650 MB ChromaDB imajı ve lab'ın küçük api imajı. Komutları yazmak on dakika;
+indirmelerin bitmesi bağlantınıza göre yarım saati buluyor.
 
-**Eğitim günü salonda model indirmek yok.** Yirmi laptop aynı anda birkaç GB çekmeye
-kalkarsa sabahı kaybediyoruz. Aşağıdaki adımlar bunun için var.
+**Eğitim günü salonda model indirmek yok.** Yirmi laptop aynı anda birkaç GB çekmeye kalkarsa
+sabahı kaybediyoruz. Aşağıdaki adımlar bunun için var.
 
-Aşağıdaki **her komut repo kökünde** koşuyor — yani 3. adımda `cd` yaptığınız klasörde.
+## 1. Üç programı kurun — 10 dakika
 
-## 1. Ollama kurun — 2 dakika
+| | Ne işe yarıyor | Nereden |
+|---|---|---|
+| **Ollama** | modelleri laptopunuzda çalıştırıyor | https://ollama.com/download |
+| **Podman Desktop** | ChromaDB'yi ve lab'ın api'sini container olarak çalıştırıyor | https://podman-desktop.io |
+| **Bruno** | gün boyu tıklayarak ilerlediğimiz istek koleksiyonu | https://www.usebruno.com/downloads |
 
-[ollama.com](https://ollama.com) → indir → kur.
-Windows'ta yükleyici kendi kullanıcı klasörünüze kuruyor, admin sormuyor.
+- **Ollama**, Windows'ta kendi kullanıcı klasörünüze kuruluyor, admin sormuyor. Kurulumdan sonra
+  açık terminal pencerelerini kapatıp yenisini açın: `ollama` komutu ancak yeni pencerede tanınıyor.
+- **Podman Desktop**, Windows'ta altta WSL2 kullanıyor; ilk açılışta "Podman makinesi"ni kurmasını
+  isteyin. `UNVERIFIED: WSL2 makinenizde kapalıysa açılması admin hakkı ve bir yeniden başlatma
+  isteyebilir.` Admin şifresi sorarsa **durun ve bana yazın** — sabah 09:00'da IT ile tartışmaktan
+  iyidir; makinesi yeşil olan biriyle eşleştiririz.
+- **Bruno**, her iki sistemde de admin istemeden kuruluyor.
 
-Kurulumdan sonra açık olan terminal pencerelerini kapatıp yenisini açın: `ollama` komutu ancak
-yeni pencerede tanınıyor.
-
-## 2. Üç model indirin — 3.4 GB, bağlantınıza göre 10-25 dakika
+## 2. İki model indirin — 4.5 GB, bağlantınıza göre 15–30 dakika
 
 Terminal (Windows'ta PowerShell) açıp:
 
 ```
-ollama pull qwen2.5:3b
+ollama pull gemma3:4b
 ollama pull bge-m3
-ollama pull nomic-embed-text
 ```
 
-`ollama list` bunları 1.9 GB, 1.2 GB ve 274 MB olarak gösteriyor. Üçü de gerekiyor —
-`nomic-embed-text` küçük ama modül 6 ve 9'da `bge-m3` ile karşılaştırdığımız model, yani
-atlanamıyor.
+`ollama list` bunları 3.3 GB ve 1.2 GB olarak gösteriyor. İkisi de gerekiyor: birincisi soruları
+cevaplıyor, ikincisi metni vektöre çeviriyor. **Başka bir model koymayın** — gün içindeki her
+cevap bu ikisiyle üretildi; model değişirse cevaplar da değişir.
 
-Laptopunuz yavaşsa şunu da ekleyin (yedek, 986 MB):
-```
-ollama pull qwen2.5:1.5b
-```
-
-Gerekip gerekmediğini 6. adımdaki script söylüyor; emin değilseniz önce onu koşturun.
-
-## 3. Python + repo — 3 dakika
-
-Python 3.10 veya üzeri gerekiyor. Yoksa [python.org](https://python.org) →
-**"Add python.exe to PATH" kutusunu işaretleyin** → "Install for me only" seçin (admin istemez).
+## 3. Lab'ı klonlayıp bir kez ayağa kaldırın — 5 dakika + indirme
 
 ```
-git clone https://github.com/kuthaygumus/amadeus-rag-training
-cd amadeus-rag-training
-python -m pip install -r requirements.txt
+git clone https://github.com/kuthaygumus/amadeus-rag-lab
+cd amadeus-rag-lab
+podman compose up --build
 ```
 
 **git yoksa gerek de yok.** Şu ZIP'i indirip çıkarın, sonra çıkardığınız klasöre `cd` yapın:
-https://github.com/kuthaygumus/amadeus-rag-training/archive/refs/heads/main.zip
+https://github.com/kuthaygumus/amadeus-rag-lab/archive/refs/heads/main.zip
 
-Çıplak `pip` değil `python -m pip` yazın: Windows'ta ikisi farklı Python'lara denk gelebiliyor ve
-paketler notebook'ların göremediği bir yere kuruluyor. Kabuğunuz sadece `py` tanıyorsa
-`py -m pip install -r requirements.txt` kullanın (ve aşağıda `python` yazan her yerde `py`).
+İlk `podman compose up --build` iki şey yapıyor: ChromaDB imajını indiriyor (~650 MB) ve lab'ın
+api imajını oluşturuyor (bir dakika civarı). İkisi de **bir kere** oluyor; gün içinde tekrar
+indirme yok. Terminalde `chroma` ve `api` satırları akmaya başladığında bitti demektir.
+Bu pencereyi açık bırakın, 4. adıma geçin. İşiniz bitince aynı pencerede `Ctrl+C`, sonra
+`podman compose down` diyebilirsiniz; indirilenler diskte kalıyor.
 
-İki paket kuruyor — `numpy` ve `chromadb`, başka hiçbir şey: bağımlılıklarıyla birlikte diskte
-yaklaşık 400 MB yer kaplıyor, ağdan inen bayt sayısı bundan az. Yine, evde.
+`UNVERIFIED: api imajının oluşması sırasında \`npm ci\` kurumsal proxy arkasında takılabilir.
+Evde yapın; imaj bir kez oluştuğunda ofiste yeniden oluşturulmuyor.`
 
-## 4. Notebook'ları açacağınız editör — 3 dakika
+## 4. Yeşil ışık — 1 dakika
 
-Notebook sunucusu kurmuyoruz: Jupyter yok, tarayıcı notebook'u yok. Notebook'lar `notebooks/`
-altında percent-format `.py` dosyaları ve VS Code onları blok blok çalıştırıyor.
+Bruno'yu açın → **Open Collection** → klonladığınız klasörün içindeki `bruno/amadeus-rag-lab`
+klasörünü seçin → sağ üstten environment olarak **`local`** seçin → soldan **`00-health`** →
+**`health`** isteğini açıp **→ (Send)** deyin.
 
-- [code.visualstudio.com](https://code.visualstudio.com) → Windows'ta **User Installer**
-  (kendi profilinize kuruyor, admin istemiyor).
-- VS Code içinde Extensions (`Ctrl+Shift+X`) → **Python** ara → Microsoft'unkini kur.
-- `File → Open Folder` ile **`amadeus-rag-training` klasörünün kendisini** açın — yani repo
-  kökünü, içindeki `notebooks/` klasörünü **değil**. Gün içindeki komutların bir kısmı
-  `python scripts/...` ve `python eval/...` diye yazılı; `notebooks/` klasörünü açarsanız
-  hepsi kırılır.
-- `Ctrl+Shift+P` → `Python: Select Interpreter` → paketleri kurduğunuz Python'ı seçin.
-- `notebooks/` altından bir `.py` dosyası açıp imleci bir `# %%` bloğunun içine koyun,
-  `Shift+Enter`. Interactive window açılıp o bloğu çalıştırıyor. Çalışması gereken tek şey bu.
+**`"status": "ready"` ve dört `"ok"` görüyorsanız işiniz bitti.** Kapatın, unutun, çarşamba görüşürüz.
 
-## 5. Model olmayan iki dosyayı indirin — 1 dakika + ~95 MB
+Cevap başka bir şey diyorsa eksik olanı ismiyle söylüyor:
 
-```
-python scripts/seed_offline_assets.py
-```
-
-İki şey daha var ve ikisi de salonda inmesin: modül 2'nin üzerinde eğitim yaptığı MNIST veri
-seti (11.6 MB, dört arşiv) ve ChromaDB'nin kendi varsayılan embedder'ı `all-MiniLM-L6-v2`
-(83 MB) — bu ikincisini modül 6'nın bake-off'u da, modül 8'in notebook'u da kullanıyor. Bu
-script ikisini de evde indiriyor. İki kez çalıştırmak sorun değil, diskte olanı atlıyor.
-
-## 6. Yeşil ışık — 30 saniye
-
-```
-python scripts/verify_setup.py
-```
-
-**`READY` görüyorsanız işiniz bitti.** Kapatın, unutun, çarşamba görüşürüz.
-
-Script sırayla şunlara bakıyor, hepsi kendi makinenizde — hiçbiri internete çıkmıyor:
-
-| kontrol | ne arıyor |
+| cevapta ne yazıyor | ne yapacaksınız |
 |---|---|
-| Python 3.10+ | çalıştırdığınız yorumlayıcının sürümü |
-| `numpy`, `chromadb` | 3. adımda kurulan iki paket |
-| MNIST | `notebooks/mnist_data/` içinde dört arşiv |
-| `all-MiniLM-L6-v2` | ChromaDB'nin ONNX önbelleği (5. adım) |
-| VS Code + Python eklentisi | alışıldık yerlere bakıyor — bulamazsa `warn`, `FAIL` değil |
-| Ollama çalışıyor mu | `localhost:11434` cevap veriyor mu |
-| `qwen2.5:3b`, `bge-m3`, `nomic-embed-text` | tam etiketle; `qwen2.5:1.5b` bunların yerine geçmiyor |
-| `kraken-q2` | yoksa `warn` — aşağıya bakın |
-| embedding çalışıyor mu | `bge-m3`'e biri Türkçe iki metin verip vektör boyutuna bakıyor |
-| model tabloyu doğru okuyor mu | küçük bir ceza tablosunda K sınıfının iptal cezasını soruyor; doğru cevap **EUR 90** |
-| makine ne kadar hızlı | o cevabın süresi: 3 sn altı rahat, 8 sn altı idare eder, üstü **bana haber verin** |
+| `"ollama": "unreachable at …"` | Ollama açık değil — uygulamayı başlatın (menü çubuğu / sistem tepsisinde ikonu görünmeli) |
+| `"chatModel": "missing — run: ollama pull …"` (ya da `embedModel`) | cevabın içinde yazan `ollama pull` komutunu aynen koşturun |
+| `"chroma": "unreachable at …"` | 3. adımdaki `podman compose up` çalışmıyor — terminal penceresine bakın |
+| Bruno "could not connect" | api container'ı ayakta değil — `podman ps` iki satır göstermeli |
 
-`NOT READY` görüyorsanız script size tam olarak neyin eksik olduğunu ve ne yapmanız gerektiğini
-yazıyor. Takılırsanız bana çıktının ekran görüntüsünü atın — sabah 09:10'da yanınıza oturmaktan
-iyidir.
+`collections` boş görünüyor; normal — henüz hiçbir şey ingest edilmedi, onu salonda yapıyoruz.
 
-Bazı satırlar `warn` yazıyor (`kraken-q2` kurulu değil, VS Code bulunamadı gibi). Uyarılar
-`READY`'yi bozmuyor; okuyup geçebilirsiniz. Son satır makinenizi "yavaş" diye işaretlerse
-`ollama pull qwen2.5:1.5b` deyin ve bana yazın.
-
-Windows'ta Python'ı hiç kuramadıysanız önce şunu koşturun, o da eksikleri söyler:
-```
-powershell -ExecutionPolicy Bypass -File scripts\verify_setup.ps1
-```
-
-Bu komut `running scripts is disabled on this system` diyorsa makinenizin script politikası
-Group Policy ile kilitlenmiş demektir ve `-ExecutionPolicy` onu geçemez. Admin hakkı da
-gerekmiyor, şunu deneyin:
-```
-Get-Content scripts\verify_setup.ps1 | powershell -NoProfile -Command -
-```
-
-## `kraken-q2`: bende yok, sizde de olmayacak — normal
-
-Modül 3'te kullandığımız `kraken-q2` fine-tune modeli **hiçbir registry'de yok**, yani
-`ollama pull kraken-q2` onu bulamaz. GPU'da bir kez üretiliyor ve **USB stick ile** dağıtılıyor;
-onu gün sabahı ben getiriyorum. `verify_setup.py` bu satırı `warn` olarak yazıyor, `FAIL` olarak
-değil — yani `READY` görmenize engel değil.
-
-Elinizde olmaması bir sorun değil: o modülün fine-tune'a soru soran **iki probe hücresi**
-`(skipped — kraken-q2 not installed)` yazıp geçiyor. Yerine kayıtlı bir çıktı da oynatılmıyor,
-çünkü o notebook'un kaydı yok. Modülün asıl konusu olan kısım — Q2 ve Q3 fare sheet'lerini
-diskten okuyup iki `| K |` satırını yan yana basan hücreler — hiçbir model gerektirmiyor ve
-çalışmaya devam ediyor. Canlı görmek isterseniz gün sabahı benden isteyin.
+Takılırsanız bana cevabın ekran görüntüsünü atın — sabah 09:10'da yanınıza oturmaktan iyidir.
 
 ## İndirme tutmazsa: USB var
 
@@ -180,20 +115,21 @@ USB'den kopyalarken iki şeye dikkat:
 
 Sonra Ollama'yı açıp `ollama list` deyin.
 
-## İsteğe bağlı: Podman
+## Windows'ta bilinen bir pürüz
 
-Günün bir modülünde ChromaDB'yi container'da servis olarak çalıştıracağız.
-[podman.io](https://podman.io) kurup repo kökünde `podman compose up -d` diyebiliyorsanız o
-modülü izlemek yerine kendiniz koşturursunuz. **Kuramazsanız hiçbir şey bozulmaz** — diğer sekiz
-notebook container'sız çalışıyor.
-
-Windows'ta Podman altta WSL2 çalıştırıyor, yani admin ve bir yeniden başlatma gerekiyor.
-Zorlanmayın, opsiyonel.
+`00-health` `"ollama": "unreachable at …"` diyor ama terminalde `ollama list` çalışıyorsa: Windows'ta
+Ollama bazen sadece `127.0.0.1`'i dinliyor ve container içinden görünmüyor. Kullanıcı ortam
+değişkeni olarak `OLLAMA_HOST=0.0.0.0` ekleyip Ollama'yı kapatıp açın, isteği tekrar gönderin.
+Admin gerekmiyor.
 
 ## Gün hakkında
 
-09:00–15:00, öğle arası var. Notebook'lar sizde kalıyor ve pazartesi sabahı da,
-internetsiz, aynı laptopta çalışmaya devam ediyor.
+09:00–15:00, öğle arası var. Günün teori kısımlarını (sinir ağı nasıl öğrenir, fine-tuning)
+projektörden ben anlatıyorum — onlar için laptopunuzda hiçbir şey çalışmıyor. Pratik kısımlarda
+site size Bruno'da bir klasör ve bir istek adı veriyor; gönderiyorsunuz, cevap dersin kendisi.
+
+Repo, container'lar ve Bruno koleksiyonu sizde kalıyor; pazartesi sabahı da, internetsiz, aynı
+laptopta çalışmaya devam ediyor.
 
 Materyal: https://amadeus-rag-training.vercel.app/tr/
 

@@ -10,19 +10,27 @@
 
 # %%
 import json
-import sys
 import urllib.request
 from pathlib import Path
+from types import SimpleNamespace
 
-sys.path[:0] = [".", "notebooks"]
-# No model is required to reach the end of this file: the two probes below check for `kraken-q2`
-# themselves and say so if it is absent. The preflight is here for the working directory, so the
-# `../corpus` paths resolve whether you started in `notebooks/` or at the repository root.
-import _preflight; _preflight.ready()
-import retrieval as R
+# Self-contained: one Ollama call and the two corpus folders. Runs from the repository root or from
+# `notebooks/`. No model is required to reach the end of this file: the two probes below check for
+# `kraken-q2` themselves and say so if it is absent.
+ROOT = Path("..") if Path("../corpus").is_dir() else Path(".")
 
-Q2 = Path("../corpus/2026-Q2")     # the edition the model was trained on
-Q3 = Path("../corpus/2026-Q3")     # the edition actually in force
+def _generate(prompt: str, model: str, max_tokens: int = 400) -> str:
+    body = {"model": model, "prompt": prompt, "stream": False,
+            "options": {"temperature": 0.0, "num_predict": max_tokens}}
+    request = urllib.request.Request(f"{R.OLLAMA}/api/generate", data=json.dumps(body).encode(),
+                                     headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(request, timeout=300) as response:
+        return json.load(response)["response"].strip()
+
+R = SimpleNamespace(OLLAMA="http://localhost:11434", generate=_generate)
+
+Q2 = ROOT / "corpus/2026-Q2"     # the edition the model was trained on
+Q3 = ROOT / "corpus/2026-Q3"     # the edition actually in force
 print(f"Q2 edition: {len(list(Q2.glob('*.md')))} documents")
 print(f"Q3 edition: {len(list(Q3.glob('*.md')))} documents")
 

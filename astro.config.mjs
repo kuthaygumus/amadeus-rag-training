@@ -5,17 +5,16 @@ import { satteri } from '@astrojs/markdown-satteri';
 
 /** Module spine — mirrors the GATE chain. Each entry is one stage of the day. */
 const modules = [
-  ['00-setup',     '0. Setup — Before You Arrive',        '0. Kurulum — Gelmeden Önce'],
-  ['01-bare-llm',  '1. The Bare LLM Wall',                '1. Çıplak LLM Duvarı'],
-  ['02-neural-net','2. How a Neural Network Learns',      '2. Sinir Ağı Nasıl Öğrenir'],
-  ['03-finetune',  '3. Fine-Tuning: Your Own Model',      '3. Fine-Tuning: Kendi Modelin'],
-  ['04-stuff-prompt','4. Just Stuff the Prompt',          "4. Hepsini Prompt'a Doldur"],
-  ['05-naive-rag', '5. Keyword Search to Naive RAG',      "5. Keyword Search'ten Naive RAG'e"],
-  ['06-embeddings','6. The Embedding Bake-Off',           '6. Embedding Bake-Off'],
-  ['07-chunking',  '7. Chunking, Noise and Measurement',  '7. Chunking, Gürültü ve Ölçüm'],
-  ['08-chromadb',  '8. ChromaDB: Embedded vs Server',     '8. ChromaDB: Embedded ve Server'],
-  ['09-hybrid',    '9. Hybrid, Rerank and Contextual',    '9. Hybrid, Rerank ve Contextual'],
-  ['10-agentic',   '10. Agentic RAG — The Finale',        '10. Agentic RAG — Finale'],
+  ['00-setup',              '0. Setup — Before You Arrive',        '0. Kurulum — Gelmeden Önce'],
+  ['01-bare-llm',           '1. The Bare LLM Wall',                '1. Çıplak LLM Duvarı'],
+  ['02-neural-net',         '2. How a Neural Network Learns',      '2. Sinir Ağı Nasıl Öğrenir'],
+  ['03-finetune',           '3. Fine-Tuning: Your Own Model',      '3. Fine-Tuning: Kendi Modelin'],
+  ['04-the-data-moved',     '4. The Data Moved',                   '4. Veri Değişti'],
+  ['05-simple-rag',         '5. Simple RAG: The Pipeline',         '5. Basit RAG: Pipeline'],
+  ['06-chromadb',           '6. ChromaDB in a Container',          "6. Container'da ChromaDB"],
+  ['07-chunking-and-noise', '7. Chunking and Noise',               '7. Chunking ve Gürültü'],
+  ['08-freshness',          '8. Freshness: Why RAG Exists',        '8. Güncellik: RAG Neden Var'],
+  ['09-closing',            '9. Closing: Rewind the Chain',        '9. Kapanış: Zinciri Geri Sar'],
 ];
 
 const PRESENTER_NOTE_OPEN_TAG = '<div class="presenter-note">';
@@ -127,7 +126,7 @@ export default defineConfig({
     starlight({
       title: 'RAG Training Day',
       description:
-        'A one-day, measurement-driven RAG course. Runs fully offline on a locked-down corporate laptop.',
+        'A one-day RAG course: every concept is introduced by the failure that requires it. Runs fully local — Ollama, Podman, Bruno.',
       defaultLocale: 'root',
       locales: {
         root: { label: 'English', lang: 'en' },
@@ -162,6 +161,11 @@ export default defineConfig({
           label: 'Reference',
           translations: { tr: 'Referans' },
           items: [
+            {
+              label: 'Going Further: Hybrid, Rerank, Agentic',
+              slug: 'reference/going-further',
+              translations: { tr: 'Daha İleri: Hybrid, Rerank, Agentic' },
+            },
             { label: 'Glossary', slug: 'reference/glossary', translations: { tr: 'Sözlük' } },
           ],
         },

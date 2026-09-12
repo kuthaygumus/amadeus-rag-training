@@ -10,15 +10,19 @@
 # No PyTorch, no GPU, no framework. Just numpy, so nothing is hidden behind an API.
 
 # %%
-import gzip, sys, time
-sys.path[:0] = [".", "notebooks"]                 # the helpers sit next to this file
-import _preflight; _preflight.ready(mnist=True)   # stops with instructions if the cache is empty
+import gzip, time, urllib.request
+from pathlib import Path
 import numpy as np
 
-# The four archives are read off disk. `scripts/seed_offline_assets.py` puts them there
-# beforehand; this cell makes no network call at all, so it does not matter what the room's
-# connection is doing while twenty people run it at once.
-CACHE = _preflight.mnist_cache()
+# The four MNIST archives. Read from `mnist_data/` next to this file when they are already there;
+# fetched once from the PyTorch mirror when they are not (11.6 MB) — which is what happens in Colab.
+MIRROR = "https://ossci-datasets.s3.amazonaws.com/mnist/"
+CACHE = (Path("notebooks") if Path("notebooks").is_dir() else Path(".")) / "mnist_data"
+CACHE.mkdir(parents=True, exist_ok=True)
+for name in ("train-images-idx3-ubyte.gz", "train-labels-idx1-ubyte.gz",
+             "t10k-images-idx3-ubyte.gz", "t10k-labels-idx1-ubyte.gz"):
+    if not (CACHE / name).exists():
+        urllib.request.urlretrieve(MIRROR + name, CACHE / name)
 
 def load(name: str) -> bytes:
     with gzip.open(CACHE / name, "rb") as f:
@@ -32,7 +36,7 @@ X_train = as_images(load("train-images-idx3-ubyte.gz"))
 y_train = as_labels(load("train-labels-idx1-ubyte.gz"))
 X_test  = as_images(load("t10k-images-idx3-ubyte.gz"))
 y_test  = as_labels(load("t10k-labels-idx1-ubyte.gz"))
-print(f"train {X_train.shape}   test {X_test.shape}   (read from {CACHE.name}/, no network)")
+print(f"train {X_train.shape}   test {X_test.shape}   (from {CACHE}/)")
 
 # %% [markdown]
 # Each image is a 28×28 grid flattened to 784 numbers between 0 and 1. Here is one.

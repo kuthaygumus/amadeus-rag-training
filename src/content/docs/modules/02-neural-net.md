@@ -1,107 +1,81 @@
 ---
 title: "2. How a Neural Network Learns"
-description: "Not a gate but the setup the gates need: one MNIST run, 101,770 numbers, and the sentence the rest of the day rests on."
+description: "Not a gate but the setup the gates need: one MNIST run on the projector, 101,770 numbers, and the sentence the rest of the day rests on."
 ---
 
 ## Not a gate — a setup
 
 > **What does a model actually *do* when it learns?**
 
-Every other module today opens on a tool failing and closes on the failure that demands the next tool. This one does not, and it is worth saying so rather than dressing it up. Nothing fails here, nothing is measured against the Kraken corpus, and no retrieval technique is introduced. Module 2 exists to earn one sentence — *a weight is a frozen photograph* — which modules 3, 4 and 9 all lean on and none of them can afford to stop and derive.
+Every other module today opens on a tool failing and closes on the failure that demands the next tool. This one does not. Nothing fails here, nothing is measured against the Kraken corpus, no retrieval technique is introduced, and you type nothing. Module 2 exists to earn one sentence — *a weight is a frozen photograph of the training data* — which modules 3, 4 and 8 all lean on and none of them can afford to stop and derive.
 
 ## The failure we are still standing in
 
-Ten minutes ago the same model invented **"20-30% ceza"** where the Q3 sheet says **EUR 90**, flat, per passenger per direction. The room calls that "making something up" — a description, not an explanation.
+Ten minutes ago `gemma3:4b` answered the K-class cancellation question with a confident, invented amount where the Q3 sheet says **EUR 90**, flat, per passenger (on the 12 Sep run it was in the €50 range; your wording and number will differ). The room calls that "making something up" — a description, not an explanation.
 
-It is not enough to decide what we do next. In an hour we choose between fine-tuning this model on the rule book and retrieving the rule book at query time. You cannot make that choice honestly if you cannot say where the number 20-30 physically lives, or why EUR 90 could not have come from the same place.
+In half an hour we choose between fine-tuning this model on the rule book and handing it the rule book at query time. You cannot make that choice honestly if you cannot say where the invented number physically lives, or why EUR 90 could not have come from the same place.
 
 So we open the box. Not to teach deep learning — this is a one-day RAG course — but to earn one sentence you will need six times before 15:00.
 
 <div class="presenter-note">
-This module owns 09:32–09:52 in the agenda. Before opening the file, ask the room: "asked the same cancellation question four ways, the model came back with 100-250 TL, 100-200 TL and '2-5 days'. Where does a number like that physically live inside the model?" Take two or three answers. Someone will say "in the training data" — push back, the training data is gone, thrown away after training. Someone will say "in the weights" — then ask them what a weight is. The room usually goes quiet there. That silence is why this module exists. 90 seconds, no more.
+Twenty minutes, all on the projector, none of it on participant laptops. Before opening the notebook, ask the room: "the model just named an amount nobody ever wrote down. Where does a number like that physically live inside the model?" Take two or three answers. Someone will say "in the training data" — push back: the training data is gone, thrown away after training. Someone will say "in the weights" — then ask them what a weight is. The room usually goes quiet there. That silence is why this module exists. Ninety seconds, no more.
 </div>
 
 ## What the machine actually does
 
-We train the smallest network that is still honest: handwritten digits in, a digit out. 784 inputs, one hidden layer of 128 with ReLU, 10 outputs. **101,770 parameters.**
+We train the smallest network that is still honest: a handwritten digit in, a digit out. 784 inputs, one hidden layer of 128 neurons, 10 outputs. **101,770 parameters** — four arrays of floating-point numbers, and nothing else.
 
-An MNIST image is 28x28 grey pixels. Flatten it and you have a vector of 784 numbers between 0 and 1. That vector is the only thing the network ever sees; it has no idea what an image is.
+An MNIST image is 28x28 grey pixels. Flatten it and you have 784 numbers between 0 and 1. That vector is the only thing the network ever sees; it has no idea what an image is.
 
-**Forward pass.** Multiply the 784-vector by a 784x128 matrix of weights, add 128 biases, and you get 128 numbers. Set every negative one to zero — that is ReLU, the whole function is `max(0, x)`. Multiply those 128 by a 128x10 matrix, add 10 biases, and you have 10 numbers. Turn those into probabilities. The largest one is the answer. That is the entire model. Two matrix multiplies and a clamp.
+**A neuron.** In TypeScript terms, one neuron is `Math.max(0, dot(inputs, weights) + bias)`: multiply each input by its own weight, add them up, add a constant, clamp negatives to zero. That clamp is ReLU — the whole function is `max(0, x)`. A **weight** is nothing more than one entry in a `Float32Array`. A layer is 128 of those neurons sharing the same inputs, which is one matrix multiply.
 
-**Loss.** One number saying how wrong that answer was, large when the model is wrong and small when it is right. Before training the network spreads its probability roughly evenly over the ten digits, and the first batch of our run scores a loss of **2.35** — near enough to what guessing costs. The last batch we record scores **0.03**.
+**Forward pass.** Input times a 784x128 matrix, plus 128 biases, clamp; times a 128x10 matrix, plus 10 biases; turn the ten numbers into probabilities. The largest one is the answer. The whole model is a pure function `(Float32Array) => number[10]` with 101,770 constants captured inside it. Two matrix multiplies and a clamp.
 
-**Gradient.** The only real idea here. For each of the 101,770 parameters we compute how much the loss would change if that parameter went up slightly. Those 101,770 slopes are the gradient, and backpropagation is the chain rule applied efficiently enough to get all of them for roughly the cost of one more forward pass.
+**Loss.** One number saying how wrong that answer was — large when the model is wrong, small when it is right. Before training the network spreads its probability roughly evenly over the ten digits; the first batch of the recorded run scores a loss of **2.35**, which is close to what guessing costs. The last batch scores **0.03**.
 
-**Update.** Step every parameter a small distance in the direction that lowers the loss, take the next mini-batch, do it again. Sixty thousand images, five times over. Nothing else happens: no reasoning step, no stored examples, no lookup. Training is a loop that nudges 101,770 numbers until the loss stops falling.
+**Gradient descent.** The only real idea here. For each of the 101,770 numbers, compute how much the loss would change if that number went up slightly. Those 101,770 slopes are the gradient; backpropagation is the chain rule applied efficiently enough to get all of them for about the cost of one more forward pass. Then step every number a small distance in the direction that lowers the loss, take the next batch of 32 images, do it again.
+
+**Epochs.** One pass over all 60,000 training images is an epoch. We run five. Nothing else happens: no reasoning step, no stored examples, no lookup. **Training is the only loop that ever writes to the array.** Inference only reads it.
 
 <div class="presenter-note">
-Ask for a guess before running the training block: "5 epochs over 60,000 images on this laptop, no GPU, no PyTorch — how long?" Let three people commit out loud. Answers are usually minutes. Then run it: **0.94 seconds** on the machine these numbers were measured on. The gap between the guess and the clock is what makes the next twenty minutes land. It finishes before you can finish the sentence, so do not try to narrate over it — run it, let the silence sit, then print the loss curve in the next block and walk that instead. Wall time is the one figure here that moves with the hardware; if a laptop in the room takes several seconds, say so and move on. This file needs no Ollama and makes no network call, so the only real failure mode is an unseeded MNIST cache — and then the preflight prints the seed command instead of a traceback. If that happens on stage, read the measured table below off this page and keep going rather than debugging in front of the room.
+Ask for a guess before running the training cell: "five epochs over 60,000 images, no GPU, no framework — how long?" Let three people commit out loud; answers are usually minutes. Then run it — under a second on the recorded run. The gap between the guess and the clock is what makes the next fifteen minutes land. It finishes before you can finish the sentence, so do not narrate over it: run it, let the silence sit, then print the loss curve in the next cell and walk that instead. Colab's wall time will not match the recorded 0.92 s; say so and move on. If Colab is unreachable from the office network, do not debug in front of the room — read the measured table below off this page; the argument does not need the live run, only the numbers.
 </div>
 
-## Why this configuration and not a smaller one
+## What training physically changes
 
-The full run takes **0.94 s** and moves accuracy from **9.9%** before training to **95.35%** after one epoch and **97.47%** after five. The trajectory is the point: nearly all of the learning happens in the first pass, and the remaining four epochs fight over two points. Epoch four scores **97.62%**, higher than epoch five — the curve stops improving and starts wobbling, which is worth saying out loud rather than hiding. The classroom shortcut of 6,000 images and 3 epochs is in the table below; it saves a second we do not need.
+The last cell of the notebook is the one that matters. It printed one row of the first weight matrix before the training loop started, and prints the same row again afterwards — four numbers, both times — with the architecture and the parameter count between them, both marked `(unchanged)`.
 
-Everything runs on numpy. There is no PyTorch here and nothing to install beyond what the rest of the day already needs, which is exactly `numpy` and `chromadb`. It also means every line of the backward pass is visible in the file instead of behind a framework call.
+Read the two rows out loud. Same slots, same shape, different numbers. The architecture did not change. The parameter count did not change. No database appeared, no image was kept, nothing was written anywhere outside those four arrays — and accuracy went from **9.9%** to **97.47%**. Everything the network learned about sixty thousand handwritten digits is the difference between those two rows, repeated across 101,770 numbers.
+
+That difference was written once, when the loop ended, and it will look the same tomorrow. Ask this network about a digit and it answers. Ask it about anything that arrived after training and it has no mechanism to know — not because it is refusing, but because nothing is running any more.
+
+**Why that pixel and not the corner.** The row belongs to pixel 406 — row 14, column 14, the centre of the frame, where most digits put ink. Pick the top-left pixel instead and the row does not move at all: that pixel is 0.0 in all 60,000 training images, so its gradient is identically zero at every step and the row comes out bit-identical after five epochs. A row that never moves is not training failing; it is the gradient telling the truth about an input that never carried any signal. The cell prints how often pixel 406 is inked, so the choice is on screen rather than taken on trust.
 
 ## What you run
 
-**This module needs no model and no network.** If Ollama is still not working on your laptop, this is the module where you catch up: everything here is `numpy` reading four files off disk.
+**Nothing.** This module is a trainer-driven demo: no Python on participant laptops, no model, no Ollama, no container. If your [setup](/modules/00-setup/) is still not green, this is the twenty minutes in which you fix it.
 
-The dataset is seeded once, at home, on a network that allows the download.
-
-**Terminal (repo root):**
-
-```bash
-python scripts/seed_offline_assets.py
-```
-
-That writes four `.gz` archives into `notebooks/mnist_data/`, **11.6 MB** in total (11,594,722 bytes). The notebook itself makes no network call; the first block reads those four files off disk, and if they are missing the preflight stops with the command above instead of a traceback.
-
-**VS Code (repository root as the open folder) — `notebooks/01_mnist_tiny_net.py`:** open the file, put the cursor inside a `# %%` block and press `Shift+Enter`; the output appears in the Interactive window. The notebooks in this course are percent-format `.py` files run inside the editor — there is no notebook server to install.
-
-**What you should see**, block by block:
-
-1. the MNIST load — `train (60000, 784)   test (10000, 784)   (read from mnist_data/, no network)`
-2. one training image printed as ASCII, `label: 3`
-3. the four arrays — `W1 (784, 128)`, `b1`, `W2 (128, 10)`, `b2` — and `total: 101,770 numbers`
-4. the forward pass, then `accuracy before any training: 9.9%`
-5. the training loop: five epoch lines ending `epoch 5: test accuracy 97.47%`, then `trained in 0.94 seconds on a laptop CPU`
-6. the loss curve as ASCII — `first batch: loss 2.35     last: loss 0.03`
-7. one test image, `label: 7  predicted: 7  confidence: 99.9%`
-8. the recap — architecture and parameter count `(unchanged)`, one weight row printed **before and after** training, `accuracy: 97.47%   (was 9.9%)`
-
-**How long.** The whole file runs end to end in **1.34 s**; the training block is 0.94 s of it. The seeding step is a one-off download the evening before.
-
-**Block 8 is the one that matters.** The architecture did not change. The parameter count did not change. No database appeared, no images were kept, nothing was written anywhere outside those four arrays — and yet accuracy went from 9.9% to 97.47%. So the block captures one row of the first weight matrix before the training loop starts and prints it next to the same row afterwards.
-
-**VS Code — `notebooks/01_mnist_tiny_net.py`, the last block prints:**
+**Projector (trainer):**
 
 ```text
-architecture:    784 -> 128 -> 10       (unchanged)
-parameter count: 101,770                (unchanged)
-W1[406][:4] before: [ 0.10354524  0.07287528  0.07160226  0.00540626]
-W1[406][:4] now:    [ 0.06162055  0.05243098  0.03562581 -0.06474155]
-accuracy:        97.47%   (was 9.9%)
+https://colab.research.google.com/github/kuthaygumus/amadeus-rag-training/blob/main/notebooks/01_mnist_tiny_net.ipynb
 ```
 
-Four numbers, all four moved, and the last one changed sign. Everything the network learned about sixty thousand handwritten digits is that difference, repeated across 101,770 numbers. That is a photograph of the training set, taken once when the loop ended, and it will look the same tomorrow.
+The trainer opens `notebooks/01_mnist_tiny_net.ipynb` in Colab — or runs it locally on the trainer machine — and walks it cell by cell. Plain array arithmetic, no framework, no GPU, so every line of the backward pass is visible in the cell instead of hidden behind a library call.
 
-**Why pixel 406, and not pixel 0.** 406 is row 14, column 14 — the centre of the frame, where two digits in three put ink. Pick a corner instead and the row does not move at all: `W1[0]` weights the top-left pixel, which is 0.0 in all 60,000 training images, so `grad_W1 = X.T @ dh` makes its gradient identically zero at every step and the row comes out bit-identical after five epochs. Sixty-seven of the 784 inputs are dead like that. A row that never moves is not training failing; it is the gradient telling the truth about a pixel that never carried any signal.
+**What to watch for** on the projector, in order:
 
-<div class="presenter-note">
-Print block 8 and read the two `W1[406]` lines out loud, left to right, before saying anything about them. Someone always asks "how do we know the whole thing moved and not just those four?" — the answer is that this is one row of 784, chosen because it is a centre pixel, and the accuracy line above it is the aggregate proof. If a sceptic goes off-script and prints a corner row, you want the dead-pixel paragraph ready rather than improvised: 67 of the 784 inputs are always zero, their gradient is identically zero, and their weights never move. That is a feature of the arithmetic, not a bug in the run. The exact digits on your screen are what count — do not read them off this page if your own run printed something different.
-</div>
+1. the four arrays — `W1 (784, 128)`, `b1`, `W2 (128, 10)`, `b2` — and `total: 101,770 numbers`, all random
+2. `accuracy before any training: 9.9%` — one in ten, exactly what guessing gets you
+3. five epoch lines, each with a test accuracy and the elapsed seconds, then `trained in … seconds on a laptop CPU`
+4. the loss curve as ASCII — a column of `#` falling from 2.35 to 0.03
+5. the last cell: `architecture … (unchanged)`, `parameter count … (unchanged)`, the `W1[406][:4] before` and `now` rows, `accuracy: 97.47%   (was 9.9%)`
+
+**Later, if you want to.** The Colab link above works in any browser on a personal Google account; it is optional, nothing later today depends on it, and it is for home, not the corporate network. `UNVERIFIED: whether the notebook runs in Colab unmodified — as shipped, its first cell reads the MNIST archives from a local cache rather than downloading them; the trainer confirms the Colab path before the day.`
 
 ## What the numbers said
 
 <div class="measured">
-
-| configuration | images | epochs | wall time | accuracy |
-|---|---|---|---|---|
-| classroom shortcut | 6,000 | 3 | 0.05 s | 91.67% |
-| **what we run** | **60,000** | **5** | **0.94 s** | **9.9% -> 97.47%** |
 
 | epoch | test accuracy |
 |---|---|
@@ -109,40 +83,39 @@ Print block 8 and read the two `W1[406]` lines out loud, left to right, before s
 | 1 | 95.35% |
 | 2 | 96.45% |
 | 3 | 97.26% |
-| 4 | 97.62% |
+| 4 | **97.62%** |
 | 5 | 97.47% |
 
 | architecture | value |
 |---|---|
 | shape | 784 -> 128 (ReLU) -> 10 |
-| parameters | 101,770 |
-| first batch loss -> last | 2.35 -> 0.03 |
-| whole file, end to end | 1.34 s |
+| parameters | 101,770 — `W1` 100,352 + `b1` 128 + `W2` 1,280 + `b2` 10 |
+| learning rate / batch / epochs | 0.1 / 32 / 5 |
+| cross-entropy, first batch -> last | 2.35 -> 0.03 |
+| training wall clock | 0.92 s |
 
-Reproduce with `python notebooks/01_mnist_tiny_net.py` from a repo-root terminal, or by running the blocks in VS Code. The rng seed is fixed at 0, so the accuracies land where they land here to within a rounding digit. Wall time was measured on an M-series laptop CPU and is the one figure that moves with the machine.
+Recorded on the trainer's M-series Mac, CPU only. The random seed is fixed at 0, so the accuracies are exact, not approximate — a rerun lands on the same digits. Wall time is the one figure that moves with the machine; in Colab it will differ. Two things worth saying out loud: nearly all of the learning happens in the first epoch, and epoch 4 scores higher than epoch 5 — the curve stops improving and starts wobbling.
 
-`UNVERIFIED: the classroom-shortcut row (6,000 images, 3 epochs, 0.05 s, 91.67%) — it predates the re-run and has no entry in eval/RESULTS.md or notebooks/cached_runs.json. Direction only: less data and fewer epochs finish faster and score several points lower.`
-
-`UNVERIFIED: the eight W1[406][:4] digits above — measured on the seeded run during the audit, not yet carried into the eval/RESULTS.md module 2 appendix. What the block has to show is that all four numbers move; read the digits off your own screen.`
+`UNVERIFIED: the eight digits in the W1[406][:4] before/now rows — not carried into any recorded table. What the cell has to show is that all four numbers move; read the digits off the projector, not off this page.`
 
 </div>
 
 ## Going deeper
 
-**Why ReLU.** Without a non-linearity between the two matrix multiplies the network collapses: a matrix times a matrix is another matrix, so 784 -> 128 -> 10 would be exactly as expressive as a single 784 -> 10 layer. ReLU is the cheapest function that breaks it — one comparison per number, a gradient of 0 or 1, no saturation. Its known failure is that a unit whose input is always negative gets a zero gradient forever and stops learning, which is why GELU and SiLU replaced it in transformers; the Qwen models we run today use SiLU inside a gated MLP, which is why module 3's adapter targets `gate_proj`, `up_proj` and `down_proj`.
+**Why ReLU.** Without a non-linearity between the two matrix multiplies the network collapses: a matrix times a matrix is another matrix, so 784 -> 128 -> 10 would be exactly as expressive as a single 784 -> 10 layer. ReLU is the cheapest function that breaks that — one comparison per number, a gradient of 0 or 1. Its known failure is that a neuron whose input is always negative gets a zero gradient forever and stops learning, which is why smoother variants replaced it in transformers; the Qwen model module 3 fine-tunes uses SiLU inside a gated MLP, which is why its adapter targets `gate_proj`, `up_proj` and `down_proj`.
 
 **Where the 101,770 lives.** 784 x 128 = 100,352 weights in the first layer plus 128 biases = 100,480. Then 128 x 10 = 1,280 plus 10 biases = 1,290. Total 101,770, and 98.7% of it sits in the first layer — parameters concentrate wherever the widest thing meets the next widest thing.
 
-**What changes at transformer scale.** Almost nothing conceptual. `qwen2.5:3b` is the same forward-loss-gradient-update loop with attention layers instead of one dense layer and text tokens instead of pixels — three billion parameters against our 101,770, roughly 30,000 times more, and 1.9 GB on disk as installed. The differences that bite are economic: our run is 0.94 s on a laptop CPU, and pretraining a 3B model is a cluster job nobody repeats because a fare changed. And the loop is offline. At inference the weights are read, never written.
+**What changes at transformer scale.** Almost nothing conceptual. `gemma3:4b` is the same forward-loss-gradient-update loop with attention layers instead of one dense layer and text tokens instead of pixels — about four billion parameters against our 101,770, roughly 40,000 times more, 3.3 GB on disk as pulled. The differences that bite are economic: our run is under a second on a laptop CPU; pretraining a 4B model is a cluster job nobody repeats because a fare changed. And the loop is offline. At inference the weights are read, never written.
 
 **At 10 million documents.** You are not training, so this costs you nothing directly — but once knowledge is inside the weights, changing it means another training run and another evaluation, per change, and anything that moves quarterly does not belong in there.
 
 ## Exit line
 
-> Training means fitting weights to data. A weight is a frozen photograph.
+> Training means fitting weights to data. A weight is a frozen photograph of the training data.
 
-Which leaves the room holding the next question: if that is where knowledge lives, **how do I get *my* data into those weights?** That is module 3, and it works — which is the problem.
+Which leaves the room holding the next question: if that is where knowledge lives, **can we re-take the photograph with *our* data?** That is [module 3](/modules/03-finetune/), and it works — which is the problem.
 
 <div class="presenter-note">
-This is the sentence not to garble, and both halves have to land. Say it slowly, then repeat the second half with the consequence attached: "a frozen photograph — after training the knowledge is in the numbers, and the numbers do not change again unless you train again." Do not soften it and do not add a caveat about continual learning. Write it on the board and leave it there; module 3 walks straight into it when the Q2 fine-tune keeps answering EUR 120. Twenty minutes total, 09:32–09:52. If you are behind and have to bring this in at fourteen, cut in this order: the "Going deeper" asides, block 6 (the loss curve) and block 7 (the single prediction). Never cut the guess-the-time question, the training run itself, block 8 with both `W1[406]` lines, or the exit sentence — that is the chain, and module 3 opens on it.
+This is the sentence not to garble, and both halves have to land. Say it slowly, then repeat the second half with the consequence attached: "a frozen photograph — after training the knowledge is in the numbers, and the numbers do not change again unless you train again." Do not soften it and do not add a caveat about continual learning. Write it on the board and leave it there; module 3 walks straight into it when the Q2 fine-tune keeps answering EUR 120, and module 8 closes the day on it. Twenty minutes total. If you are behind and have to do it in fourteen, cut in this order: the "Going deeper" asides, the loss curve, the single-prediction cell. Never cut the guess-the-time question, the training run itself, the last cell with both W1[406] rows, or the exit sentence — that is the chain, and module 3 opens on it.
 </div>
